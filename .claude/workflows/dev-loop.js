@@ -141,6 +141,12 @@ const IMPLEMENTATION_SCHEMA = {
   required: ['applied'],
 };
 
+const GIT_SCHEMA = {
+  type: 'object', additionalProperties: true,
+  properties: { stdout: { type: 'string' } },
+  required: ['stdout'],
+};
+
 const VERIFICATION_SCHEMA = {
   type: 'object', additionalProperties: true,
   properties: {
@@ -172,14 +178,14 @@ function determineFilter(cycleNum, diagnosis) {
 phase('Initialize');
 
 // Check git working tree
-const gitClean = await agent(
-  `Check if the git working tree is clean. Run \`git status --porcelain\` and return the output. If empty, the tree is clean.`,
-  { label: 'git-check', phase: 'Initialize' },
+const gitResult = await agent(
+  `Run \`cd /Users/minh/Documents/medesign && git status --porcelain\`. Return ONLY the raw stdout as { stdout: "<output>" }. Do NOT add any explanation.`,
+  { label: 'git-check', phase: 'Initialize', schema: GIT_SCHEMA },
 );
-const isClean = gitClean && typeof gitClean === 'string' && gitClean.trim().length === 0;
+const isClean = gitResult && typeof gitResult.stdout === 'string' && gitResult.stdout.trim().length === 0;
 if (!isClean) {
   log('ERROR: Git working tree is not clean. Commit or stash changes before running dev-loop.');
-  return { error: 'Dirty working tree. Please commit or stash first.', gitStatus: gitClean };
+  return { error: 'Dirty working tree. Please commit or stash first.', gitStatus: gitResult };
 }
 
 // Load or create history
@@ -295,8 +301,8 @@ while (!done && !stalled && cycleNumber <= MAX_CYCLES) {
 
   // ── 3. IMPLEMENT ──────────────────────────────────────────────────────
   phase('Implement');
-  const gitBefore = await agent(`Run \`git status --porcelain\` to confirm tree is still clean. Return the output.`, { label: `git-before:r${cycleNumber}`, phase: 'Implement' });
-  const stillClean = gitBefore && typeof gitBefore === 'string' && gitBefore.trim().length === 0;
+  const gitBefore = await agent(`Run \`cd /Users/minh/Documents/medesign && git status --porcelain\`. Return ONLY the raw stdout as { stdout: "<output>" }.`, { label: `git-before:r${cycleNumber}`, phase: 'Implement', schema: GIT_SCHEMA });
+  const stillClean = gitBefore && typeof gitBefore.stdout === 'string' && gitBefore.stdout.trim().length === 0;
   if (!stillClean) {
     log('Working tree changed unexpectedly. Aborting cycle.');
     cycleNumber++;
