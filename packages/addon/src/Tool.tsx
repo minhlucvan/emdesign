@@ -3,7 +3,7 @@ import { IconButton, Separator } from '@storybook/components';
 import { useChannel, useStorybookApi } from '@storybook/manager-api';
 import { styled } from '@storybook/theming';
 import { api } from './api';
-import { EVT_TOOL_MODE, EVT_COMMENT_SUBMIT, EVT_TEXT_SUBMIT, type ToolMode, type CommentTarget } from './channel';
+import { EVT_TOOL_MODE, EVT_COMMENT_SUBMIT, EVT_TEXT_SUBMIT, EVT_CHAT_MODE, type ToolMode, type CommentTarget } from './channel';
 import { VIEW_MODE_CREATE } from './constants';
 import { useStudioState } from './ui';
 
@@ -31,9 +31,10 @@ const TOOLS: Array<{ mode: Exclude<ToolMode, 'off'>; title: string; label: strin
   },
 ];
 
-/** Toolbar: comment / copy / pen mode group + a "+ Create" jump + the active design-system chip. */
+/** Toolbar: comment / copy / pen mode group + Chat toggle + "+ Create" jump + the active design-system chip. */
 export function Tool() {
   const [mode, setMode] = useState<ToolMode>('off');
+  const [chatMode, setChatMode] = useState(false);
   const modeRef = useRef<ToolMode>('off');
   const { state } = useStudioState(3000);
   const sbApi = useStorybookApi();
@@ -69,6 +70,12 @@ export function Tool() {
     try { (sbApi as any)?.navigateUrl?.(`/${VIEW_MODE_CREATE}/${storyId}`, { plain: false }); } catch { /* fall back to the top-bar tab */ }
   };
 
+  const toggleChat = () => {
+    const next = !chatMode;
+    setChatMode(next);
+    emit(EVT_CHAT_MODE, { enabled: next });
+  };
+
   return (
     <>
       <Separator />
@@ -77,6 +84,11 @@ export function Tool() {
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden>{t.icon}</svg>
         </IconButton>
       ))}
+      <IconButton key="emdesign-chat" active={chatMode} title={chatMode ? 'Switch to story tree' : 'Chat mode: browse Claude sessions in sidebar'} onClick={toggleChat}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill={chatMode ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        </svg>
+      </IconButton>
       <IconButton key="emdesign-create" title="emdesign: create a component, story, view, or design system" onClick={openCreate}>
         <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden>
           <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />

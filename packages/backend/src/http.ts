@@ -1,4 +1,5 @@
 import express from 'express';
+import multer from 'multer';
 import path from 'node:path';
 import type { Store } from './state.js';
 import type { RepoPaths } from './paths.js';
@@ -23,7 +24,7 @@ import type { IntentType, CommentTarget } from './state.js';
  * MCP tools use, so the panel reflects the agent's live progress. CORS is wide-open for
  * localhost dev only.
  */
-export function createHttpBridge(store: Store, paths: RepoPaths) {
+export async function createHttpBridge(store: Store, paths: RepoPaths, orch?: any) {
   const app = express();
   app.use(express.json());
   app.use((_req, res, next) => {
@@ -259,6 +260,26 @@ export function createHttpBridge(store: Store, paths: RepoPaths) {
     }
   });
 
+  // ---- file upload ----
+  const uploadDir = path.join(paths.root, 'uploads');
+  const upload = multer({ dest: uploadDir });
+  app.post('/api/upload', upload.single('file'), (req, res) => {
+    if (!req.file) return res.status(400).json({ error: 'no file provided' });
+    // Multer saves to uploadDir with a random filename. Keep original name.
+    const ext = path.extname(req.file.originalname);
+    const saved = path.join(uploadDir, `${req.file.filename}${ext}`);
+    fs.renameSync(req.file.path, saved);
+    res.json({
+      ok: true,
+      path: saved,
+      originalName: req.file.originalname,
+      size: req.file.size,
+      url: `/api/uploads/${path.basename(saved)}`,
+    });
+  });
+  // Serve uploaded files
+  app.use('/api/uploads', express.static(uploadDir));
+
   // ---- vision critique endpoints ----
 
   app.post('/api/vision-critique', async (req, res) => {
@@ -297,13 +318,78 @@ export function createHttpBridge(store: Store, paths: RepoPaths) {
     }
   });
 
+  // ---- chat stream (SSE) ----
+  app.post('/api/chat/stream', async (req, res) => {
+    const message = String(req.body?.message ?? '').trim();
+    if (!message) return res.status(400).json({ error: 'message required' });
+
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      Connection: 'keep-alive',
+      'Access-Control-Allow-Origin': '*',
+    });
+
+    try {
+      const { AgentRunner } = await import('@emdesign/session');
+      const { claudeAdapter } = await import('@emdesign/backend');
+      const runner = new AgentRunner();
+
+      const handle = await runner.spawn({
+        def: claudeAdapter,
+        cwd: paths.root,
+        prompt: message,
+        allowedDirs: [paths.root],
+      });
+
+      // Cancel if client disconnects
+      req.on('close', () => handle.cancel().catch(() => {}));
+
+      handle.onLog((line) => {
+        try {
+          const ev = JSON.parse(line);
+          if (ev.type === 'assistant' && ev.message?.content) {
+            for (const block of ev.message.content) {
+              if (block.type === 'text' && block.text) {
+                res.write(`data: ${JSON.stringify({ type: 'text', text: block.text })}\n\n`);
+              }
+            }
+          } else if (ev.type === 'error') {
+            res.write(`data: ${JSON.stringify({ type: 'error', error: ev.error?.message || JSON.stringify(ev) })}\n\n`);
+          }
+        } catch { /* non-JSON line */ }
+      });
+
+      const { exitCode, text } = await handle.waitForExit();
+      res.write(`data: ${JSON.stringify({ type: 'done', exitCode, finalText: text?.slice(0, 500) })}\n\n`);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error('[emdesign] Chat stream error:', msg);
+      try { res.write(`data: ${JSON.stringify({ type: 'error', error: msg })}\n\n`); } catch {}
+    }
+    res.end();
+  });
+
+  // Mount session/service routes if orchestrator is provided
+  if (orch) {
+    try {
+      // Dynamic import to avoid hard dependency on @emdesign/session
+      const { createSessionRouter } = await import('@emdesign/session');
+      const router = createSessionRouter(orch);
+      app.use('/api', router);
+    } catch {
+      // @emdesign/session not available — skip session routes
+    }
+  }
+
   return app;
 }
 
-export function startHttpBridge(store: Store, paths: RepoPaths, port = 4321) {
-  const app = createHttpBridge(store, paths);
-  return app.listen(port, () => {
+export async function startHttpBridge(store: Store, paths: RepoPaths, port = 4321, orch?: any) {
+  const app = await createHttpBridge(store, paths, orch);
+  const server = app.listen(port, () => {
     // eslint-disable-next-line no-console
     console.error(`[emdesign] HTTP bridge on http://localhost:${port} (repo: ${path.basename(paths.root)})`);
   });
+  return server;
 }

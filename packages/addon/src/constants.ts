@@ -4,11 +4,15 @@ export const TAB_ID = `${ADDON_ID}/tab`;
 export const DS_TAB_ID = `${ADDON_ID}/ds`;
 export const CREATE_TAB_ID = `${ADDON_ID}/create`;
 export const TOOL_ID = `${ADDON_ID}/tool`;
+export const SESSIONS_TAB_ID = `${ADDON_ID}/sessions`;
+export const SERVICES_TAB_ID = `${ADDON_ID}/services`;
 
 /** Each full-page tab owns a viewMode + route (so it's a top-level surface, not docked). */
 export const VIEW_MODE_SYSTEM = 'emdesign';
 export const VIEW_MODE_DS = 'emdesign-ds';
 export const VIEW_MODE_CREATE = 'emdesign-create';
+export const VIEW_MODE_SESSIONS = 'emdesign-sessions';
+export const VIEW_MODE_SERVICES = 'emdesign-services';
 
 /**
  * The emdesign Studio backend HTTP bridge. The addon (browser) talks to the backend over
@@ -140,3 +144,43 @@ export type HealthInfo = {
 };
 
 export type GraphStats = { id: string; stats: Record<string, number> };
+
+// ── Session / Service types ────────────────────────────────────────
+
+export type SessionStatus = 'created' | 'running' | 'paused' | 'completed' | 'failed' | 'cancelled';
+export type ServiceStatus = 'stopped' | 'starting' | 'running' | 'stopping' | 'error' | 'crashed';
+export type ServiceType = 'storybook' | 'http-bridge' | 'mcp-server' | 'backend';
+
+export interface SessionSummary {
+  id: string;
+  display: string;
+  timestamp: number;
+  project: string;
+  projectName: string;
+  emdesignStatus?: SessionStatus;
+  emdesignType?: string;
+  currentPhase?: string;
+  currentRound?: number;
+  intentsProcessed?: number;
+  elapsedMs?: number;
+}
+
+export interface ServiceInfo {
+  type: ServiceType;
+  status: ServiceStatus;
+  pid?: number;
+  port?: number;
+  startedAt?: string;
+  restartCount: number;
+}
+
+export interface PlatformState {
+  claudeSessions: SessionSummary[];
+  emdesignSessions: SessionSummary[];
+  services: Record<ServiceType, ServiceInfo>;
+}
+
+export interface SessionListResponse {
+  claudeSessions: SessionSummary[];
+  emdesignSessions: SessionSummary[];
+}

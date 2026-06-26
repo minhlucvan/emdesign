@@ -9,6 +9,11 @@ import {
   type LogsResponse,
   type HealthInfo,
   type GraphStats,
+  type SessionListResponse,
+  type SessionSummary,
+  type ServiceInfo,
+  type PlatformState,
+  type ServiceType,
 } from './constants';
 import type { CommentTarget } from './channel';
 
@@ -52,4 +57,25 @@ export const api = {
   // element crop for a captured comment target
   elementCrop: (component: string, box: CommentTarget['box']) =>
     post('/api/element-crop', { component, box }) as Promise<{ url: string | null }>,
+
+  // ── Session management ──────────────────────────────────────────────
+  listSessions: () => json<SessionListResponse>('/api/sessions'),
+  createSession: (body: { type: string; instruction?: string }) =>
+    post('/api/sessions', body) as Promise<SessionSummary>,
+  cancelSession: (id: string) =>
+    post(`/api/sessions/${id}/cancel`, {}) as Promise<{ ok: boolean }>,
+  getSessionConversation: (id: string) =>
+    json<unknown[]>(`/api/sessions/${id}/conversation`),
+
+  // ── Service management ──────────────────────────────────────────────
+  listServices: () => json<Record<string, ServiceInfo>>('/api/services'),
+  startService: (type: ServiceType) =>
+    post(`/api/services/${type}/start`, {}) as Promise<ServiceInfo>,
+  stopService: (type: ServiceType) =>
+    post(`/api/services/${type}/stop`, {}) as Promise<{ ok: boolean }>,
+  restartService: (type: ServiceType) =>
+    post(`/api/services/${type}/restart`, {}) as Promise<ServiceInfo>,
+
+  // ── Platform status ─────────────────────────────────────────────────
+  getPlatformStatus: () => json<PlatformState>('/api/platform/status'),
 };

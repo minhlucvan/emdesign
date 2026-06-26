@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { api } from './api';
 import {
-  useStudioState, Page, PageTitle, Sub, Grid2, Section, SectionTitle, Row, Stack, Muted, Pill, Mono, ErrorBanner,
+  useStudioState, Page, PageTitle, Sub, Section, SectionTitle, Row, Stack, Muted, Pill, Mono, ErrorBanner,
 } from './ui';
-import type { HealthInfo, LogsResponse, GraphStats } from './constants';
+import type { HealthInfo, LogsResponse, GraphStats, ServiceInfo, ServiceType, ServiceStatus } from './constants';
 
 /** The "emdesign" tab: a system/status/logs dashboard — health, activity feed, evidence logs, graph. */
 export function SystemTab() {
@@ -11,6 +11,11 @@ export function SystemTab() {
   const [health, setHealth] = useState<HealthInfo | null>(null);
   const [logs, setLogs] = useState<LogsResponse | null>(null);
   const [graph, setGraph] = useState<GraphStats | null>(null);
+  const [services, setServices] = useState<Record<string, ServiceInfo> | null>(null);
+
+  const loadServices = useCallback(async () => {
+    try { setServices(await api.listServices()); } catch { /* not available */ }
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -29,9 +34,11 @@ export function SystemTab() {
       } catch { /* backend down — useStudioState surfaces the error */ }
     };
     tick();
+    loadServices();
     const t = setInterval(tick, 3000);
-    return () => { alive = false; clearInterval(t); };
-  }, []);
+    const svc = setInterval(loadServices, 5000);
+    return () => { alive = false; clearInterval(t); clearInterval(svc); };
+  }, [loadServices]);
 
   if (error) return <Page><ErrorBanner error={error} /></Page>;
 
@@ -39,7 +46,7 @@ export function SystemTab() {
     <Page>
       <PageTitle>emdesign</PageTitle>
       <Sub>system status · activity · logs</Sub>
-      <Grid2>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, alignItems: 'start' }}>
         <Stack gap={12}>
           <Section>
             <SectionTitle>Status</SectionTitle>
@@ -88,8 +95,94 @@ export function SystemTab() {
             ) : <Muted>no evidence yet (run a craft loop)</Muted>}
           </Section>
         </Stack>
-      </Grid2>
+      </div>
+
+      {/* Services section — moved from standalone Services tab */}
+      <Section style={{ marginTop: 16 }}>
+        <SectionTitle>Services</SectionTitle>
+        <Stack gap={6}>
+          {services ? (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {(Object.entries(services) as [ServiceType, ServiceInfo][]).map(([type, info]) => (
+                <ServiceBadge key={type} type={type} info={info} onRefresh={loadServices} />
+              ))}
+            </div>
+          ) : (
+            <Muted>services unavailable (run with platform manager)</Muted>
+          )}
+        </Stack>
+      </Section>
     </Page>
+  );
+}
+
+const SERVICE_LABELS: Record<ServiceType, string> = {
+  storybook: 'Storybook',
+  'http-bridge': 'HTTP Bridge',
+  'mcp-server': 'MCP Server',
+  backend: 'Backend',
+};
+
+function serviceTone(status: ServiceStatus): 'ok' | 'bad' | 'warn' | 'muted' {
+  switch (status) {
+    case 'running': return 'ok';
+    case 'starting': return 'warn';
+    case 'stopping': return 'warn';
+    case 'error':
+    case 'crashed': return 'bad';
+    case 'stopped': return 'muted';
+  }
+}
+
+function ServiceBadge({ type, info, onRefresh }: { type: ServiceType; info: ServiceInfo; onRefresh: () => void }) {
+  const [busy, setBusy] = useState(false);
+
+  const handleAction = async (action: 'start' | 'stop' | 'restart') => {
+    setBusy(true);
+    try {
+      if (action === 'start') await api.startService(type);
+      else if (action === 'stop') await api.stopService(type);
+      else await api.restartService(type);
+      await new Promise(r => setTimeout(r, 500)); // let status propagate
+      onRefresh();
+    } catch { /* ignore */ }
+    setBusy(false);
+  };
+
+  return (
+    <div style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 8,
+      padding: '6px 10px',
+      borderRadius: 6,
+      background: '#1a1a2e',
+      border: '1px solid #2a2a3e',
+      fontSize: 12,
+    }}>
+      <Pill tone={serviceTone(info.status)}>{info.status}</Pill>
+      <strong style={{ color: '#ccc' }}>{SERVICE_LABELS[type]}</strong>
+      {info.port && <Muted>:{info.port}</Muted>}
+      <div style={{ display: 'flex', gap: 4, marginLeft: 4 }}>
+        {info.status === 'running' ? (
+          <button onClick={() => handleAction('stop')} disabled={busy}
+            style={{ background: 'none', border: '1px solid #555', color: '#f88', borderRadius: 3, padding: '1px 6px', cursor: 'pointer', fontSize: 10 }}>
+            stop
+          </button>
+        ) : (
+          <button onClick={() => handleAction('start')} disabled={busy}
+            style={{ background: 'none', border: '1px solid #555', color: '#8f8', borderRadius: 3, padding: '1px 6px', cursor: 'pointer', fontSize: 10 }}>
+            start
+          </button>
+        )}
+        {info.status === 'running' && (
+          <button onClick={() => handleAction('restart')} disabled={busy}
+            style={{ background: 'none', border: '1px solid #555', color: '#ccc', borderRadius: 3, padding: '1px 6px', cursor: 'pointer', fontSize: 10 }}>
+            restart
+          </button>
+        )}
+      </div>
+    </div>
   );
 }
 
