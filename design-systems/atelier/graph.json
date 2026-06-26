@@ -67,6 +67,50 @@
       }
     },
     {
+      "id": "atelier/charters/accent-usage.ts",
+      "label": "file",
+      "props": {
+        "path": "charters/accent-usage.ts",
+        "type": "asset",
+        "source": {
+          "file": "atelier/charters/accent-usage.ts"
+        }
+      }
+    },
+    {
+      "id": "atelier/charters/button-padding.ts",
+      "label": "file",
+      "props": {
+        "path": "charters/button-padding.ts",
+        "type": "asset",
+        "source": {
+          "file": "atelier/charters/button-padding.ts"
+        }
+      }
+    },
+    {
+      "id": "atelier/charters/heading-font.ts",
+      "label": "file",
+      "props": {
+        "path": "charters/heading-font.ts",
+        "type": "asset",
+        "source": {
+          "file": "atelier/charters/heading-font.ts"
+        }
+      }
+    },
+    {
+      "id": "atelier/charters/index.ts",
+      "label": "file",
+      "props": {
+        "path": "charters/index.ts",
+        "type": "asset",
+        "source": {
+          "file": "atelier/charters/index.ts"
+        }
+      }
+    },
+    {
       "id": "atelier/code/Badge.tsx",
       "label": "file",
       "props": {
@@ -155,6 +199,83 @@
       }
     },
     {
+      "id": "atelier/group/color",
+      "label": "cssVarGroup",
+      "props": {
+        "name": "color"
+      }
+    },
+    {
+      "id": "atelier/group/paper",
+      "label": "cssVarGroup",
+      "props": {
+        "name": "paper"
+      }
+    },
+    {
+      "id": "atelier/group/ink",
+      "label": "cssVarGroup",
+      "props": {
+        "name": "ink"
+      }
+    },
+    {
+      "id": "atelier/group/aged-ink",
+      "label": "cssVarGroup",
+      "props": {
+        "name": "aged ink"
+      }
+    },
+    {
+      "id": "atelier/group/terracotta",
+      "label": "cssVarGroup",
+      "props": {
+        "name": "terracotta"
+      }
+    },
+    {
+      "id": "atelier/group/fired-terracotta",
+      "label": "cssVarGroup",
+      "props": {
+        "name": "fired terracotta"
+      }
+    },
+    {
+      "id": "atelier/group/deckle-edge",
+      "label": "cssVarGroup",
+      "props": {
+        "name": "deckle edge"
+      }
+    },
+    {
+      "id": "atelier/group/type",
+      "label": "cssVarGroup",
+      "props": {
+        "name": "type"
+      }
+    },
+    {
+      "id": "atelier/group/shape-/-depth",
+      "label": "cssVarGroup",
+      "props": {
+        "name": "shape / depth"
+      }
+    },
+    {
+      "id": "atelier/group/motion",
+      "label": "cssVarGroup",
+      "props": {
+        "name": "motion"
+      }
+    },
+    {
+      "id": "atelier/group/layout",
+      "label": "cssVarGroup",
+      "props": {
+        "name": "layout"
+      }
+    },
+    {
       "id": "atelier/--color-surface",
       "label": "token",
       "props": {
@@ -162,8 +283,7 @@
         "kind": "color",
         "value": "#fbfaf7",
         "source": {
-          "file": "atelier/tokens.css",
-          "line": 4
+          "file": "atelier/tokens.css"
         }
       }
     },
@@ -182,8 +302,7 @@
         "kind": "color",
         "value": "#ffffff",
         "source": {
-          "file": "atelier/tokens.css",
-          "line": 5
+          "file": "atelier/tokens.css"
         }
       }
     },
@@ -202,8 +321,7 @@
         "kind": "color",
         "value": "#1a1714",
         "source": {
-          "file": "atelier/tokens.css",
-          "line": 6
+          "file": "atelier/tokens.css"
         }
       }
     },
@@ -222,8 +340,7 @@
         "kind": "color",
         "value": "#6b645c",
         "source": {
-          "file": "atelier/tokens.css",
-          "line": 7
+          "file": "atelier/tokens.css"
         }
       }
     },
@@ -242,8 +359,7 @@
         "kind": "color",
         "value": "#b4532a",
         "source": {
-          "file": "atelier/tokens.css",
-          "line": 8
+          "file": "atelier/tokens.css"
         }
       }
     },
@@ -262,8 +378,7 @@
         "kind": "color",
         "value": "#8f3f1f",
         "source": {
-          "file": "atelier/tokens.css",
-          "line": 9
+          "file": "atelier/tokens.css"
         }
       }
     },
@@ -282,8 +397,7 @@
         "kind": "color",
         "value": "#e6e1d8",
         "source": {
-          "file": "atelier/tokens.css",
-          "line": 10
+          "file": "atelier/tokens.css"
         }
       }
     },
@@ -302,8 +416,7 @@
         "kind": "color",
         "value": "#3f6b42",
         "source": {
-          "file": "atelier/tokens.css",
-          "line": 11
+          "file": "atelier/tokens.css"
         }
       }
     },
@@ -322,8 +435,7 @@
         "kind": "color",
         "value": "#9a6b1f",
         "source": {
-          "file": "atelier/tokens.css",
-          "line": 12
+          "file": "atelier/tokens.css"
         }
       }
     },
@@ -342,8 +454,7 @@
         "kind": "color",
         "value": "#963228",
         "source": {
-          "file": "atelier/tokens.css",
-          "line": 13
+          "file": "atelier/tokens.css"
         }
       }
     },
@@ -362,8 +473,7 @@
         "kind": "type",
         "value": "\"Newsreader\", \"Georgia\", serif",
         "source": {
-          "file": "atelier/tokens.css",
-          "line": 16
+          "file": "atelier/tokens.css"
         }
       }
     },
@@ -383,8 +493,7 @@
         "kind": "type",
         "value": "\"Inter\", system-ui, -apple-system, sans-serif",
         "source": {
-          "file": "atelier/tokens.css",
-          "line": 17
+          "file": "atelier/tokens.css"
         }
       }
     },
@@ -404,8 +513,7 @@
         "kind": "type",
         "value": "\"JetBrains Mono\", ui-monospace, monospace",
         "source": {
-          "file": "atelier/tokens.css",
-          "line": 18
+          "file": "atelier/tokens.css"
         }
       }
     },
@@ -425,8 +533,7 @@
         "kind": "radius",
         "value": "8px",
         "source": {
-          "file": "atelier/tokens.css",
-          "line": 21
+          "file": "atelier/tokens.css"
         }
       }
     },
@@ -438,8 +545,7 @@
         "kind": "radius",
         "value": "5px",
         "source": {
-          "file": "atelier/tokens.css",
-          "line": 22
+          "file": "atelier/tokens.css"
         }
       }
     },
@@ -451,8 +557,7 @@
         "kind": "radius",
         "value": "999px",
         "source": {
-          "file": "atelier/tokens.css",
-          "line": 23
+          "file": "atelier/tokens.css"
         }
       }
     },
@@ -464,8 +569,7 @@
         "kind": "spacing",
         "value": "8px",
         "source": {
-          "file": "atelier/tokens.css",
-          "line": 24
+          "file": "atelier/tokens.css"
         }
       }
     },
@@ -477,8 +581,7 @@
         "kind": "shadow",
         "value": "0 1px 2px rgba(26, 23, 20, 0.06), 0 8px 24px rgba(26, 23, 20, 0.05)",
         "source": {
-          "file": "atelier/tokens.css",
-          "line": 25
+          "file": "atelier/tokens.css"
         }
       }
     },
@@ -490,8 +593,7 @@
         "kind": "shadow",
         "value": "0 0 0 3px rgba(180, 83, 42, 0.28)",
         "source": {
-          "file": "atelier/tokens.css",
-          "line": 26
+          "file": "atelier/tokens.css"
         }
       }
     },
@@ -503,8 +605,7 @@
         "kind": "motion",
         "value": "120ms",
         "source": {
-          "file": "atelier/tokens.css",
-          "line": 29
+          "file": "atelier/tokens.css"
         }
       }
     },
@@ -516,8 +617,7 @@
         "kind": "motion",
         "value": "220ms",
         "source": {
-          "file": "atelier/tokens.css",
-          "line": 30
+          "file": "atelier/tokens.css"
         }
       }
     },
@@ -529,8 +629,7 @@
         "kind": "motion",
         "value": "cubic-bezier(0.2, 0, 0, 1)",
         "source": {
-          "file": "atelier/tokens.css",
-          "line": 31
+          "file": "atelier/tokens.css"
         }
       }
     },
@@ -542,8 +641,7 @@
         "kind": "layout",
         "value": "1180px",
         "source": {
-          "file": "atelier/tokens.css",
-          "line": 34
+          "file": "atelier/tokens.css"
         }
       }
     },
@@ -555,9 +653,41 @@
         "kind": "layout",
         "value": "96px",
         "source": {
-          "file": "atelier/tokens.css",
-          "line": 35
+          "file": "atelier/tokens.css"
         }
+      }
+    },
+    {
+      "id": "atelier/contrast/color-surface-color-text",
+      "label": "contrastPair",
+      "props": {
+        "bg": "color-surface",
+        "fg": "color-text",
+        "ratio": 17.1,
+        "aa": true,
+        "aaLarge": true
+      }
+    },
+    {
+      "id": "atelier/contrast/color-surface-raised-color-text",
+      "label": "contrastPair",
+      "props": {
+        "bg": "color-surface-raised",
+        "fg": "color-text",
+        "ratio": 17.85,
+        "aa": true,
+        "aaLarge": true
+      }
+    },
+    {
+      "id": "atelier/contrast/color-surface-color-text-muted",
+      "label": "contrastPair",
+      "props": {
+        "bg": "color-surface",
+        "fg": "color-text-muted",
+        "ratio": 5.58,
+        "aa": true,
+        "aaLarge": true
       }
     },
     {
@@ -566,6 +696,10 @@
       "props": {
         "title": "Visual Theme & Atmosphere",
         "index": 1,
+        "tableRows": 0,
+        "wordCount": 82,
+        "bulletCount": 0,
+        "namesStates": false,
         "source": {
           "file": "atelier/DESIGN.md",
           "line": 19
@@ -578,6 +712,10 @@
       "props": {
         "title": "Color",
         "index": 2,
+        "tableRows": 10,
+        "wordCount": 136,
+        "bulletCount": 0,
+        "namesStates": true,
         "source": {
           "file": "atelier/DESIGN.md",
           "line": 23
@@ -590,6 +728,10 @@
       "props": {
         "title": "Typography",
         "index": 3,
+        "tableRows": 10,
+        "wordCount": 203,
+        "bulletCount": 0,
+        "namesStates": false,
         "source": {
           "file": "atelier/DESIGN.md",
           "line": 42
@@ -602,6 +744,10 @@
       "props": {
         "title": "Spacing",
         "index": 4,
+        "tableRows": 0,
+        "wordCount": 37,
+        "bulletCount": 0,
+        "namesStates": false,
         "source": {
           "file": "atelier/DESIGN.md",
           "line": 61
@@ -614,6 +760,10 @@
       "props": {
         "title": "Layout & Composition",
         "index": 5,
+        "tableRows": 0,
+        "wordCount": 54,
+        "bulletCount": 0,
+        "namesStates": false,
         "source": {
           "file": "atelier/DESIGN.md",
           "line": 65
@@ -626,6 +776,10 @@
       "props": {
         "title": "Components",
         "index": 6,
+        "tableRows": 0,
+        "wordCount": 106,
+        "bulletCount": 5,
+        "namesStates": true,
         "source": {
           "file": "atelier/DESIGN.md",
           "line": 69
@@ -638,6 +792,10 @@
       "props": {
         "title": "Motion & Interaction",
         "index": 7,
+        "tableRows": 0,
+        "wordCount": 31,
+        "bulletCount": 0,
+        "namesStates": true,
         "source": {
           "file": "atelier/DESIGN.md",
           "line": 77
@@ -650,6 +808,10 @@
       "props": {
         "title": "Voice & Brand",
         "index": 8,
+        "tableRows": 0,
+        "wordCount": 45,
+        "bulletCount": 0,
+        "namesStates": false,
         "source": {
           "file": "atelier/DESIGN.md",
           "line": 81
@@ -662,6 +824,10 @@
       "props": {
         "title": "Anti-patterns",
         "index": 9,
+        "tableRows": 0,
+        "wordCount": 98,
+        "bulletCount": 0,
+        "namesStates": false,
         "source": {
           "file": "atelier/DESIGN.md",
           "line": 85
@@ -674,6 +840,10 @@
       "props": {
         "title": "Tokens",
         "index": 10,
+        "tableRows": 0,
+        "wordCount": 16,
+        "bulletCount": 0,
+        "namesStates": false,
         "source": {
           "file": "atelier/DESIGN.md",
           "line": 100
@@ -757,6 +927,16 @@
       "label": "variant",
       "props": {
         "name": "secondary",
+        "source": {
+          "file": "atelier/code/Button.tsx"
+        }
+      }
+    },
+    {
+      "id": "atelier/Button@danger",
+      "label": "variant",
+      "props": {
+        "name": "danger",
         "source": {
           "file": "atelier/code/Button.tsx"
         }
@@ -1068,6 +1248,42 @@
           "file": "skills/web-section/SKILL.md"
         }
       }
+    },
+    {
+      "id": "charter/atelier/accent-usage",
+      "label": "charter",
+      "props": {
+        "name": "accent-usage",
+        "dsId": "atelier",
+        "file": "atelier/charters/accent-usage.ts",
+        "source": {
+          "file": "atelier/charters/accent-usage.ts"
+        }
+      }
+    },
+    {
+      "id": "charter/atelier/button-padding",
+      "label": "charter",
+      "props": {
+        "name": "button-padding",
+        "dsId": "atelier",
+        "file": "atelier/charters/button-padding.ts",
+        "source": {
+          "file": "atelier/charters/button-padding.ts"
+        }
+      }
+    },
+    {
+      "id": "charter/atelier/heading-font",
+      "label": "charter",
+      "props": {
+        "name": "heading-font",
+        "dsId": "atelier",
+        "file": "atelier/charters/heading-font.ts",
+        "source": {
+          "file": "atelier/charters/heading-font.ts"
+        }
+      }
     }
   ],
   "edges": [
@@ -1104,6 +1320,34 @@
       "label": "contains",
       "from": "atelier",
       "to": "atelier/tokens.css",
+      "props": {}
+    },
+    {
+      "id": "atelier|contains|atelier/charters/accent-usage.ts",
+      "label": "contains",
+      "from": "atelier",
+      "to": "atelier/charters/accent-usage.ts",
+      "props": {}
+    },
+    {
+      "id": "atelier|contains|atelier/charters/button-padding.ts",
+      "label": "contains",
+      "from": "atelier",
+      "to": "atelier/charters/button-padding.ts",
+      "props": {}
+    },
+    {
+      "id": "atelier|contains|atelier/charters/heading-font.ts",
+      "label": "contains",
+      "from": "atelier",
+      "to": "atelier/charters/heading-font.ts",
+      "props": {}
+    },
+    {
+      "id": "atelier|contains|atelier/charters/index.ts",
+      "label": "contains",
+      "from": "atelier",
+      "to": "atelier/charters/index.ts",
       "props": {}
     },
     {
@@ -1163,6 +1407,83 @@
       "props": {}
     },
     {
+      "id": "atelier|contains|atelier/group/color",
+      "label": "contains",
+      "from": "atelier",
+      "to": "atelier/group/color",
+      "props": {}
+    },
+    {
+      "id": "atelier|contains|atelier/group/paper",
+      "label": "contains",
+      "from": "atelier",
+      "to": "atelier/group/paper",
+      "props": {}
+    },
+    {
+      "id": "atelier|contains|atelier/group/ink",
+      "label": "contains",
+      "from": "atelier",
+      "to": "atelier/group/ink",
+      "props": {}
+    },
+    {
+      "id": "atelier|contains|atelier/group/aged-ink",
+      "label": "contains",
+      "from": "atelier",
+      "to": "atelier/group/aged-ink",
+      "props": {}
+    },
+    {
+      "id": "atelier|contains|atelier/group/terracotta",
+      "label": "contains",
+      "from": "atelier",
+      "to": "atelier/group/terracotta",
+      "props": {}
+    },
+    {
+      "id": "atelier|contains|atelier/group/fired-terracotta",
+      "label": "contains",
+      "from": "atelier",
+      "to": "atelier/group/fired-terracotta",
+      "props": {}
+    },
+    {
+      "id": "atelier|contains|atelier/group/deckle-edge",
+      "label": "contains",
+      "from": "atelier",
+      "to": "atelier/group/deckle-edge",
+      "props": {}
+    },
+    {
+      "id": "atelier|contains|atelier/group/type",
+      "label": "contains",
+      "from": "atelier",
+      "to": "atelier/group/type",
+      "props": {}
+    },
+    {
+      "id": "atelier|contains|atelier/group/shape-/-depth",
+      "label": "contains",
+      "from": "atelier",
+      "to": "atelier/group/shape-/-depth",
+      "props": {}
+    },
+    {
+      "id": "atelier|contains|atelier/group/motion",
+      "label": "contains",
+      "from": "atelier",
+      "to": "atelier/group/motion",
+      "props": {}
+    },
+    {
+      "id": "atelier|contains|atelier/group/layout",
+      "label": "contains",
+      "from": "atelier",
+      "to": "atelier/group/layout",
+      "props": {}
+    },
+    {
       "id": "atelier|contains|atelier/--color-surface",
       "label": "contains",
       "from": "atelier",
@@ -1174,9 +1495,7 @@
       "label": "declaredIn",
       "from": "atelier/--color-surface",
       "to": "atelier/tokens.css",
-      "props": {
-        "line": 4
-      }
+      "props": {}
     },
     {
       "id": "atelier/--color-surface|tokenValue|atelier/#fbfaf7",
@@ -1197,9 +1516,7 @@
       "label": "declaredIn",
       "from": "atelier/--color-surface-raised",
       "to": "atelier/tokens.css",
-      "props": {
-        "line": 5
-      }
+      "props": {}
     },
     {
       "id": "atelier/--color-surface-raised|tokenValue|atelier/#ffffff",
@@ -1220,9 +1537,7 @@
       "label": "declaredIn",
       "from": "atelier/--color-text",
       "to": "atelier/tokens.css",
-      "props": {
-        "line": 6
-      }
+      "props": {}
     },
     {
       "id": "atelier/--color-text|tokenValue|atelier/#1a1714",
@@ -1243,9 +1558,7 @@
       "label": "declaredIn",
       "from": "atelier/--color-text-muted",
       "to": "atelier/tokens.css",
-      "props": {
-        "line": 7
-      }
+      "props": {}
     },
     {
       "id": "atelier/--color-text-muted|tokenValue|atelier/#6b645c",
@@ -1266,9 +1579,7 @@
       "label": "declaredIn",
       "from": "atelier/--color-accent",
       "to": "atelier/tokens.css",
-      "props": {
-        "line": 8
-      }
+      "props": {}
     },
     {
       "id": "atelier/--color-accent|tokenValue|atelier/#b4532a",
@@ -1289,9 +1600,7 @@
       "label": "declaredIn",
       "from": "atelier/--color-accent-hover",
       "to": "atelier/tokens.css",
-      "props": {
-        "line": 9
-      }
+      "props": {}
     },
     {
       "id": "atelier/--color-accent-hover|tokenValue|atelier/#8f3f1f",
@@ -1312,9 +1621,7 @@
       "label": "declaredIn",
       "from": "atelier/--color-border",
       "to": "atelier/tokens.css",
-      "props": {
-        "line": 10
-      }
+      "props": {}
     },
     {
       "id": "atelier/--color-border|tokenValue|atelier/#e6e1d8",
@@ -1335,9 +1642,7 @@
       "label": "declaredIn",
       "from": "atelier/--color-success",
       "to": "atelier/tokens.css",
-      "props": {
-        "line": 11
-      }
+      "props": {}
     },
     {
       "id": "atelier/--color-success|tokenValue|atelier/#3f6b42",
@@ -1358,9 +1663,7 @@
       "label": "declaredIn",
       "from": "atelier/--color-warn",
       "to": "atelier/tokens.css",
-      "props": {
-        "line": 12
-      }
+      "props": {}
     },
     {
       "id": "atelier/--color-warn|tokenValue|atelier/#9a6b1f",
@@ -1381,9 +1684,7 @@
       "label": "declaredIn",
       "from": "atelier/--color-danger",
       "to": "atelier/tokens.css",
-      "props": {
-        "line": 13
-      }
+      "props": {}
     },
     {
       "id": "atelier/--color-danger|tokenValue|atelier/#963228",
@@ -1404,9 +1705,7 @@
       "label": "declaredIn",
       "from": "atelier/--font-display",
       "to": "atelier/tokens.css",
-      "props": {
-        "line": 16
-      }
+      "props": {}
     },
     {
       "id": "atelier/--font-display|usesFont|atelier/face/Newsreader",
@@ -1427,9 +1726,7 @@
       "label": "declaredIn",
       "from": "atelier/--font-sans",
       "to": "atelier/tokens.css",
-      "props": {
-        "line": 17
-      }
+      "props": {}
     },
     {
       "id": "atelier/--font-sans|usesFont|atelier/face/Inter",
@@ -1450,9 +1747,7 @@
       "label": "declaredIn",
       "from": "atelier/--font-mono",
       "to": "atelier/tokens.css",
-      "props": {
-        "line": 18
-      }
+      "props": {}
     },
     {
       "id": "atelier/--font-mono|usesFont|atelier/face/JetBrains Mono",
@@ -1473,9 +1768,7 @@
       "label": "declaredIn",
       "from": "atelier/--radius",
       "to": "atelier/tokens.css",
-      "props": {
-        "line": 21
-      }
+      "props": {}
     },
     {
       "id": "atelier|contains|atelier/--radius-sm",
@@ -1489,9 +1782,7 @@
       "label": "declaredIn",
       "from": "atelier/--radius-sm",
       "to": "atelier/tokens.css",
-      "props": {
-        "line": 22
-      }
+      "props": {}
     },
     {
       "id": "atelier|contains|atelier/--radius-pill",
@@ -1505,9 +1796,7 @@
       "label": "declaredIn",
       "from": "atelier/--radius-pill",
       "to": "atelier/tokens.css",
-      "props": {
-        "line": 23
-      }
+      "props": {}
     },
     {
       "id": "atelier|contains|atelier/--space-unit",
@@ -1521,9 +1810,7 @@
       "label": "declaredIn",
       "from": "atelier/--space-unit",
       "to": "atelier/tokens.css",
-      "props": {
-        "line": 24
-      }
+      "props": {}
     },
     {
       "id": "atelier|contains|atelier/--shadow-raised",
@@ -1537,9 +1824,7 @@
       "label": "declaredIn",
       "from": "atelier/--shadow-raised",
       "to": "atelier/tokens.css",
-      "props": {
-        "line": 25
-      }
+      "props": {}
     },
     {
       "id": "atelier|contains|atelier/--focus-ring",
@@ -1553,9 +1838,7 @@
       "label": "declaredIn",
       "from": "atelier/--focus-ring",
       "to": "atelier/tokens.css",
-      "props": {
-        "line": 26
-      }
+      "props": {}
     },
     {
       "id": "atelier|contains|atelier/--motion-fast",
@@ -1569,9 +1852,7 @@
       "label": "declaredIn",
       "from": "atelier/--motion-fast",
       "to": "atelier/tokens.css",
-      "props": {
-        "line": 29
-      }
+      "props": {}
     },
     {
       "id": "atelier|contains|atelier/--motion-base",
@@ -1585,9 +1866,7 @@
       "label": "declaredIn",
       "from": "atelier/--motion-base",
       "to": "atelier/tokens.css",
-      "props": {
-        "line": 30
-      }
+      "props": {}
     },
     {
       "id": "atelier|contains|atelier/--ease-standard",
@@ -1601,9 +1880,7 @@
       "label": "declaredIn",
       "from": "atelier/--ease-standard",
       "to": "atelier/tokens.css",
-      "props": {
-        "line": 31
-      }
+      "props": {}
     },
     {
       "id": "atelier|contains|atelier/--container-max",
@@ -1617,9 +1894,7 @@
       "label": "declaredIn",
       "from": "atelier/--container-max",
       "to": "atelier/tokens.css",
-      "props": {
-        "line": 34
-      }
+      "props": {}
     },
     {
       "id": "atelier|contains|atelier/--section-y",
@@ -1633,9 +1908,28 @@
       "label": "declaredIn",
       "from": "atelier/--section-y",
       "to": "atelier/tokens.css",
-      "props": {
-        "line": 35
-      }
+      "props": {}
+    },
+    {
+      "id": "atelier|contains|atelier/contrast/color-surface-color-text",
+      "label": "contains",
+      "from": "atelier",
+      "to": "atelier/contrast/color-surface-color-text",
+      "props": {}
+    },
+    {
+      "id": "atelier|contains|atelier/contrast/color-surface-raised-color-text",
+      "label": "contains",
+      "from": "atelier",
+      "to": "atelier/contrast/color-surface-raised-color-text",
+      "props": {}
+    },
+    {
+      "id": "atelier|contains|atelier/contrast/color-surface-color-text-muted",
+      "label": "contains",
+      "from": "atelier",
+      "to": "atelier/contrast/color-surface-color-text-muted",
+      "props": {}
     },
     {
       "id": "atelier|contains|atelier/§visual-theme-atmosphere",
@@ -2064,6 +2358,20 @@
       "props": {}
     },
     {
+      "id": "atelier/Button|hasVariant|atelier/Button@danger",
+      "label": "hasVariant",
+      "from": "atelier/Button",
+      "to": "atelier/Button@danger",
+      "props": {}
+    },
+    {
+      "id": "atelier/Button@danger|uses|atelier/--color-danger",
+      "label": "uses",
+      "from": "atelier/Button@danger",
+      "to": "atelier/--color-danger",
+      "props": {}
+    },
+    {
       "id": "atelier/Button|hasState|atelier/Button:hover",
       "label": "hasState",
       "from": "atelier/Button",
@@ -2117,6 +2425,13 @@
       "label": "uses",
       "from": "atelier/Button",
       "to": "atelier/--focus-ring",
+      "props": {}
+    },
+    {
+      "id": "atelier/Button|uses|atelier/--color-danger",
+      "label": "uses",
+      "from": "atelier/Button",
+      "to": "atelier/--color-danger",
       "props": {}
     },
     {
@@ -2950,6 +3265,48 @@
       "label": "governs",
       "from": "rule/accent-overuse",
       "to": "atelier/Stack",
+      "props": {}
+    },
+    {
+      "id": "atelier|contains|charter/atelier/accent-usage",
+      "label": "contains",
+      "from": "atelier",
+      "to": "charter/atelier/accent-usage",
+      "props": {}
+    },
+    {
+      "id": "atelier|hasCharter|charter/atelier/accent-usage",
+      "label": "hasCharter",
+      "from": "atelier",
+      "to": "charter/atelier/accent-usage",
+      "props": {}
+    },
+    {
+      "id": "atelier|contains|charter/atelier/button-padding",
+      "label": "contains",
+      "from": "atelier",
+      "to": "charter/atelier/button-padding",
+      "props": {}
+    },
+    {
+      "id": "atelier|hasCharter|charter/atelier/button-padding",
+      "label": "hasCharter",
+      "from": "atelier",
+      "to": "charter/atelier/button-padding",
+      "props": {}
+    },
+    {
+      "id": "atelier|contains|charter/atelier/heading-font",
+      "label": "contains",
+      "from": "atelier",
+      "to": "charter/atelier/heading-font",
+      "props": {}
+    },
+    {
+      "id": "atelier|hasCharter|charter/atelier/heading-font",
+      "label": "hasCharter",
+      "from": "atelier",
+      "to": "charter/atelier/heading-font",
       "props": {}
     }
   ]

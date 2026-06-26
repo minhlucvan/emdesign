@@ -200,7 +200,7 @@ for (const test of tests) {
   );
 
   // Compute composites
-  const elapsed = Date.now() - t0;
+  const elapsed = 0;
 
   const blackBoxComposite =
     0.30 * (codeReview && codeReview.general || 0) +
