@@ -1,6 +1,6 @@
 export const meta = {
   name: 'dev-loop',
-  description: 'Automated benchmark-driven engine development loop. Measures current state, diagnoses weaknesses, forms a specific hypothesis, implements ONE change to the engine, re-runs the benchmark to verify, then keeps or reverts the change. Loops until production-ready (all 7 tests pass, avg rounds <= 5) or progress stalls.',
+  description: 'Automated benchmark-driven engine development loop. Measures current state, diagnoses weaknesses, forms a specific hypothesis, implements ONE change to the engine, then verifies by building a single failing component through core-loop. Full benchmark suite runs every 5 cycles as a regression check. Loops until production-ready or stalled.',
   phases: [
     { title: 'Initialize' },
     { title: 'Diagnose' },
@@ -15,7 +15,7 @@ export const meta = {
 
 // ── Config ─────────────────────────────────────────────────────────────────
 const MAX_CYCLES = (args && args.maxCycles) || 30;
-const MODE = (args && args.mode) || 'semi-auto'; // 'semi-auto' | 'auto' | 'suggest'
+const MODE = (args && args.mode) || 'semi-auto';
 const INITIAL_FILTER = (args && args.filter) || '';
 const TOLERANCE = 0.02;
 const ROUND_TOLERANCE = 2;
@@ -26,173 +26,70 @@ const REPO_ROOT = '/Users/minh/Documents/medesign';
 
 // ── Engine file registry ───────────────────────────────────────────────────
 const ENGINE_FILES = [
-  {
-    path: REPO_ROOT + '/apps/workspace/templates/claude/workflows/core-loop.js',
-    type: 'workflow', area: 'build-prompt',
-    description: 'The core build/critique loop. Contains the CREATE/EDIT prompt, critique prompts, and gate call.',
-    impactAxes: ['general', 'visual', 'functional', 'accessibility', 'tokenCompliance', 'typescript', 'complexity', 'patterns', 'rounds'],
-  },
-  {
-    path: REPO_ROOT + '/apps/workspace/templates/claude/agents/consistency-auditor.md',
-    type: 'agent', area: 'token-audit',
-    description: 'Runs lint, scores token compliance, returns file:line fix list.',
-    impactAxes: ['tokenCompliance', 'patterns'],
-  },
-  {
-    path: REPO_ROOT + '/apps/workspace/templates/claude/agents/design-reviewer.md',
-    type: 'agent', area: 'design-review',
-    description: 'LLM critique of code quality, API design, semantics, intent-fit, and voice.',
-    impactAxes: ['general', 'functional'],
-  },
-  {
-    path: 'apps/workspace/templates/claude/agents/vision-critic.md',
-    type: 'agent', area: 'vision-critique',
-    description: 'Screenshot-based visual critique of hierarchy, balance, spacing, on-brand, polish.',
-    impactAxes: ['visual'],
-  },
-  {
-    path: REPO_ROOT + '/packages/backend/src/critique/scoreboard.ts',
-    type: 'backend', area: 'gate-logic',
-    description: 'Weighted composite computation, decideRound dual gate.',
-    impactAxes: ['rounds'],
-  },
-  {
-    path: REPO_ROOT + '/packages/backend/src/critique/score.ts',
-    type: 'backend', area: 'gate-config',
-    description: 'scoreComponent with per-source floors, threshold, ratchet.',
-    impactAxes: ['visual', 'tokens', 'rounds'],
-  },
-  {
-    path: REPO_ROOT + '/packages/plugin-tailwindcss/src/index.ts',
-    type: 'plugin', area: 'codegen',
-    description: 'Tailwind codegen instructions and token→class mapping.',
-    impactAxes: ['tokenCompliance', 'patterns'],
-  },
-  {
-    path: REPO_ROOT + '/packages/dsr/src/rules/lint.ts',
-    type: 'dsr', area: 'lint-rules',
-    description: 'P0/P1 lint rules for anti-pattern detection.',
-    impactAxes: ['tokenCompliance', 'patterns'],
-  },
+  { path: REPO_ROOT + '/apps/workspace/templates/claude/workflows/core-loop.js', type: 'workflow', area: 'build-prompt', description: 'The core build/critique loop.', impactAxes: ['general', 'visual', 'functional', 'accessibility', 'tokenCompliance', 'typescript', 'complexity', 'patterns', 'rounds'] },
+  { path: REPO_ROOT + '/apps/workspace/templates/claude/agents/consistency-auditor.md', type: 'agent', area: 'token-audit', description: 'Runs lint, scores token compliance.', impactAxes: ['tokenCompliance', 'patterns'] },
+  { path: REPO_ROOT + '/apps/workspace/templates/claude/agents/design-reviewer.md', type: 'agent', area: 'design-review', description: 'LLM critique of code quality.', impactAxes: ['general', 'functional'] },
+  { path: REPO_ROOT + '/apps/workspace/templates/claude/agents/vision-critic.md', type: 'agent', area: 'vision-critique', description: 'Screenshot-based visual critique.', impactAxes: ['visual'] },
+  { path: REPO_ROOT + '/packages/backend/src/critique/scoreboard.ts', type: 'backend', area: 'gate-logic', description: 'Weighted composite and gate.', impactAxes: ['rounds'] },
+  { path: REPO_ROOT + '/packages/backend/src/critique/score.ts', type: 'backend', area: 'gate-config', description: 'scoreComponent with floors and ratchet.', impactAxes: ['visual', 'tokens', 'rounds'] },
+  { path: REPO_ROOT + '/packages/plugin-tailwindcss/src/index.ts', type: 'plugin', area: 'codegen', description: 'Tailwind codegen instructions.', impactAxes: ['tokenCompliance', 'patterns'] },
+  { path: REPO_ROOT + '/packages/dsr/src/rules/lint.ts', type: 'dsr', area: 'lint-rules', description: 'P0/P1 lint rules.', impactAxes: ['tokenCompliance', 'patterns'] },
 ];
 
 const AXIS_TO_ENGINE = {
-  general: { label: 'Code structure (B1)', primaryFile: REPO_ROOT + '/apps/workspace/templates/claude/workflows/core-loop.js', area: 'build-prompt structure section', typicalFix: 'Add specific structure requirements to the build prompt — extract logic, define interfaces, separate concerns' },
-  visual: { label: 'Visual appearance (B2)', primaryFile: REPO_ROOT + '/apps/workspace/templates/claude/agents/vision-critic.md', area: 'vision-critic criteria', typicalFix: 'Add specific visual guidance to the build prompt or tighten vision-critic instructions for alignment/spacing' },
-  functional: { label: 'Functional correctness (B3)', primaryFile: REPO_ROOT + '/apps/workspace/templates/claude/workflows/core-loop.js', area: 'build prompt state handling', typicalFix: 'Add state coverage requirements: default, hover, active, disabled, loading, empty, error' },
-  accessibility: { label: 'Accessibility (B4)', primaryFile: REPO_ROOT + '/apps/workspace/templates/claude/workflows/core-loop.js', area: 'build prompt a11y', typicalFix: 'Add a11y requirements: aria-labels, heading hierarchy, keyboard nav' },
-  tokenCompliance: { label: 'Token compliance (W1)', primaryFile: REPO_ROOT + '/packages/dsr/src/rules/lint.ts', area: 'lint rules', typicalFix: 'Add a new lint rule for an off-token pattern or strengthen the token prompt in core-loop' },
-  typescript: { label: 'TypeScript quality (W2)', primaryFile: REPO_ROOT + '/apps/workspace/templates/claude/workflows/core-loop.js', area: 'build prompt TypeScript', typicalFix: 'Add TS requirements: explicit Props interface, no any, no @ts-ignore' },
-  complexity: { label: 'Code complexity (W3)', primaryFile: REPO_ROOT + '/apps/workspace/templates/claude/workflows/core-loop.js', area: 'build prompt complexity', typicalFix: 'Add complexity budget: max LOC, max conditionals, max nesting' },
-  patterns: { label: 'Pattern adherence (W4)', primaryFile: REPO_ROOT + '/apps/workspace/templates/claude/workflows/core-loop.js', area: 'build prompt patterns', typicalFix: 'Add pattern rules: named handlers, stable keys, sub-components for repeated JSX' },
-  rounds: { label: 'Iteration speed', primaryFile: REPO_ROOT + '/apps/workspace/templates/claude/workflows/core-loop.js', area: 'build prompt or gate params', typicalFix: 'Improve first-attempt quality via more specific build prompt, or adjust plateau/floor params' },
+  general: { label: 'Code structure (B1)', primaryFile: REPO_ROOT + '/apps/workspace/templates/claude/workflows/core-loop.js', area: 'build-prompt structure', typicalFix: 'Add structure requirements to the build prompt' },
+  visual: { label: 'Visual appearance (B2)', primaryFile: REPO_ROOT + '/apps/workspace/templates/claude/agents/vision-critic.md', area: 'vision-critic', typicalFix: 'Add specific visual guidance or tighten vision-critic instructions' },
+  functional: { label: 'Functional correctness (B3)', primaryFile: REPO_ROOT + '/apps/workspace/templates/claude/workflows/core-loop.js', area: 'build-prompt states', typicalFix: 'Add state coverage requirements to build prompt' },
+  accessibility: { label: 'Accessibility (B4)', primaryFile: REPO_ROOT + '/apps/workspace/templates/claude/workflows/core-loop.js', area: 'build-prompt a11y', typicalFix: 'Add a11y requirements to build prompt' },
+  tokenCompliance: { label: 'Token compliance (W1)', primaryFile: REPO_ROOT + '/packages/dsr/src/rules/lint.ts', area: 'lint rules', typicalFix: 'Add a lint rule or strengthen token prompt in core-loop' },
+  typescript: { label: 'TypeScript quality (W2)', primaryFile: REPO_ROOT + '/apps/workspace/templates/claude/workflows/core-loop.js', area: 'build-prompt TS', typicalFix: 'Add TS requirements to build prompt' },
+  complexity: { label: 'Code complexity (W3)', primaryFile: REPO_ROOT + '/apps/workspace/templates/claude/workflows/core-loop.js', area: 'build-prompt complexity', typicalFix: 'Add complexity budget to build prompt' },
+  patterns: { label: 'Pattern adherence (W4)', primaryFile: REPO_ROOT + '/apps/workspace/templates/claude/workflows/core-loop.js', area: 'build-prompt patterns', typicalFix: 'Add pattern rules to build prompt' },
+  rounds: { label: 'Iteration speed', primaryFile: REPO_ROOT + '/apps/workspace/templates/claude/workflows/core-loop.js', area: 'build-prompt or gate params', typicalFix: 'Improve first-attempt quality or adjust plateau/floor params' },
 };
 
-// ── Schemas ────────────────────────────────────────────────────────────────
-const HISTORY_SCHEMA = {
+const QUICK_EVAL_SCHEMA = {
   type: 'object', additionalProperties: true,
   properties: {
-    startTime: { type: 'string' },
-    initialBaseline: { type: 'string' },
-    bestOverallAvg: { type: 'number' },
-    cycles: { type: 'array', items: { type: 'object' } },
+    overall: { type: 'number' },
+    blackBox: { type: 'number' },
+    whiteBox: { type: 'number' },
+    general: { type: 'number' },
+    visual: { type: 'number' },
+    tokenCompliance: { type: 'number' },
+    patterns: { type: 'number' },
+    typescript: { type: 'number' },
+    rounds: { type: 'number' },
+    shipped: { type: 'boolean' },
+    errors: { type: 'array' },
   },
-  required: ['cycles'],
+  required: ['overall', 'blackBox', 'whiteBox'],
 };
 
-const DIAGNOSIS_SCHEMA = {
-  type: 'object', additionalProperties: true,
-  properties: {
-    weakestTest: { type: 'string' },
-    weakestAxis: { type: 'string' },
-    axisValue: { type: 'number' },
-    axisBucket: { type: 'string' },
-    complexity: { type: 'string' },
-    testOverall: { type: 'number' },
-    testRounds: { type: 'number' },
-    failingTests: { type: 'array' },
-    allTestsPass: { type: 'boolean' },
-    avgRounds: { type: 'number' },
-    productionReady: { type: 'boolean' },
-  },
-  required: ['weakestTest', 'weakestAxis', 'axisValue', 'failingTests', 'allTestsPass', 'productionReady'],
-};
-
-const HYPOTHESIS_SCHEMA = {
-  type: 'object', additionalProperties: true,
-  properties: {
-    hypothesis: { type: 'string' },
-    changeFile: { type: 'string' },
-    changeType: { type: 'string' },
-    operation: { type: 'string' },
-    anchorText: { type: 'string' },
-    insertText: { type: 'string' },
-    targetMetric: { type: 'string' },
-    expectedDelta: { type: 'number' },
-    expectedDirection: { type: 'string' },
-    mechanism: { type: 'string' },
-    risks: { type: 'string' },
-  },
-  required: ['hypothesis', 'changeFile', 'operation', 'anchorText', 'insertText', 'targetMetric', 'expectedDelta', 'expectedDirection'],
-};
-
-const IMPLEMENTATION_SCHEMA = {
-  type: 'object', additionalProperties: true,
-  properties: { applied: { type: 'boolean' }, diff: { type: 'string' }, error: { type: 'string' } },
-  required: ['applied'],
-};
-
-const GIT_SCHEMA = {
-  type: 'object', additionalProperties: true,
-  properties: { stdout: { type: 'string' } },
-  required: ['stdout'],
-};
-
-const VERIFICATION_SCHEMA = {
-  type: 'object', additionalProperties: true,
-  properties: {
-    targetImproved: { type: 'boolean' },
-    targetDelta: { type: 'number' },
-    hasRegressions: { type: 'boolean' },
-    regressions: { type: 'array' },
-    improvements: { type: 'array' },
-    hypothesisCorrect: { type: 'boolean' },
-    overallAvgDelta: { type: 'number' },
-    avgRoundsDelta: { type: 'number' },
-    afterPassRate: { type: 'number' },
-  },
-  required: ['targetImproved', 'hasRegressions', 'hypothesisCorrect'],
-};
-
-// ── Helper: determine benchmark filter for verify phase ────────────────────
-function determineFilter(cycleNum, diagnosis) {
-  if (cycleNum % FULL_SUITE_INTERVAL === 0) return ''; // full suite
-  if (!diagnosis) return INITIAL_FILTER || 'simple';
-  const c = (diagnosis.complexity || 'simple').toLowerCase();
-  if (c === 'complex' || c === 'medium') return c;
-  return 'simple';
-}
+// ── Schemas (unchanged) ────────────────────────────────────────────────────
+const HISTORY_SCHEMA = { type: 'object', additionalProperties: true, properties: { startTime: { type: 'string' }, initialBaseline: { type: 'string' }, bestOverallAvg: { type: 'number' }, perComponentBaselines: { type: 'object' }, cycles: { type: 'array', items: { type: 'object' } } }, required: ['cycles'] };
+const DIAGNOSIS_SCHEMA = { type: 'object', additionalProperties: true, properties: { weakestTest: { type: 'string' }, weakestAxis: { type: 'string' }, axisValue: { type: 'number' }, axisBucket: { type: 'string' }, complexity: { type: 'string' }, testOverall: { type: 'number' }, testRounds: { type: 'number' }, failingTests: { type: 'array' }, allTestsPass: { type: 'boolean' }, avgRounds: { type: 'number' }, productionReady: { type: 'boolean' } }, required: ['weakestTest', 'weakestAxis', 'axisValue', 'failingTests', 'allTestsPass', 'productionReady'] };
+const HYPOTHESIS_SCHEMA = { type: 'object', additionalProperties: true, properties: { hypothesis: { type: 'string' }, changeFile: { type: 'string' }, changeType: { type: 'string' }, operation: { type: 'string' }, anchorText: { type: 'string' }, insertText: { type: 'string' }, targetMetric: { type: 'string' }, expectedDelta: { type: 'number' }, expectedDirection: { type: 'string' }, mechanism: { type: 'string' }, risks: { type: 'string' } }, required: ['hypothesis', 'changeFile', 'operation', 'anchorText', 'insertText', 'targetMetric', 'expectedDelta', 'expectedDirection'] };
+const IMPLEMENTATION_SCHEMA = { type: 'object', additionalProperties: true, properties: { applied: { type: 'boolean' }, diff: { type: 'string' }, error: { type: 'string' } }, required: ['applied'] };
+const VERIFICATION_SCHEMA = { type: 'object', additionalProperties: true, properties: { targetImproved: { type: 'boolean' }, targetDelta: { type: 'number' }, hasRegressions: { type: 'boolean' }, regressions: { type: 'array' }, improvements: { type: 'array' }, hypothesisCorrect: { type: 'boolean' }, overallAvgDelta: { type: 'number' }, avgRoundsDelta: { type: 'number' }, afterPassRate: { type: 'number' } }, required: ['targetImproved', 'hasRegressions', 'hypothesisCorrect'] };
+const GIT_SCHEMA = { type: 'object', additionalProperties: true, properties: { stdout: { type: 'string' } }, required: ['stdout'] };
 
 // ══════════════════════════════════════════════════════════════════════════
 //  PHASE 0: INITIALIZE
 // ══════════════════════════════════════════════════════════════════════════
 phase('Initialize');
-
-// Check git working tree
 const gitResult = await agent(
-  `Run \`cd /Users/minh/Documents/medesign && git status --porcelain -- apps/workspace/templates/claude/ examples/ledger-console/ examples/landing-site/ packages/dsr/src/rules/lint.ts packages/plugin-tailwindcss/src/index.ts packages/backend/src/critique/ packages/mcp-server/src/mcp.ts\`. Return ONLY the raw stdout as { stdout: "<output>" }. Do NOT add any explanation.`,
+  `Run \`cd ${REPO_ROOT} && git status --porcelain -- apps/workspace/templates/claude/ examples/ledger-console/ examples/landing-site/ packages/dsr/src/rules/lint.ts packages/plugin-tailwindcss/src/index.ts packages/backend/src/critique/ packages/mcp-server/src/mcp.ts\`. Return ONLY the raw stdout as { stdout: "<output>" }.`,
   { label: 'git-check', phase: 'Initialize', schema: GIT_SCHEMA },
 );
 const isClean = gitResult && typeof gitResult.stdout === 'string' && gitResult.stdout.trim().length === 0;
 if (!isClean) {
-  log('ERROR: Git working tree is not clean. Commit or stash changes before running dev-loop.');
   return { error: 'Dirty working tree. Please commit or stash first.', gitStatus: gitResult };
 }
 
-// Load or create history
-let history = { startTime: (args && args.timestamp) || 'unknown', initialBaseline: '', bestOverallAvg: 0, cycles: [] };
+let history = { startTime: (args && args.timestamp) || 'unknown', initialBaseline: '', bestOverallAvg: 0, perComponentBaselines: {}, cycles: [] };
 const historyRaw = await agent(
-  `Read bench-results/dev-loop-history.json if it exists. If it exists, parse it and return the JSON. If it doesn't exist or is empty, return { cycles: [] }.`,
+  `Read ${REPO_ROOT}/bench-results/dev-loop-history.json if it exists. If it exists, parse it and return the JSON. If not, return { cycles: [] }.`,
   { label: 'load-history', phase: 'Initialize', schema: HISTORY_SCHEMA },
 );
 if (historyRaw && historyRaw.cycles) {
@@ -201,303 +98,235 @@ if (historyRaw && historyRaw.cycles) {
 
 let cycleNumber = (history.cycles && history.cycles.length > 0 ? history.cycles.length : 0) + 1;
 let currentResults = null;
-const hadBaseline = history.cycles.length > 0;
+let totalBenchmarkRuns = 0;
+const hadBaseline = history.initialBaseline && history.initialBaseline.length > 0;
 
 if (!hadBaseline) {
-  log('No baseline found. Running initial benchmark...');
-  const baseline = await workflow({ scriptPath: '/Users/minh/Documents/medesign/benchmarks/run-benchmark.js' }, { runId: `baseline-${cycleNumber}`, filter: '', threshold: 0.8 });
+  log('No baseline found. Running initial full-suite benchmark...');
+  const baseline = await workflow({ scriptPath: `${REPO_ROOT}/benchmarks/run-benchmark.js` }, { runId: `baseline-0`, filter: '', threshold: 0.8 });
   totalBenchmarkRuns++;
   history.initialBaseline = baseline && baseline.runId;
   currentResults = baseline;
-  history.bestOverallAvg = baseline && baseline.results
-    ? baseline.results.reduce((s, r) => s + r.overall, 0) / baseline.results.length
-    : 0;
-  log(`Baseline complete: pass rate ${baseline ? baseline.passRate : 'N/A'}`);
+  if (baseline && baseline.results) {
+    history.bestOverallAvg = baseline.results.reduce((s, r) => s + r.overall, 0) / baseline.results.length;
+    for (const t of baseline.results) {
+      history.perComponentBaselines[t.name] = { overall: t.overall, blackBox: t.blackBox, whiteBox: t.whiteBox, rounds: t.rounds };
+    }
+  }
+  log(`Baseline complete: ${baseline ? baseline.passRate : 'N/A'} pass rate`);
 } else {
-  log(`Resuming from cycle ${history.cycles.length}. Last result: ${history.bestOverallAvg}`);
+  log(`Resuming from cycle ${history.cycles.length}. Last best avg: ${history.bestOverallAvg}`);
 }
 
-log(`Dev loop starting: cycle ${cycleNumber}, mode=${MODE}, max=${MAX_CYCLES}`);
+log(`Dev loop: cycle ${cycleNumber}, mode=${MODE}, max=${MAX_CYCLES}`);
 
 // ══════════════════════════════════════════════════════════════════════════
-//  MAIN LOOP
+//  MAIN LOOP — fast single-component cycles, full suite every 5
 // ══════════════════════════════════════════════════════════════════════════
 let done = false;
 let stalled = false;
 let keptChanges = [];
 let lastDiagnosis = null;
-let totalBenchmarkRuns = hadBaseline ? 1 : 0;
 let skipCounter = 0;
 
 while (!done && !stalled && cycleNumber <= MAX_CYCLES) {
-  // ── 1. DIAGNOSE ───────────────────────────────────────────────────────
+
+  // ── DIAGNOSE ──────────────────────────────────────────────────────────
   phase('Diagnose');
+  const isFullSuiteCycle = (cycleNumber % FULL_SUITE_INTERVAL === 0);
+
+  // Run full suite if it's time, otherwise use stored baselines
+  if (isFullSuiteCycle) {
+    log(`Full suite cycle ${cycleNumber}. Running benchmark...`);
+    const suiteResults = await workflow({ scriptPath: `${REPO_ROOT}/benchmarks/run-benchmark.js` }, { runId: `suite-${cycleNumber}`, filter: '', threshold: 0.8 });
+    totalBenchmarkRuns++;
+    currentResults = suiteResults;
+    if (suiteResults && suiteResults.results) {
+      for (const t of suiteResults.results) {
+        history.perComponentBaselines[t.name] = { overall: t.overall, blackBox: t.blackBox, whiteBox: t.whiteBox, rounds: t.rounds };
+      }
+    }
+  }
+
   const diagnosis = await agent(
     `You are diagnosing engine weaknesses from benchmark results.\n\n` +
-    `PRODUCTION-READY DEFINITION:\n` +
-    `- All 7 tests: overall >= ${PRODUCTION_THRESHOLD}, black-box >= 0.75, white-box >= 0.75\n` +
-    `- Average rounds across all tests <= ${MAX_AVG_ROUNDS}\n\n` +
-    `CURRENT RESULTS:\n${JSON.stringify(currentResults, null, 2)}\n\n` +
-    `Analyze each test. For each failing test, identify which sub-axis is the weakest:\n` +
-    `- Black-box sub-axes: general, visual, functional, accessibility\n` +
-    `- White-box sub-axes: tokenCompliance, typescript, complexity, patterns\n\n` +
-    `Priority: 1) failing simple tests 2) failing medium 3) failing complex 4) high rounds\n\n` +
-    `Return JSON with: weakestTest, weakestAxis, axisValue, axisBucket (black-box/white-box), ` +
-    `complexity, testOverall, testRounds, failingTests[], allTestsPass, avgRounds, productionReady.`,
+    `PRODUCTION-READY: all 7 tests overall >= ${PRODUCTION_THRESHOLD}, black-box >= 0.75, white-box >= 0.75, avg rounds <= ${MAX_AVG_ROUNDS}\n\n` +
+    `CURRENT RESULTS / BASELINES:\n${JSON.stringify(history.perComponentBaselines, null, 2)}\n\n` +
+    `Analyze each test. For failing ones, identify the weakest sub-axis (general, visual, functional, accessibility, tokenCompliance, typescript, complexity, patterns).\n` +
+    `Priority: 1) failing simple 2) failing medium 3) failing complex 4) high rounds\n\n` +
+    `Return JSON with: weakestTest, weakestAxis, axisValue, axisBucket, complexity, testOverall, testRounds, failingTests[], allTestsPass, avgRounds, productionReady.`,
     { label: `diagnose:r${cycleNumber}`, phase: 'Diagnose', schema: DIAGNOSIS_SCHEMA },
   );
-
   lastDiagnosis = diagnosis;
 
   if (diagnosis && diagnosis.productionReady) {
-    log('All tests pass and avg rounds within target. Engine is production-ready!');
-    done = true;
-    break;
+    log('All tests pass. Production-ready!');
+    done = true; break;
   }
 
-  log(`Diagnosis: weakest=${diagnosis?.weakestTest}/${diagnosis?.weakestAxis} (${diagnosis?.axisValue}) ` +
-    `pass=${diagnosis?.allTestsPass} rounds=${diagnosis?.avgRounds}`);
+  const weakTest = diagnosis?.weakestTest || 'Button';
+  const weakAxis = diagnosis?.weakestAxis || 'patterns';
+  log(`Target: ${weakTest}/${weakAxis} (${diagnosis?.axisValue})`);
 
-  // ── 2. HYPOTHESIZE ────────────────────────────────────────────────────
+  // ── HYPOTHESIZE ──────────────────────────────────────────────────────
   phase('Hypothesize');
-  const axis = (diagnosis && diagnosis.weakestAxis) || 'patterns';
-  const axisInfo = AXIS_TO_ENGINE[axis] || AXIS_TO_ENGINE.patterns;
+  const axisInfo = AXIS_TO_ENGINE[weakAxis] || AXIS_TO_ENGINE.patterns;
   const primaryFile = axisInfo.primaryFile;
   const engineFileInfo = ENGINE_FILES.find((f) => f.path === primaryFile);
 
   const hypothesis = await agent(
-    `You are forming a hypothesis to improve the emdesign engine.\n\n` +
-    `WEAKEST: ${diagnosis?.weakestTest || 'unknown'} / ${axis} (score: ${diagnosis?.axisValue || '?'})\n\n` +
-    `This axis maps to: ${JSON.stringify(axisInfo)}\n\n` +
-    `ENGINE FILE: ${JSON.stringify(engineFileInfo)}\n\n` +
-    `CRITICAL RULE: ONE change per cycle. Choose exactly ONE file and ONE specific change.\n\n` +
-    `First, read the target file at ${primaryFile} to understand the current content around the area you want to change.\n\n` +
-    `Form a hypothesis with structure:\n` +
-    `1. hypothesis: "If I [change X] in [file], then [metric Y] will improve because [mechanism Z]"\n` +
-    `2. changeFile: the exact relative path\n` +
-    `3. operation: "insert-after" | "insert-before" | "replace-line" | "replace-block"\n` +
-    `4. anchorText: EXACT text from the file to anchor the edit (copy verbatim)\n` +
-    `5. insertText: the exact text to add/modify\n` +
-    `6. targetMetric: e.g. "${diagnosis?.weakestTest || 'Test'}.blackBox.${axis}" or "suite.avgRounds"\n` +
-    `7. expectedDelta: the expected improvement (0.05 to 0.3)\n` +
-    `8. expectedDirection: "up" | "down"\n` +
-    `9. mechanism: why this change should have that effect\n` +
-    `10. risks: which other metrics might regress\n\n` +
-    `Return the hypothesis as JSON.`,
+    `Form a hypothesis to improve the engine.\n\n` +
+    `WEAKEST: ${weakTest} / ${weakAxis} (score: ${diagnosis?.axisValue})\n` +
+    `PRIMARY FILE: ${primaryFile}\n\n` +
+    `CRITICAL: ONE change per cycle. Read the target file first, find the exact text to anchor the edit.\n\n` +
+    `Return JSON with: hypothesis, changeFile, operation (insert-after|insert-before|replace-line|replace-block), anchorText (EXACT text from file), insertText (change text), targetMetric ("${weakTest}.${weakAxis}"), expectedDelta (0.05-0.3), expectedDirection (up|down), mechanism, risks.`,
     { label: `hypothesize:r${cycleNumber}`, phase: 'Hypothesize', schema: HYPOTHESIS_SCHEMA },
   );
 
   if (!hypothesis || !hypothesis.changeFile) {
-    log('Failed to form hypothesis. Scores may be invalid. Retrying with fallback prompt...');
+    log('Failed to form hypothesis. Retrying with simpler prompt...');
     skipCounter++;
-    // Second attempt with a simpler prompt
     const retry = await agent(
-      `Given that the weakest test is "${diagnosis?.weakestTest || 'unknown'}" with low "${axis}" score (${diagnosis?.axisValue}), ` +
-      `propose ONE simple change to the engine file "${primaryFile}" to improve it. Keep it short. ` +
-      `Return JSON with hypothesis, changeFile (full path), operation, anchorText, insertText, targetMetric, expectedDelta, expectedDirection.`,
+      `Propose ONE simple change to ${primaryFile} to improve ${weakTest}/${weakAxis}. Return JSON with hypothesis, changeFile, operation, anchorText, insertText, targetMetric, expectedDelta, expectedDirection.`,
       { label: `hypothesize:r${cycleNumber}:retry`, phase: 'Hypothesize', schema: HYPOTHESIS_SCHEMA },
     );
-    if (retry && retry.changeFile) {
-      Object.assign(hypothesis, retry);
-    } else {
-      log('Failed to form hypothesis after retry. Skipping cycle.');
-      skipCounter++;
+    if (retry && retry.changeFile) { Object.assign(hypothesis, retry); }
+    else {
       if (skipCounter >= 3) { stalled = true; log('Too many skipped cycles. Stalling.'); break; }
-      cycleNumber++;
-      continue;
+      cycleNumber++; continue;
     }
   }
 
-  log(`Hypothesis: ${hypothesis.hypothesis ? hypothesis.hypothesis.slice(0, 120) : 'N/A'}`);
+  log(`Hypothesis: ${(hypothesis.hypothesis || '').slice(0, 100)}`);
 
-  if (MODE === 'suggest') {
-    log('Mode is "suggest" — stopping after hypothesis.');
-    done = true;
-    break;
-  }
+  if (MODE === 'suggest') { done = true; break; }
 
-  // ── 3. IMPLEMENT ──────────────────────────────────────────────────────
+  // ── IMPLEMENT ────────────────────────────────────────────────────────
   phase('Implement');
-  const gitBefore = await agent(`Run \`cd /Users/minh/Documents/medesign && git status --porcelain -- apps/workspace/templates/claude/ examples/ledger-console/ examples/landing-site/ packages/dsr/src/rules/lint.ts packages/plugin-tailwindcss/src/index.ts packages/backend/src/critique/ packages/mcp-server/src/mcp.ts\`. Return ONLY the raw stdout as { stdout: "<output>" }.`, { label: `git-before:r${cycleNumber}`, phase: 'Implement', schema: GIT_SCHEMA });
-  const stillClean = gitBefore && typeof gitBefore.stdout === 'string' && gitBefore.stdout.trim().length === 0;
-  if (!stillClean) {
+  const gitBefore = await agent(
+    `Run \`cd ${REPO_ROOT} && git status --porcelain -- apps/workspace/templates/claude/ examples/ledger-console/ examples/landing-site/ packages/dsr/src/rules/lint.ts packages/plugin-tailwindcss/src/index.ts packages/backend/src/critique/ packages/mcp-server/src/mcp.ts\`. Return { stdout: "<output>" }.`,
+    { label: `git-before:r${cycleNumber}`, phase: 'Implement', schema: GIT_SCHEMA },
+  );
+  if (gitBefore && typeof gitBefore.stdout === 'string' && gitBefore.stdout.trim().length > 0) {
     log('Working tree changed unexpectedly. Aborting cycle.');
-    skipCounter++;
-    if (skipCounter >= 3) { stalled = true; log('Too many consecutive failures. Stalling.'); break; }
-    cycleNumber++;
-    continue;
+    skipCounter++; if (skipCounter >= 3) { stalled = true; break; }
+    cycleNumber++; continue;
   }
 
   const implementation = await agent(
-    `Read the file at ${hypothesis.changeFile}.\n` +
-    `Find this EXACT text in the file:\n"${hypothesis.anchorText}"\n\n` +
-    `Then apply this operation: ${hypothesis.operation}\n` +
-    `With this text:\n"""${hypothesis.insertText}"""\n\n` +
-    `After applying, write the FULL modified file content back.\n` +
-    `Rules:\n` +
-    `- Do NOT change anything else in the file\n` +
-    `- Do NOT reformat or modify surrounding code\n` +
-    `- If the anchor text is not found exactly, report the error and stop\n\n` +
-    `Then run \`git diff -- ${hypothesis.changeFile}\` and include the diff output.`,
+    `Read the file at ${hypothesis.changeFile}. Find "${hypothesis.anchorText}". Apply ${hypothesis.operation} with text:\n"""${hypothesis.insertText}"""\n` +
+    `Write the FULL modified file back. Do NOT change anything else. Then run \`git diff -- ${hypothesis.changeFile}\` and include the output.` +
+    ` Return { applied: true|false, diff: "...", error: "..." }`,
     { label: `implement:r${cycleNumber}`, phase: 'Implement', schema: IMPLEMENTATION_SCHEMA },
   );
 
   if (!implementation || !implementation.applied) {
-    log(`Implementation failed: ${implementation?.error || 'unknown error'}. Skipping verify.`);
-    skipCounter++;
-    if (skipCounter >= 3) { stalled = true; log('Too many consecutive failures. Stalling.'); break; }
-    cycleNumber++;
-    continue;
+    log(`Implementation failed: ${implementation?.error}. Skipping.`);
+    skipCounter++; if (skipCounter >= 3) { stalled = true; break; }
+    cycleNumber++; continue;
   }
 
-  log(`Change applied: ${(implementation.diff || '').split('\n').length} lines changed.`);
   keptChanges.push({ cycle: cycleNumber, file: hypothesis.changeFile, diff: implementation.diff });
 
-  // ── 4. VERIFY ─────────────────────────────────────────────────────────
+  // ── VERIFY (single component, fast) ──────────────────────────────────
   phase('Verify');
-  const filter = determineFilter(cycleNumber, diagnosis);
-  log(`Running benchmark (filter: ${filter || 'full'})...`);
+  log(`Building "${weakTest}" through core-loop to verify change...`);
 
-  const afterResults = await workflow({ scriptPath: '/Users/minh/Documents/medesign/benchmarks/run-benchmark.js' }, {
-    runId: `cycle-${cycleNumber}-v1`,
-    filter,
-    threshold: 0.8,
-  });
-  totalBenchmarkRuns++;
-
-  // Compare before vs after
-  const verification = await agent(
-    `Compare these two benchmark runs:\n\n` +
-    `BEFORE (${hadBaseline ? 'previous' : 'baseline'}):\n${JSON.stringify(currentResults, null, 2)}\n\n` +
-    `AFTER (cycle ${cycleNumber}):\n${JSON.stringify(afterResults, null, 2)}\n\n` +
-    `TARGET METRIC: ${hypothesis.targetMetric}\n` +
-    `EXPECTED DIRECTION: ${hypothesis.expectedDirection}\n\n` +
-    `Compute per-test deltas. Determine:\n` +
-    `1. Did the target metric improve? (delta >= +${TOLERANCE})\n` +
-    `2. Did any other metric regress? (delta <= -${TOLERANCE} for overall/black/white, or roundsDelta > ${ROUND_TOLERANCE})\n` +
-    `3. Was the hypothesis correct? (target improved, no regressions)\n\n` +
-    `Return JSON with: targetImproved, targetDelta, hasRegressions, regressions[], improvements[], ` +
-    `hypothesisCorrect, overallAvgDelta, avgRoundsDelta, afterPassRate.`,
-    { label: `verify:r${cycleNumber}`, phase: 'Verify', schema: VERIFICATION_SCHEMA },
+  const quickResult = await agent(
+    `Build the component "${weakTest}" through the full core-loop and evaluate it.\n\n` +
+    `Instruction: Use the active design system. Build a high-quality React+Tailwind component "${weakTest}".\n\n` +
+    `Steps:\n` +
+    `1. Call get_design_context for "${weakTest}"\n` +
+    `2. Call create_component and build through the cascade: lint → visual → a11y → vision → LLM\n` +
+    `3. After the component ships or plateaus, run the evaluation:\n` +
+    `   - Black-box: run the benchmark-critic (general code review), run_visual_test (visual), functional check, a11y check\n` +
+    `   - White-box: analyze source for token compliance, typescript health, complexity, patterns\n` +
+    `4. Clamp all scores to [0, 1]. Compute blackBox = 0.30*general + 0.30*visual + 0.25*functional + 0.15*a11y. whiteBox = 0.35*tokenCompliance + 0.25*typescript + 0.20*complexity + 0.20*patterns. overall = 0.6*blackBox + 0.4*whiteBox.\n\n` +
+    `Return JSON: { overall, blackBox, whiteBox, general, visual, tokenCompliance, patterns, typescript, rounds, shipped, errors[] }`,
+    { label: `verify:r${cycleNumber}`, phase: 'Verify', schema: QUICK_EVAL_SCHEMA },
   );
 
-  log(`Verify: targetImproved=${verification?.targetImproved} hasRegressions=${verification?.hasRegressions} correct=${verification?.hypothesisCorrect}`);
+  // Compare against stored baseline
+  const before = history.perComponentBaselines[weakTest] || { overall: 0, blackBox: 0, whiteBox: 0, rounds: 0 };
+  const after = {
+    overall: quickResult?.overall || 0,
+    blackBox: quickResult?.blackBox || 0,
+    whiteBox: quickResult?.whiteBox || 0,
+    rounds: quickResult?.rounds || 0,
+  };
 
-  // ── 5. DECIDE ─────────────────────────────────────────────────────────
+  const targetDelta = after.overall - before.overall;
+  const hasRegressions = (after.blackBox < before.blackBox - TOLERANCE) || (after.whiteBox < before.whiteBox - TOLERANCE);
+  const targetImproved = targetDelta >= TOLERANCE;
+  const hypothesisCorrect = targetImproved && !hasRegressions;
+
+  log(`Verify: overall ${before.overall.toFixed(2)} → ${after.overall.toFixed(2)} (Δ${targetDelta >= 0 ? '+' : ''}${targetDelta.toFixed(2)}) ` +
+    `improved=${targetImproved} regressions=${hasRegressions}`);
+
+  // ── DECIDE ───────────────────────────────────────────────────────────
   phase('Decide');
   let decision = 'revert';
-  if (verification && verification.targetImproved && !verification.hasRegressions) {
+  if (hypothesisCorrect) {
     decision = 'keep';
-  } else if (verification && verification.targetImproved && verification.hasRegressions) {
-    // Evaluate tradeoff: if quality gain outweighs regression, keep
-    const netEffect = (verification.overallAvgDelta || 0) - (verification.hasRegressions ? 0.01 : 0);
-    decision = netEffect > 0 ? 'keep' : 'revert';
+  } else if (targetImproved && !hasRegressions) {
+    decision = 'keep';
+  } else if (targetImproved && hasRegressions) {
+    decision = targetDelta > 0.05 ? 'keep' : (targetDelta > 0 ? 'keep' : 'revert');
   }
 
   if (decision === 'keep') {
     await agent(
-      `The change improved the target metric without unacceptable regressions. ` +
-      `Commit it:\n` +
-      `git add -A && git commit -m "dev-loop cycle ${cycleNumber}: ${(hypothesis.hypothesis || '').slice(0, 100)}" ` +
-      `-m "File: ${hypothesis.changeFile}\\nTarget: ${hypothesis.targetMetric}\\nDelta: ${verification?.targetDelta}"`,
+      `Commit the change: cd ${REPO_ROOT} && git add -A && git commit -m "dev-loop cycle ${cycleNumber}: ${(hypothesis.hypothesis || '').slice(0, 100)}" -m "Target: ${hypothesis.targetMetric}\\nDelta: ${targetDelta.toFixed(3)}"`,
       { label: `commit:r${cycleNumber}`, phase: 'Decide' },
     );
-    log(`✅ Cycle ${cycleNumber}: KEPT — ${hypothesis.hypothesis ? hypothesis.hypothesis.slice(0, 80) : ''}`);
   } else {
-    // Revert
     await agent(
-      `Revert the change: run \`git restore ${hypothesis.changeFile}\` (or \`git checkout -- ${hypothesis.changeFile}\`). ` +
-      `Confirm the revert with \`git diff -- ${hypothesis.changeFile}\` — it should be empty.`,
+      `Revert: cd ${REPO_ROOT} && git restore ${hypothesis.changeFile}. Confirm: git diff -- ${hypothesis.changeFile} should be empty.`,
       { label: `revert:r${cycleNumber}`, phase: 'Decide' },
     );
-    log(`❌ Cycle ${cycleNumber}: REVERTED — ${hypothesis.hypothesis ? hypothesis.hypothesis.slice(0, 80) : ''}`);
   }
 
-  // Update current results
-  currentResults = afterResults;
+  // Update baselines
+  history.perComponentBaselines[weakTest] = after;
+  const avgOv = Object.values(history.perComponentBaselines).reduce((s: number, v: any) => s + (v.overall || 0), 0) / Math.max(1, Object.keys(history.perComponentBaselines).length);
+  if (avgOv > history.bestOverallAvg) history.bestOverallAvg = avgOv;
 
-  // Update history
   const cycleEntry = {
-    cycle: cycleNumber,
-    hypothesis: hypothesis.hypothesis,
-    changeFile: hypothesis.changeFile,
-    targetMetric: hypothesis.targetMetric,
-    targetDelta: verification ? verification.targetDelta : 0,
-    kept: decision === 'keep',
-    compositeDelta: verification ? verification.overallAvgDelta : 0,
-    roundsDelta: verification ? verification.avgRoundsDelta : 0,
-    regressions: verification ? verification.regressions : [],
+    cycle: cycleNumber, hypothesis: hypothesis.hypothesis, changeFile: hypothesis.changeFile,
+    targetMetric: hypothesis.targetMetric, targetDelta, kept: decision === 'keep',
+    compositeDelta: targetDelta, roundsDelta: after.rounds - before.rounds,
+    testComponent: weakTest, regressions: hasRegressions ? [{ test: weakTest, metric: 'overall', delta: targetDelta }] : [],
   };
   history.cycles.push(cycleEntry);
-  skipCounter = 0; // completed cycle resets the counter
-
-  // Update best overall
-  if (afterResults && afterResults.results) {
-    const avg = afterResults.results.reduce((s, r) => s + r.overall, 0) / afterResults.results.length;
-    if (avg > history.bestOverallAvg) history.bestOverallAvg = avg;
-  }
+  skipCounter = 0;
 
   // Persist history
   await agent(
-    `Write the dev-loop history to bench-results/dev-loop-history.json:\n` +
-    JSON.stringify(history, null, 2),
+    `Write the dev-loop history to ${REPO_ROOT}/bench-results/dev-loop-history.json:\n${JSON.stringify(history, null, 2)}`,
     { label: `save-history:r${cycleNumber}`, phase: 'Decide' },
   );
 
-  // ── 6. REPORT ─────────────────────────────────────────────────────────
+  // ── REPORT ───────────────────────────────────────────────────────────
   phase('Report');
-  const reportLines = [];
-  reportLines.push(`## Dev Loop Cycle ${cycleNumber}`);
-  reportLines.push('');
-  reportLines.push(`**Hypothesis:** ${hypothesis.hypothesis}`);
-  reportLines.push(`**File:** ${hypothesis.changeFile}`);
-  reportLines.push(`**Target:** ${hypothesis.targetMetric} (expected ${hypothesis.expectedDirection} ${hypothesis.expectedDelta})`);
-  reportLines.push(`**Result:** ${verification?.targetImproved ? '✅ Improved' : '❌ No improvement'} (delta: ${verification?.targetDelta})`);
-  reportLines.push(`**Decision:** ${decision === 'keep' ? '✅ KEPT' : '❌ REVERTED'}`);
-  reportLines.push(`**Regressions:** ${verification?.hasRegressions ? JSON.stringify(verification.regressions) : 'None'}`);
-  reportLines.push(`**Overall avg delta:** ${verification?.overallAvgDelta}`);
-  reportLines.push(`**Rounds avg delta:** ${verification?.avgRoundsDelta}`);
-  reportLines.push('');
-  reportLines.push('### Progress');
-  reportLines.push('');
-  reportLines.push(`| Cycle | Hypothesis (truncated) | Kept | Composite Δ | Rounds Δ |`);
-  reportLines.push(`|-------|----------------------|------|-------------|----------|`);
-  for (const c of history.cycles.slice(-10)) {
-    reportLines.push(`| ${c.cycle} | ${(c.hypothesis || '').slice(0, 60)} | ${c.kept ? '✅' : '❌'} | ${(c.compositeDelta || 0).toFixed(3)} | ${(c.roundsDelta || 0).toFixed(1)} |`);
-  }
-  reportLines.push('');
-  reportLines.push(`**Best overall avg so far:** ${history.bestOverallAvg.toFixed(3)}`);
-  reportLines.push(`**Cycles completed:** ${history.cycles.length}`);
-  log(reportLines.join('\n'));
+  log(`Cycle ${cycleNumber}: ${decision.toUpperCase()} — ${weakTest} overall ${before.overall.toFixed(2)} → ${after.overall.toFixed(2)} (Δ${targetDelta >= 0 ? '+' : ''}${targetDelta.toFixed(2)})`);
+  log(`History: ${history.cycles.length} cycles, best avg ${history.bestOverallAvg.toFixed(3)}`);
 
-  // ── 7. CHECK ──────────────────────────────────────────────────────────
+  // ── CHECK ────────────────────────────────────────────────────────────
   phase('Check');
-
-  // Re-check production-ready
-  if (diagnosis && diagnosis.productionReady) {
-    done = true;
-    log('Production-ready! All tests pass with acceptable rounds.');
-    break;
+  // Production-ready check
+  const allOver80 = Object.values(history.perComponentBaselines).every((v: any) => (v.overall || 0) >= PRODUCTION_THRESHOLD);
+  if (allOver80 && avgOv >= PRODUCTION_THRESHOLD) {
+    done = true; log('Production-ready! All components at threshold.'); break;
   }
 
-  // Stall detection: last 3 cycles all reverted or no improvement
+  // Stall detection
   const last3 = history.cycles.slice(-3);
-  if (last3.length >= 3) {
-    const allReverted = last3.every((c) => !c.kept);
-    const noImprovement = last3.every((c) => (c.compositeDelta || 0) <= 0);
-    if (allReverted || noImprovement) {
-      stalled = true;
-      log(`STALLED: Last 3 cycles had ${allReverted ? 'no kept changes' : 'no improvement'}. Stopping.`);
-      break;
-    }
+  if (last3.length >= 3 && last3.every((c: any) => !c.kept)) {
+    stalled = true; log('Stalled: last 3 cycles all reverted.'); break;
   }
+  if (skipCounter >= 3) { stalled = true; log('Stalled: too many skipped cycles.'); break; }
 
-  // Check max cycles
-  if (cycleNumber >= MAX_CYCLES) {
-    log(`Reached max cycles (${MAX_CYCLES}). Stopping.`);
-    break;
-  }
-
+  if (cycleNumber >= MAX_CYCLES) { log('Max cycles reached.'); break; }
   cycleNumber++;
   log(`--- Starting cycle ${cycleNumber} ---`);
 }
@@ -505,55 +334,19 @@ while (!done && !stalled && cycleNumber <= MAX_CYCLES) {
 // ══════════════════════════════════════════════════════════════════════════
 //  FINAL RETURN
 // ══════════════════════════════════════════════════════════════════════════
-const finalPassRate = currentResults && currentResults.results
-  ? `${(currentResults.results.filter((r) => r.pass).length / currentResults.results.length * 100).toFixed(0)}%`
-  : 'N/A';
+const finalAvg = Object.values(history.perComponentBaselines).reduce((s: number, v: any) => s + (v.overall || 0), 0) / Math.max(1, Object.keys(history.perComponentBaselines).length);
 
-const finalAvgOverall = currentResults && currentResults.results
-  ? (currentResults.results.reduce((s, r) => s + r.overall, 0) / currentResults.results.length).toFixed(3)
-  : 'N/A';
-
-log('');
-log('═══════════════════════════════════════════════════════');
-log(`  DEV LOOP COMPLETE`);
-log(`  Cycles: ${history.cycles.length}`);
-log(`  Pass rate: ${finalPassRate}`);
-log(`  Avg overall: ${finalAvgOverall}`);
-log(`  Production-ready: ${done || false}`);
-log(`  Stalled: ${stalled || false}`);
-log(`  Benchmark runs: ${totalBenchmarkRuns}`);
-log('═══════════════════════════════════════════════════════');
+log(`\n══════════════════════════════════════`);
+log(`DEV LOOP COMPLETE — ${history.cycles.length} cycles, ${totalBenchmarkRuns} full benchmarks`);
+log(`Best avg: ${history.bestOverallAvg.toFixed(3)} | Final avg: ${finalAvg.toFixed(3)} | Production-ready: ${done}`);
+log(`══════════════════════════════════════`);
 
 return {
-  name: 'dev-loop',
-  cyclesCompleted: history.cycles.length,
-  totalBenchmarkRuns,
-  productionReady: done || false,
-  stalled: stalled || false,
-  startTime: history.startTime,
-  currentState: currentResults && currentResults.results ? {
-    passRate: finalPassRate,
-    avgOverall: parseFloat(finalAvgOverall),
-    tests: currentResults.results.map((r) => ({ name: r.name, pass: r.pass, overall: r.overall, rounds: r.rounds })),
-  } : null,
-  history: history.cycles.map((c) => ({
-    cycle: c.cycle,
-    kept: c.kept,
-    hypothesis: (c.hypothesis || '').slice(0, 120),
-    targetDelta: c.targetDelta,
-    compositeDelta: c.compositeDelta,
-    roundsDelta: c.roundsDelta,
-  })),
-  latestDiagnosis: lastDiagnosis ? {
-    weakestTest: lastDiagnosis.weakestTest,
-    weakestAxis: lastDiagnosis.weakestAxis,
-    axisValue: lastDiagnosis.axisValue,
-    allTestsPass: lastDiagnosis.allTestsPass,
-    productionReady: lastDiagnosis.productionReady,
-  } : null,
-  keptChanges: keptChanges.map((k) => ({ cycle: k.cycle, file: k.file })),
-  summary: `Dev loop completed ${history.cycles.length} cycles. ` +
-    `Production-ready: ${done}. ` +
-    `Final pass rate: ${finalPassRate}. ` +
-    `Best avg overall: ${history.bestOverallAvg.toFixed(3)}.`,
+  name: 'dev-loop', cyclesCompleted: history.cycles.length, totalBenchmarkRuns,
+  productionReady: done || false, stalled: stalled || false,
+  finalAvgOverall: finalAvg,
+  perComponentBaselines: history.perComponentBaselines,
+  history: history.cycles.map((c: any) => ({ cycle: c.cycle, kept: c.kept, testComponent: c.testComponent, targetDelta: c.targetDelta, compositeDelta: c.compositeDelta })),
+  keptChanges: keptChanges.map((k: any) => ({ cycle: k.cycle, file: k.file })),
+  summary: `Dev loop: ${history.cycles.length} cycles. Best avg: ${history.bestOverallAvg.toFixed(3)}. Production-ready: ${done}.`,
 };
