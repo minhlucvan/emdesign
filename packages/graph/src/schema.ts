@@ -22,7 +22,8 @@ export type BuiltinNodeLabel =
   | 'artifact'
   | 'rule'
   | 'skill'
-  | 'intent'; // a design change's intent/spec (the "playbook" overlay)
+  | 'intent' // a design change's intent/spec (the "playbook" overlay)
+  | 'charter'; // an Element Charter (design-system-specific rule set)
 
 /** Builtins give autocomplete; plugins may contribute their own node labels (runtime is open). */
 export type NodeLabel = BuiltinNodeLabel | (string & {});
@@ -44,7 +45,8 @@ export type BuiltinEdgeLabel =
   | 'governs' // rule → primitive|artifact
   | 'violates' // artifact → rule
   | 'documentedBy' // primitive → section
-  | 'produces'; // intent → artifact (the playbook/spec that drove it)
+  | 'produces' // intent → artifact (the playbook/spec that drove it)
+  | 'hasCharter'; // designSystem → charter (Element Charter registered for this DS)
 
 /** Builtins give autocomplete; plugins may contribute their own edge labels (runtime is open). */
 export type EdgeLabel = BuiltinEdgeLabel | (string & {});
@@ -82,7 +84,7 @@ export function isNodeLabel(x: string): x is BuiltinNodeLabel {
   return (
     [
       'designSystem', 'file', 'section', 'token', 'color', 'typeface', 'theme',
-      'primitive', 'prop', 'variant', 'state', 'story', 'artifact', 'rule', 'skill', 'intent',
+      'primitive', 'prop', 'variant', 'state', 'story', 'artifact', 'rule', 'skill', 'intent', 'charter',
     ] as readonly string[]
   ).includes(x);
 }

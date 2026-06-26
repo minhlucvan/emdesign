@@ -138,6 +138,24 @@ export function buildGraph(dsDir: string, dsId: string, opts: BuildOpts = {}): G
   // 8. skills (optional, repo-level)
   if (opts.skillsDir) addSkills(g, opts.skillsDir);
 
+  // 9. charter nodes (from design-system-specific Element Charters, optional)
+  const chartersDir = path.join(dsDir, 'charters');
+  if (fs.existsSync(chartersDir)) {
+    for (const file of fs.readdirSync(chartersDir)) {
+      if (!/\.(ts|js)$/.test(file) || file === 'index.ts' || file === 'index.js') continue;
+      const name = file.replace(/\.(ts|js)$/, '');
+      const id = `charter/${dsId}/${name}`;
+      g.addNode(id, 'charter', {
+        name,
+        dsId,
+        file: `${dsId}/charters/${file}`,
+        source: { file: `${dsId}/charters/${file}` },
+      });
+      g.addEdge(dsId, 'contains', id);
+      g.addEdge(dsId, 'hasCharter', id);
+    }
+  }
+
   return g;
 }
 

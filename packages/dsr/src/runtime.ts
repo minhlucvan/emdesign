@@ -1,3 +1,5 @@
+import path from 'node:path';
+import fs from 'node:fs';
 import { Repository, type RepoConfig } from './services/repository.js';
 import { RuleEngine } from './rules/engine.js';
 import type { ComponentLintOptions } from './rules/lint.js';
@@ -5,6 +7,10 @@ import { detectConflicts } from './services/conflicts.js';
 import { snapshot, listSnapshots, diffAgainstLatest, type Snapshot, type HistoryDiff } from './services/history.js';
 import type { Conflict, Diagnostic, Reference } from './domain/values.js';
 import type { DesignSystem } from './domain/designSystem.js';
+import type { ElementCharter } from './charters/charter.js';
+import { loadElementCharters } from './charters/loader.js';
+import type { RenderSnapshot } from './rules/rendered.js';
+import { Graph, loadGraph } from '@emdesign/graph';
 
 export type RuntimeConfig = RepoConfig;
 
@@ -17,7 +23,7 @@ export interface ValidationResult {
 /**
  * DesignSystemRuntime — the conventional, behaviorful interface the backend (and tools/agents)
  * call for every design-system operation: load, validate, find-references, conflicts, rules,
- * history. Design as code.
+ * history, element charters. Design as code.
  */
 export class DesignSystemRuntime {
   readonly repository: Repository;
@@ -67,6 +73,60 @@ export class DesignSystemRuntime {
   history(id: string): { snapshots: Snapshot[]; sinceLatest: HistoryDiff | null } {
     const ds = this.repository.load(id, { fresh: true });
     return { snapshots: listSnapshots(ds, this.cfg.designSystemsDir), sinceLatest: diffAgainstLatest(ds, this.cfg.designSystemsDir) };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Element Charters
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Load and register Element Charters for a design system.
+   * Scans <designSystemsDir>/<id>/charters/ for charter files.
+   * Call this after activating a design system to load its charters.
+   */
+  async loadCharters(id: string): Promise<ElementCharter[]> {
+    const chartersDir = path.join(this.cfg.designSystemsDir, id, 'charters');
+    let charters: ElementCharter[];
+    try {
+      charters = await loadElementCharters({ chartersDir });
+    } catch {
+      charters = [];
+    }
+    this.rules.registerCharters(charters);
+    return charters;
+  }
+
+  /**
+   * Evaluate all registered Element Charters against the design system.
+   * Graph-layer charters are always evaluated.
+   * DOM-layer charters require render snapshots (can pass renders from renderProbe).
+   */
+  evaluateCharters(
+    id: string,
+    renders?: RenderSnapshot[],
+  ): { charters: Diagnostic[]; total: Diagnostic[] } {
+    // Load the graph from disk for charter evaluation
+    const graphPath = path.join(this.cfg.designSystemsDir, id, 'graph.json');
+    let graph: Graph;
+    try {
+      graph = loadGraph(graphPath);
+    } catch {
+      console.warn(`[ec] No graph found for "${id}", skipping charter evaluation`);
+      return { charters: [], total: [] };
+    }
+
+    const charterDiagnostics = this.rules.evaluateCharters(graph, renders);
+    return {
+      charters: charterDiagnostics,
+      total: charterDiagnostics,
+    };
+  }
+
+  /**
+   * List registered Element Charters.
+   */
+  listCharters(): Array<{ name: string; severity: string; description: string; layer: string }> {
+    return this.rules.listCharters();
   }
 }
 
