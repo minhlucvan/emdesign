@@ -73,6 +73,7 @@ const HYPOTHESIS_SCHEMA = { type: 'object', additionalProperties: true, properti
 const IMPLEMENTATION_SCHEMA = { type: 'object', additionalProperties: true, properties: { applied: { type: 'boolean' }, diff: { type: 'string' }, error: { type: 'string' } }, required: ['applied'] };
 const VERIFICATION_SCHEMA = { type: 'object', additionalProperties: true, properties: { targetImproved: { type: 'boolean' }, targetDelta: { type: 'number' }, hasRegressions: { type: 'boolean' }, regressions: { type: 'array' }, improvements: { type: 'array' }, hypothesisCorrect: { type: 'boolean' }, overallAvgDelta: { type: 'number' }, avgRoundsDelta: { type: 'number' }, afterPassRate: { type: 'number' } }, required: ['targetImproved', 'hasRegressions', 'hypothesisCorrect'] };
 const GIT_SCHEMA = { type: 'object', additionalProperties: true, properties: { stdout: { type: 'string' } }, required: ['stdout'] };
+var clamp = function(v) { return Math.max(0, Math.min(1, typeof v === 'number' ? v : 0)); };
 
 // ══════════════════════════════════════════════════════════════════════════
 //  PHASE 0: INITIALIZE
@@ -108,9 +109,14 @@ if (!hadBaseline) {
   history.initialBaseline = baseline && baseline.runId;
   currentResults = baseline;
   if (baseline && baseline.results) {
-    history.bestOverallAvg = baseline.results.reduce((s, r) => s + r.overall, 0) / baseline.results.length;
+    history.bestOverallAvg = baseline.results.reduce(function(s, r) { return s + clamp(r.overall); }, 0) / baseline.results.length;
     for (const t of baseline.results) {
-      history.perComponentBaselines[t.name] = { overall: t.overall, blackBox: t.blackBox, whiteBox: t.whiteBox, rounds: t.rounds };
+      history.perComponentBaselines[t.name] = {
+        overall: clamp(t.overall),
+        blackBox: clamp(t.blackBox),
+        whiteBox: clamp(t.whiteBox),
+        rounds: t.rounds || 1,
+      };
     }
   }
   log(`Baseline complete: ${baseline ? baseline.passRate : 'N/A'} pass rate`);
@@ -143,7 +149,7 @@ while (!done && !stalled && cycleNumber <= MAX_CYCLES) {
     currentResults = suiteResults;
     if (suiteResults && suiteResults.results) {
       for (const t of suiteResults.results) {
-        history.perComponentBaselines[t.name] = { overall: t.overall, blackBox: t.blackBox, whiteBox: t.whiteBox, rounds: t.rounds };
+        history.perComponentBaselines[t.name] = { overall: clamp(t.overall), blackBox: clamp(t.blackBox), whiteBox: clamp(t.whiteBox), rounds: t.rounds || 1 };
       }
     }
   }
@@ -286,8 +292,13 @@ while (!done && !stalled && cycleNumber <= MAX_CYCLES) {
     );
   }
 
-  // Update baselines
-  history.perComponentBaselines[weakTest] = after;
+  // Update baselines (with clamping)
+  history.perComponentBaselines[weakTest] = {
+    overall: clamp(after.overall),
+    blackBox: clamp(after.blackBox),
+    whiteBox: clamp(after.whiteBox),
+    rounds: after.rounds || 1,
+  };
   const avgOv = Object.values(history.perComponentBaselines).reduce(function(s, v) { return s + (v.overall || 0); }, 0) / Math.max(1, Object.keys(history.perComponentBaselines).length);
   if (avgOv > history.bestOverallAvg) history.bestOverallAvg = avgOv;
 
