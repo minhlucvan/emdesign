@@ -117,11 +117,28 @@ const results = [];
 for (const test of tests) {
   log(`Building "${test.name}" (${test.complexity})...`);
 
-  const coreResult = await workflow({ scriptPath: '/Users/minh/Documents/medesign/apps/workspace/templates/claude/workflows/core-loop.js' }, {
-    name: test.name,
-    instruction: test.instruction,
-    threshold: THRESHOLD,
-  });
+  // Build component through core-loop via direct MCP tools (can't use workflow() — nesting limit)
+  const coreResult = await agent(
+    `Build the component "${test.name}" through the full core-loop using MCP tools directly.\n` +
+    `Instruction: ${test.instruction}\n\n` +
+    `Steps:\n` +
+    `1. Call get_design_context with componentName="${test.name}" to get the design system contract\n` +
+    `2. Call create_component with mode="create", name="${test.name}", source=(the .tsx), story=(CSF .stories.tsx)\n` +
+    `3. Run ALL 5 critiques in parallel:\n` +
+    `   - vision_critique with component="${test.name}"\n` +
+    `   - design-reviewer agent on component "${test.name}"\n` +
+    `   - consistency-auditor agent on "${test.name}"\n` +
+    `   - run_visual_test for "${test.name}" (pass/new→1.0, changed→0.5, error→0.0)\n` +
+    `   - a11y check on "${test.name}"\n` +
+    `4. Call critique_score with ALL scores + mustFix, threshold=${THRESHOLD}, sourceFloors={vision:0.7, llm:0.7, tokens:0.8, visual:0.85, a11y:0.8}\n` +
+    `5. If decision is 'revise', collect findings, call edit_component to fix them (P0 first), and loop back to step 3\n` +
+    `6. Stop when decision='ship' or after 3 rounds with no composite improvement (plateau)\n` +
+    `7. Call record_evidence for each round\n\n` +
+    `DARK MODE: If the design system has [data-theme="dark"], generate dark: variants for every color utility.\n` +
+    `NON-DETERMINISTIC CODE: NEVER use new Date(), Date.now(), Math.random(), or crypto.randomUUID() in component source.\n\n` +
+    `Return JSON: { shipped: boolean, rounds: number, composite: number | null, stoppedReason?: string }`,
+    { label: `build:${test.name}`, phase: 'Execute', schema: { type: 'object', additionalProperties: true, properties: { shipped: { type: 'boolean' }, rounds: { type: 'number' }, composite: { type: 'number' } }, required: ['shipped', 'rounds'] } },
+  );
 
   const t0 = 0; // timing not available in workflow context
 
