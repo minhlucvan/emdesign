@@ -1,59 +1,34 @@
-# Plank — emdesign Example Project
+# Plank — emdesign Blank Project
 
-> A freshly scaffolded emdesign project, customized from the **After Hours** base
-> via the Design System Browser's customization flow.
+> Scaffolded by `emdesign init react-tailwind` — a blank, ready-to-go workspace.
 
-This example demonstrates what a project looks like after:
-1. `emdesign init react-tailwind` — scaffold the workspace
-2. Browsing the Catalog in the **System** tab
-3. Selecting **After Hours** as the base
-4. Customizing: accent color → `#c7512e`, headline font → `Inter`,
-   roundness → `12px`
-5. Naming the system `plank`
-6. One agent-generated component (`HeroSection`) in `src/generated/`
+This is what a freshly initialized emdesign project looks like. No custom
+design system has been created yet, and no components have been generated.
 
-## Structure
+## What's here
 
 ```
-examples/plank/
-├── emdesign.config.json          # Project config
-├── .emdesign/
-│   ├── state.json                # Shared state store
-│   ├── baselines.json            # Visual baseline scores
-│   └── active-ds                 # Active design system marker
+├── .claude/              # Agent commands, skills, workflows (the /mds system)
+├── .storybook/           # Storybook config (main.ts, preview.tsx)
 ├── design-systems/
-│   └── plank/                    # The customized design system
-│       ├── DESIGN.md             # Design contract
-│       ├── tokens.css            # Token values (customized)
-│       ├── manifest.json         # System metadata
-│       └── code/                 # Reusable primitives
+│   └── atelier/          # Starter design system (seeded by init)
 ├── src/
-│   ├── generated/                # Agent-generated components
-│   │   ├── HeroSection.tsx
-│   │   └── HeroSection.stories.tsx
-│   └── components/               # Captured components (empty)
-├── tailwind.config.js            # Token-bound Tailwind config
-└── README.md                     # This file
+│   ├── generated/        # Agent writes here (empty until you run /mds:craft:component)
+│   ├── components/       # Captured components (empty until you run /mds:ship)
+│   ├── active-design-system.css
+│   └── index.css
+├── CLAUDE.md             # Agent workspace instructions
+├── emdesign.config.json  # Project config
+├── package.json
+├── tailwind.config.js
+└── postcss.config.js
 ```
 
-## What to Look At
-
-| File | Why |
-|------|-----|
-| `design-systems/plank/tokens.css` | Customized tokens — accent, fonts, radius differ from base |
-| `src/generated/HeroSection.tsx` | Agent-generated component using `@ds` primitives and token classes |
-| `.emdesign/state.json` | The shared state store between addon and agent |
-| `emdesign.config.json` | The project configuration |
-
-## How This Was Created
+## Next steps
 
 ```bash
-emdesign init react-tailwind
-# Open Storybook, go to System > Catalog
-# Pick "After Hours" → "Use as template"
-# Step 1: id=plank, name=Plank
-# Step 2: accent=#c7512e, variant=tonal-spot
-# Step 3: headline=Inter, body=Inter
-# Step 4: roundness=12px, spacing=8px
-# Step 5: Create
+npm i                    # Install dependencies
+npx storybook dev -p 6006  # Start Storybook
+npx tsx path/to/cli.ts serve  # Start emdesign backend
+# In Claude Code: /mds:craft:component "a hero section"
 ```
