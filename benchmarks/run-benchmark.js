@@ -117,7 +117,7 @@ const results = [];
 for (const test of tests) {
   log(`Building "${test.name}" (${test.complexity})...`);
 
-  const coreResult = await workflow('core-loop', {
+  const coreResult = await workflow({ scriptPath: '/Users/minh/Documents/medesign/apps/workspace/templates/claude/workflows/core-loop.js' }, {
     name: test.name,
     instruction: test.instruction,
     threshold: THRESHOLD,

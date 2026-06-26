@@ -1,10 +1,6 @@
 export const meta = {
   name: 'core-loop',
-  description:
-    'Build a single component until it is genuinely done. Every round uses ALL 5 feedback sources ' +
-    '(vision + llm + tokens + visual + a11y). The loop keeps going until every condition passes: ' +
-    'composite >= threshold, mustFix === 0, each source above its floor, no regression, and all ' +
-    'previous findings resolved. No round cap — only stops when done or plateaued.',
+  description: 'Build a single component until genuinely done. Uses ALL 5 feedback sources (vision + llm + tokens + visual + a11y). Keeps going until every condition passes: composite >= threshold, mustFix === 0, each source above its floor, no regression, all previous findings resolved. No round cap — only stops when done or plateaued.',
   phases: [
     { title: 'Analyze' },
     { title: 'Build' },
