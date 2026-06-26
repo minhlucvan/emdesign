@@ -288,7 +288,7 @@ while (!done && !stalled && cycleNumber <= MAX_CYCLES) {
 
   // Update baselines
   history.perComponentBaselines[weakTest] = after;
-  const avgOv = Object.values(history.perComponentBaselines).reduce((s: number, v: any) => s + (v.overall || 0), 0) / Math.max(1, Object.keys(history.perComponentBaselines).length);
+  const avgOv = Object.values(history.perComponentBaselines).reduce(function(s, v) { return s + (v.overall || 0); }, 0) / Math.max(1, Object.keys(history.perComponentBaselines).length);
   if (avgOv > history.bestOverallAvg) history.bestOverallAvg = avgOv;
 
   const cycleEntry = {
@@ -314,14 +314,14 @@ while (!done && !stalled && cycleNumber <= MAX_CYCLES) {
   // ── CHECK ────────────────────────────────────────────────────────────
   phase('Check');
   // Production-ready check
-  const allOver80 = Object.values(history.perComponentBaselines).every((v: any) => (v.overall || 0) >= PRODUCTION_THRESHOLD);
+  const allOver80 = Object.values(history.perComponentBaselines).every(function(v) { return (v.overall || 0) >= PRODUCTION_THRESHOLD; });
   if (allOver80 && avgOv >= PRODUCTION_THRESHOLD) {
     done = true; log('Production-ready! All components at threshold.'); break;
   }
 
   // Stall detection
   const last3 = history.cycles.slice(-3);
-  if (last3.length >= 3 && last3.every((c: any) => !c.kept)) {
+  if (last3.length >= 3 && last3.every(function(c) { return !c.kept; })) {
     stalled = true; log('Stalled: last 3 cycles all reverted.'); break;
   }
   if (skipCounter >= 3) { stalled = true; log('Stalled: too many skipped cycles.'); break; }
@@ -334,7 +334,7 @@ while (!done && !stalled && cycleNumber <= MAX_CYCLES) {
 // ══════════════════════════════════════════════════════════════════════════
 //  FINAL RETURN
 // ══════════════════════════════════════════════════════════════════════════
-const finalAvg = Object.values(history.perComponentBaselines).reduce((s: number, v: any) => s + (v.overall || 0), 0) / Math.max(1, Object.keys(history.perComponentBaselines).length);
+const finalAvg = Object.values(history.perComponentBaselines).reduce(function(s, v) { return s + (v.overall || 0); }, 0) / Math.max(1, Object.keys(history.perComponentBaselines).length);
 
 log(`\n══════════════════════════════════════`);
 log(`DEV LOOP COMPLETE — ${history.cycles.length} cycles, ${totalBenchmarkRuns} full benchmarks`);
@@ -346,7 +346,7 @@ return {
   productionReady: done || false, stalled: stalled || false,
   finalAvgOverall: finalAvg,
   perComponentBaselines: history.perComponentBaselines,
-  history: history.cycles.map((c: any) => ({ cycle: c.cycle, kept: c.kept, testComponent: c.testComponent, targetDelta: c.targetDelta, compositeDelta: c.compositeDelta })),
-  keptChanges: keptChanges.map((k: any) => ({ cycle: k.cycle, file: k.file })),
+  history: history.cycles.map(function(c) { return { cycle: c.cycle, kept: c.kept, testComponent: c.testComponent, targetDelta: c.targetDelta, compositeDelta: c.compositeDelta }; }),
+  keptChanges: keptChanges.map(function(k) { return { cycle: k.cycle, file: k.file }; }),
   summary: `Dev loop: ${history.cycles.length} cycles. Best avg: ${history.bestOverallAvg.toFixed(3)}. Production-ready: ${done}.`,
 };
