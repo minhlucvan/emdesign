@@ -8,8 +8,9 @@ import type { MinimalAgentDef } from './types.js';
 const pexecFile = promisify(execFile);
 
 export interface McpServerConfig {
-  command: string;
+  command?: string;
   args?: string[];
+  url?: string;
   env?: Record<string, string>;
 }
 
@@ -82,8 +83,22 @@ export async function probeCapabilities(def: MinimalAgentDef, binPath: string): 
 
 /** Write `.mcp.json` into cwd so a `claude-mcp-json` agent auto-loads emdesign's tools. */
 export async function writeMcpJson(cwd: string, servers: Record<string, McpServerConfig>): Promise<void> {
+  const config: { mcpServers: Record<string, unknown> } = { mcpServers: {} };
+  for (const [name, srv] of Object.entries(servers)) {
+    if (srv.url) {
+      // HTTP MCP server
+      config.mcpServers[name] = { url: srv.url };
+    } else {
+      // Stdio MCP server (command/args)
+      config.mcpServers[name] = {
+        command: srv.command,
+        ...(srv.args?.length ? { args: srv.args } : {}),
+        ...(srv.env ? { env: srv.env } : {}),
+      };
+    }
+  }
   const file = path.join(cwd, '.mcp.json');
-  await fsp.writeFile(file, JSON.stringify({ mcpServers: servers }, null, 2));
+  await fsp.writeFile(file, JSON.stringify(config, null, 2));
 }
 
 /**

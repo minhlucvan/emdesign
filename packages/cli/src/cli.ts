@@ -6,7 +6,7 @@ import {
   resolveRepoPaths,
   type RepoPaths,
   Store,
-  startHttpBridge,
+  createHttpBridge,
   resolveDesignSystem,
   composePrompt,
   countMustFix,
@@ -25,7 +25,7 @@ import {
   runtimeFor,
   normalizeDsRef,
 } from '@emdesign/backend';
-import { createMcpServer } from '@emdesign/mcp-server';
+import { createMcpServer, createMcpHttpRouter } from '@emdesign/mcp-server';
 import { standardCritique } from '@emdesign/vision-critic';
 
 const PORT = Number(process.env.EMDESIGN_PORT ?? 4321);
@@ -99,7 +99,18 @@ async function main() {
     }
     case 'serve': {
       if (!store.get().activeDesignSystem) store.update({ activeDesignSystem: 'atelier' });
-      startHttpBridge(store, paths, PORT);
+      const app = await createHttpBridge(store, paths);
+      // Mount MCP over HTTP so any MCP-capable agent can connect via http://localhost:4321/mcp
+      try {
+        const mcpRouter = await createMcpHttpRouter({ store, paths });
+        app.use(mcpRouter);
+        console.error(`[emdesign] MCP HTTP endpoint at http://localhost:${PORT}/mcp`);
+      } catch (e) {
+        console.error('[emdesign] Could not mount MCP HTTP transport:', e);
+      }
+      app.listen(PORT, () => {
+        console.error(`[emdesign] Server running on http://localhost:${PORT}`);
+      });
       break;
     }
     case 'use': {

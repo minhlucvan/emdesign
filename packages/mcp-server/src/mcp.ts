@@ -1,23 +1,39 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { execSync } from 'node:child_process';
 import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { ensureDir, normalizeDsRef, type RepoPaths } from '@emdesign/backend';
+import {
+  ensureDir,
+  normalizeDsRef,
+  type RepoPaths,
+  resolveDesignSystem,
+  composePrompt,
+  renderFindingsForAgent,
+  countMustFix,
+  effectiveAdapter,
+  captureComponent,
+  runVisualTest,
+  toStoryId,
+  buildAndSave,
+  loadOrBuild,
+  overlayGenerated,
+  scoreComponent,
+  recordEvidence,
+  createDesignSystem,
+  scaffoldPrimitives,
+  validateDesignSystem,
+  listDesignSystems,
+  listBases,
+  applyDesignSystem,
+  runtimeFor,
+  gradeDesignSystem,
+  renderSnapshot,
+} from '@emdesign/backend';
 import type { Store } from '@emdesign/backend';
-import { resolveDesignSystem, composePrompt } from '@emdesign/backend';
-import { renderFindingsForAgent, countMustFix } from '@emdesign/backend';
-import { effectiveAdapter } from '@emdesign/backend';
-import { captureComponent } from '@emdesign/backend';
-import { runVisualTest, toStoryId } from '@emdesign/backend';
 import { findAffected, whereToFix, consistencyBrief, getContext, query } from '@emdesign/graph';
-import { buildAndSave, loadOrBuild, overlayGenerated } from '@emdesign/backend';
-import { scoreComponent } from '@emdesign/backend';
-import { recordEvidence } from '@emdesign/backend';
 import { standardCritique } from '@emdesign/vision-critic';
-import { createDesignSystem, scaffoldPrimitives, validateDesignSystem, listDesignSystems, listBases, applyDesignSystem } from '@emdesign/backend';
-import { runtimeFor } from '@emdesign/backend';
-import { gradeDesignSystem, renderSnapshot } from '@emdesign/backend';
-import type { RenderSnapshotOutput } from '@emdesign/backend';
+import { listAllStories, fetchStorybookIndex, parseCsfTitle } from './storybookCompat.js';
 
 const STORYBOOK_URL = process.env.EMDESIGN_STORYBOOK_URL ?? 'http://localhost:6006';
 
@@ -46,506 +62,395 @@ function lintSource(paths: RepoPaths, store: Store, source: string) {
   return { ds, findings, mustFix: countMustFix(findings), report: renderFindingsForAgent(findings) };
 }
 
-/** The emdesign MCP server — the tool surface any agent drives the loop through. */
+function graphWithCurrent(store: Store, paths: RepoPaths) {
+  const id = activeDsId(store);
+  const g = loadOrBuild(paths, id);
+  const current = store.get().currentComponent;
+  if (current && fs.existsSync(path.join(paths.generatedDir, `${current}.tsx`))) {
+    try { overlayGenerated(g, paths, id, current); } catch { /* artifact not parseable yet */ }
+  }
+  return { g, id };
+}
+
+/** ── 13 tools consolidated from 38 ──────────────────────────────── */
+
 export function createMcpServer(store: Store, paths: RepoPaths): McpServer {
   const server = new McpServer({ name: 'emdesign', version: '0.0.0' });
 
-  server.registerTool(
-    'get_design_context',
-    {
-      description: 'Get the active design system context (DESIGN.md + tokens + primitives + rules) to generate on-system, code-first UI.',
-      inputSchema: { instruction: z.string().optional(), componentName: z.string().optional() },
+  // ── 1. Design context ──────────────────────────────────────────
+  server.registerTool('get_design_context', {
+    description: 'Understand the active design system before creating a component. Returns the DESIGN.md contract, available tokens, primitives, codegen rules, and anti-patterns. Call this FIRST — it tells you what tokens to use, what primitives exist, and what NOT to do.',
+    inputSchema: {
+      componentName: z.string().optional().describe('The component you intend to build, for contextual guidance'),
+      instruction: z.string().optional().describe('What the component should do, for tailored context'),
     },
-    async ({ instruction, componentName }) => {
-      const id = activeDsId(store);
-      const ds = resolveDesignSystem(paths, id);
-      const name = componentName ?? 'Component';
-      // Graph context: a node neighborhood if it already exists, else a build-new consistency brief.
-      let graphContext: string | undefined;
-      try {
-        const { g } = graphWithCurrent();
-        const nodeId = g.has(`art/${name}`) ? `art/${name}` : g.has(`${id}/${name}`) ? `${id}/${name}` : null;
-        graphContext = JSON.stringify(
-          nodeId ? getContext(g, nodeId) : consistencyBrief(g, { name, intent: instruction }),
-          null,
-          2,
-        );
-      } catch { /* graph optional */ }
-      const codegenInstructions = effectiveAdapter(paths).codegenInstructions(ds);
-      return text(composePrompt({ ds, componentName: name, instruction: instruction ?? '(describe the component)', graphContext, codegenInstructions }));
-    },
-  );
-
-  server.registerTool(
-    'create_component',
-    {
-      description: 'Create a generated React+Tailwind component (and its CSF story). Writes to apps/studio/src/generated/ and runs the consistency lint.',
-      inputSchema: {
-        name: z.string().describe('PascalCase component name'),
-        source: z.string().describe('Full .tsx source; import primitives from "@ds"'),
-        story: z.string().optional().describe('CSF story; title "Generated/<name>", Default export'),
-      },
-    },
-    async ({ name, source, story }) => {
-      writeGenerated(paths, name, source, story);
-      const { findings, mustFix, report } = lintSource(paths, store, source);
-      store.update({ currentComponent: name, lintPassing: mustFix === 0 });
-      return text(`Wrote generated/${name}.tsx.\n${report}\n\nPreview: ${STORYBOOK_URL}/iframe.html?id=${toStoryId(name)}`);
-    },
-  );
-
-  server.registerTool(
-    'edit_component',
-    {
-      description: 'Replace a generated component with revised source (e.g. to fix lint findings or apply a change request).',
-      inputSchema: { name: z.string(), source: z.string(), story: z.string().optional() },
-    },
-    async ({ name, source, story }) => {
-      writeGenerated(paths, name, source, story);
-      const { mustFix, report } = lintSource(paths, store, source);
-      store.update({ currentComponent: name, lintPassing: mustFix === 0 });
-      return text(report);
-    },
-  );
-
-  server.registerTool(
-    'lint_consistency',
-    {
-      description: 'Lint a generated component against the design system (anti-slop + token contract). Returns P0-first findings.',
-      inputSchema: { name: z.string() },
-    },
-    async ({ name }) => {
-      const src = fs.readFileSync(path.join(paths.generatedDir, `${name}.tsx`), 'utf8');
-      const { mustFix, report } = lintSource(paths, store, src);
-      store.update({ lintPassing: mustFix === 0 });
-      return text(report);
-    },
-  );
-
-  server.registerTool(
-    'run_visual_test',
-    {
-      description: 'Screenshot the component story in Storybook and diff against the baseline. Establishes a baseline on first run.',
-      inputSchema: { name: z.string() },
-    },
-    async ({ name }) => {
-      const diff = await runVisualTest(paths, name);
-      store.update({ lastDiff: diff, currentComponent: name });
-      return text(`Visual test: ${diff.status}${diff.changedPixels != null ? ` (${diff.changedPixels} px changed)` : ''}.`);
-    },
-  );
-
-  server.registerTool(
-    'render_preview',
-    { description: 'Get the Storybook preview URL for a generated component.', inputSchema: { name: z.string() } },
-    async ({ name }) => text(`${STORYBOOK_URL}/iframe.html?id=${toStoryId(name)}&viewMode=story`),
-  );
-
-  server.registerTool(
-    'capture_reusable_component',
-    {
-      description: 'Promote a generated component into a reusable, documented, git-tracked component under src/components/.',
-      inputSchema: { name: z.string() },
-    },
-    async ({ name }) => {
-      const out = await captureComponent(paths, name);
-      return text(`Captured ${name} → ${out}`);
-    },
-  );
-
-  server.registerTool(
-    'apply_design_system',
-    {
-      description: 'Select the active design system and rewire the workspace: rebind tokens.css + @ds and rebuild the graph.',
-      inputSchema: { id: z.string() },
-    },
-    async ({ id }) => {
-      const r = applyDesignSystem(paths, id);
-      store.update({ activeDesignSystem: id });
-      return text(`Active design system → ${id}. ${r.graphRebuilt ? 'graph rebuilt; ' : ''}${r.note}`);
-    },
-  );
-
-  server.registerTool(
-    'create_design_system',
-    {
-      description: 'Create a design system. mode: blank (skeleton) | brief | extract (skeleton → author) | import (clone `from`). Scaffolds DESIGN.md + tokens.css + manifest + base primitives. For import, `from` may be a base ref from list_design_system_bases (e.g. open-design/brutalist) — the clone is re-id\'d, graph-built and validated.',
-      inputSchema: {
-        id: z.string(),
-        name: z.string().optional(),
-        mode: z.enum(['blank', 'brief', 'import', 'extract']).optional(),
-        from: z.string().optional().describe('for import: a design-system id or base ref (open-design/<id>) to clone; otherwise the primitives source (default atelier)'),
-      },
-    },
-    async ({ id, name, mode, from }) => {
-      const r = createDesignSystem(paths, { id, name, mode, from });
-      return text(JSON.stringify(r, null, 2));
-    },
-  );
-
-  server.registerTool(
-    'scaffold_primitives',
-    {
-      description: 'Copy the base primitive set (Button/Card/Input/Badge/Heading/Stack + Showcase) into a design system, token-role-bound.',
-      inputSchema: { id: z.string(), from: z.string().optional() },
-    },
-    async ({ id, from }) => text(scaffoldPrimitives(paths, id, from ?? 'atelier') ? `Scaffolded primitives into ${id}/code.` : `Skipped (code/ exists or source missing).`),
-  );
-
-  server.registerTool(
-    'validate_design_system',
-    {
-      description: 'Validate a design system via the runtime: token contract + structural invariants (9 sections, required roles, var() resolution). Accepts a base ref (open-design/<id>). Returns ok + diagnostics.',
-      inputSchema: { id: z.string() },
-    },
-    async ({ id }) => text(JSON.stringify(runtimeFor(paths).validate(normalizeDsRef(id)), null, 2)),
-  );
-
-  server.registerTool(
-    'grade_design_system',
-    {
-      description: 'Grade a design system against the open-design quality/complexity rubric (ds doctor): token richness, type-scale depth, components-with-states, theming, doc depth, craft rules, conflicts. Returns a scorecard + letter grade + matchesGrade.',
-      inputSchema: { id: z.string() },
-    },
-    async ({ id }) => text(JSON.stringify(await gradeDesignSystem(paths, normalizeDsRef(id)), null, 2)),
-  );
-
-  server.registerTool(
-    'render_snapshot',
-    {
-      description: 'Capture a render-probe DOM snapshot of a generated component (light + dark themes). Returns the snapshot URL and a summary of element counts. The snapshot is persisted as <component>.render.json in the screenshots dir and can be consumed by plugin-core rendered lint rules.',
-      inputSchema: { name: z.string(), themes: z.array(z.enum(['light', 'dark'])).optional().describe('Themes to capture (default ["light","dark"])') },
-    },
-    async ({ name, themes }) => {
-      try {
-        const snapshots = await renderSnapshot(paths, name, { themes: themes ?? ['light', 'dark'] });
-        return text(`Captured ${snapshots.length} snapshot(s) for "${name}" (${snapshots.map((s) => s.theme).join(', ')}): ${snapshots[0]?.nodes.length ?? 0} DOM nodes extracted.`);
-      } catch (e) {
-        return text(`Error capturing render snapshot for "${name}": ${(e as Error).message}`);
-      }
-    },
-  );
-
-  server.registerTool(
-    'ds_conflicts',
-    {
-      description: 'Detect conflicts in a design system: duplicate roles, orphan (unused) tokens, dangling theme overrides.',
-      inputSchema: { id: z.string() },
-    },
-    async ({ id }) => text(JSON.stringify(runtimeFor(paths).conflicts(normalizeDsRef(id)), null, 2)),
-  );
-
-  server.registerTool(
-    'ds_history',
-    {
-      description: 'Design-system history: committed snapshots + a structured diff of the working state vs the latest snapshot.',
-      inputSchema: { id: z.string(), snapshot: z.boolean().optional().describe('also commit a new snapshot') },
-    },
-    async ({ id, snapshot }) => {
-      const rt = runtimeFor(paths);
-      if (snapshot) rt.snapshot(id);
-      return text(JSON.stringify(rt.history(id), null, 2));
-    },
-  );
-
-  server.registerTool(
-    'list_design_systems',
-    { description: 'List available design systems (id + name).', inputSchema: {} },
-    async () => text(JSON.stringify(runtimeFor(paths).list(), null, 2)),
-  );
-
-  server.registerTool(
-    'list_design_system_bases',
-    {
-      description:
-        'List the prebuilt bases you can start a new design system FROM (vendored open-design systems). Each entry has a `ref` to pass as `from` in create_design_system mode:"import". Use this to offer a "pick a base, then customize" choice.',
-      inputSchema: {},
-    },
-    async () => text(JSON.stringify(listBases(paths), null, 2)),
-  );
-
-  server.registerTool(
-    'poll_change_request',
-    {
-      description: 'Fetch the next queued change request submitted from the Storybook panel (instruction to apply). Returns "(none)" if empty.',
-      inputSchema: {},
-    },
-    async () => {
-      const cr = store.nextQueued();
-      if (!cr) return text('(none)');
-      store.setChangeRequestStatus(cr.id, 'in_progress');
-      return text(JSON.stringify({ id: cr.id, instruction: cr.instruction }));
-    },
-  );
-
-  server.registerTool(
-    'poll_intent',
-    {
-      description: 'Drain the next queued browser intent (the /mds:inbox bridge). Returns its {id, type, instruction, target, payload} and marks it in-progress; route by type to the matching /mds command. Returns "(none)" if empty.',
-      inputSchema: {},
-    },
-    async () => {
-      const cr = store.nextQueued();
-      if (!cr) return text('(none)');
-      store.setChangeRequestStatus(cr.id, 'in_progress');
-      return text(JSON.stringify({ id: cr.id, type: cr.type ?? 'change-request', instruction: cr.instruction, target: cr.target, payload: cr.payload }));
-    },
-  );
-
-  server.registerTool(
-    'resolve_intent',
-    {
-      description: 'Mark a browser intent done (or error) after acting on it, so the panel reflects completion.',
-      inputSchema: { id: z.string(), status: z.enum(['done', 'error']).optional(), note: z.string().optional() },
-    },
-    async ({ id, status, note }) => {
-      store.setChangeRequestStatus(id, status ?? 'done', note);
-      return text(`Intent ${id} → ${status ?? 'done'}.`);
-    },
-  );
-
-  // ---- design-system knowledge graph ----
-
-  /** Load/build the active DS graph and overlay the current generated component if present. */
-  function graphWithCurrent() {
+  }, async ({ instruction, componentName }) => {
     const id = activeDsId(store);
-    const g = loadOrBuild(paths, id);
-    const current = store.get().currentComponent;
-    if (current && fs.existsSync(path.join(paths.generatedDir, `${current}.tsx`))) {
-      try { overlayGenerated(g, paths, id, current); } catch { /* artifact not parseable yet */ }
+    const ds = resolveDesignSystem(paths, id);
+    const name = componentName ?? 'Component';
+    let graphContext: string | undefined;
+    try {
+      const { g } = graphWithCurrent(store, paths);
+      const nodeId = g.has(`art/${name}`) ? `art/${name}` : g.has(`${id}/${name}`) ? `${id}/${name}` : null;
+      graphContext = JSON.stringify(
+        nodeId ? getContext(g, nodeId) : consistencyBrief(g, { name, intent: instruction }),
+        null, 2,
+      );
+    } catch { /* graph optional */ }
+    const codegenInstructions = effectiveAdapter(paths).codegenInstructions(ds);
+    return text(composePrompt({ ds, componentName: name, instruction: instruction ?? '(describe the component)', graphContext, codegenInstructions }));
+  });
+
+  // ── 2. Generate / edit component ─────────────────────────────
+  server.registerTool('generate_component', {
+    description: 'Create a NEW component or EDIT an existing one. Writes the .tsx source (+ optional CSF story) to the generated directory, then automatically runs the consistency lint. Use `get_design_context` FIRST to understand the design system, then pass the source here.',
+    inputSchema: {
+      mode: z.enum(['create', 'edit']).describe('"create" for a brand-new component, "edit" to revise an existing one'),
+      name: z.string().describe('PascalCase component name (e.g. "UserAvatar")'),
+      source: z.string().describe('Full .tsx source. Import primitives from "@ds" (e.g. `import { Button } from "@ds/Button"`). Use semantic tokens only — no raw hex colors.'),
+      story: z.string().optional().describe('CSF story file content. Title format: "Generated/<Name>". Include Default export + variant exports.'),
+    },
+  }, async ({ mode, name, source, story }) => {
+    writeGenerated(paths, name, source, story);
+    const { findings, mustFix, report } = lintSource(paths, store, source);
+    store.update({ currentComponent: name, lintPassing: mustFix === 0 });
+    const previewUrl = `${STORYBOOK_URL}/iframe.html?id=${toStoryId(name)}&viewMode=story`;
+    return text(`${mode === 'create' ? 'Created' : 'Updated'} ${name}.\n${report}\n\nPreview: ${previewUrl}`);
+  });
+
+  // ── 3. Test component ────────────────────────────────────────
+  server.registerTool('test_component', {
+    description: 'Run visual diffs (pixelmatch screenshot vs baseline), interaction tests, and/or render-probe DOM snapshots for a component. Also returns the preview URL. Use to catch regressions before capturing.',
+    inputSchema: {
+      component: z.string().describe('Component name (PascalCase)'),
+      tests: z.array(z.enum(['visual', 'snapshot'])).optional().describe('Which tests to run. Default: ["visual"]'),
+    },
+  }, async ({ component, tests }) => {
+    const kinds = tests ?? ['visual'];
+    const results: Record<string, unknown> = { component, preview: `${STORYBOOK_URL}/iframe.html?id=${toStoryId(component)}&viewMode=story` };
+
+    if (kinds.includes('visual')) {
+      try {
+        const diff = await runVisualTest(paths, component);
+        results.visual = { status: diff.status, changedPixels: diff.changedPixels, screenshotPath: diff.actualPng };
+        store.update({ lastDiff: diff, currentComponent: component });
+      } catch (e) {
+        results.visual = { status: 'error', error: (e as Error).message };
+      }
     }
-    return { g, id };
-  }
+    if (kinds.includes('snapshot')) {
+      try {
+        const snapshots = await renderSnapshot(paths, component, { themes: ['light', 'dark'] });
+        results.snapshot = { count: snapshots.length, themes: snapshots.map(s => s.theme), nodes: snapshots[0]?.nodes.length ?? 0 };
+      } catch (e) {
+        results.snapshot = { error: (e as Error).message };
+      }
+    }
+    return text(JSON.stringify(results, null, 2));
+  });
 
-  server.registerTool(
-    'graph_where_to_fix',
-    {
-      description: 'Given an artifact and a lint finding id, return the responsible token/spec and the exact file:line to fix.',
-      inputSchema: { artifact: z.string(), findingId: z.string() },
-    },
-    async ({ artifact, findingId }) => {
-      const { g } = graphWithCurrent();
-      const res = whereToFix(g, `art/${artifact}`, findingId);
-      return text(res ? JSON.stringify(res, null, 2) : `No '${findingId}' violation found on art/${artifact}.`);
-    },
-  );
+  // ── 4. Lint component ────────────────────────────────────────
+  server.registerTool('lint_component', {
+    description: 'Check a generated component for design-system consistency: token binding compliance, anti-slop rules, and code conventions. Returns P0 (blocker) findings first. Use during iteration to catch issues early.',
+    inputSchema: { name: z.string().describe('Component name (PascalCase)') },
+  }, async ({ name }) => {
+    const src = fs.readFileSync(path.join(paths.generatedDir, `${name}.tsx`), 'utf8');
+    const { mustFix, report } = lintSource(paths, store, src);
+    store.update({ lintPassing: mustFix === 0 });
+    return text(report);
+  });
 
-  server.registerTool(
-    'graph_find_affected',
-    {
-      description: 'Impact analysis: everything that transitively depends on a node (e.g. a token) — what a change would affect.',
-      inputSchema: { node: z.string().describe('node id, e.g. atelier/--color-accent') },
+  // ── 5. Evaluate quality ──────────────────────────────────────
+  server.registerTool('evaluate_component', {
+    description: 'Run the full quality gate on a component. Combines lint, visual, vision, and LLM scores into a composite with a ship/continue decision. The component ships only when composite >= threshold AND mustFix === 0. Use BEFORE capture_reusable_component.',
+    inputSchema: {
+      component: z.string().optional().describe('Component name (for per-component ratchet tracking)'),
+      scores: z.object({
+        visual: z.number().optional(),
+        tokens: z.number().optional(),
+        vision: z.number().optional(),
+        llm: z.number().optional(),
+        a11y: z.number().optional(),
+      }).optional().describe('Feedback scores (0–1). Omitted dimensions are excluded from weighting.'),
+      mustFix: z.number().int().nonnegative().describe('Number of blocking (P0) issues'),
+      threshold: z.number().optional().describe('Minimum composite to ship. Default: 0.8'),
+      evidenceSlug: z.string().optional().describe('If set, also persist this round as evidence under design/changes/<slug>/'),
     },
-    async ({ node }) => {
-      const { g } = graphWithCurrent();
-      return text(JSON.stringify(findAffected(g, node), null, 2));
-    },
-  );
+  }, async ({ component, scores, mustFix, threshold, evidenceSlug }) => {
+    const res = scoreComponent(paths, { scores: scores ?? {}, mustFix, threshold, component });
+    store.update({ lastCritique: { scores: scores ?? {}, composite: res.composite, decision: res.decision, mustFix } });
+    let evidence = '';
+    if (evidenceSlug) {
+      const file = recordEvidence(paths, evidenceSlug, {
+        round: 1, scores: scores ?? {}, mustFix, composite: res.composite, decision: res.decision, notes: undefined,
+      }, component);
+      evidence = `\nEvidence saved: ${file}`;
+    }
+    return text(JSON.stringify(res, null, 2) + evidence);
+  });
 
-  server.registerTool(
-    'graph_consistency_brief',
-    {
-      description: 'Build-new, on-system: composable primitives, relevant tokens, governing rules, and the vibe for a new component.',
-      inputSchema: { name: z.string(), intent: z.string().optional() },
+  // ── 6. Manage design system ──────────────────────────────────
+  server.registerTool('manage_design_system', {
+    description: 'Unified tool for all design system operations: create a new DS, switch the active DS, validate the token contract, grade quality, scaffold primitives, find conflicts, view version history, or list available systems/bases.',
+    inputSchema: {
+      action: z.enum(['create', 'apply', 'validate', 'grade', 'scaffold', 'conflicts', 'history', 'list', 'list_bases'])
+        .describe('What to do: create (new DS), apply (switch active), validate (check contract), grade (quality score), scaffold (copy primitives), conflicts (find issues), history (snapshots), list (available DS), list_bases (prebuilt templates)'),
+      id: z.string().optional().describe('Design system ID (required for create, apply, validate, grade, scaffold, conflicts, history)'),
+      name: z.string().optional().describe('Display name (for create)'),
+      mode: z.enum(['blank', 'brief', 'import', 'extract']).optional().describe('Creation mode (for create)'),
+      from: z.string().optional().describe('Source base/template (for create/import or scaffold)'),
+      snapshot: z.boolean().optional().describe('Also commit a new snapshot (for history)'),
     },
-    async ({ name, intent }) => {
-      const { g } = graphWithCurrent();
-      return text(JSON.stringify(consistencyBrief(g, { name, intent }), null, 2));
-    },
-  );
+  }, async ({ action, id, name, mode, from, snapshot }) => {
+    switch (action) {
+      case 'create':
+        if (!id) return text('id is required for create');
+        return text(JSON.stringify(createDesignSystem(paths, { id, name, mode, from }), null, 2));
+      case 'apply':
+        if (!id) return text('id is required for apply');
+        { const r = applyDesignSystem(paths, id); store.update({ activeDesignSystem: id }); return text(`Active → ${id}. ${r.graphRebuilt ? 'graph rebuilt; ' : ''}${r.note}`); }
+      case 'validate':
+        return text(JSON.stringify(runtimeFor(paths).validate(normalizeDsRef(id ?? activeDsId(store))), null, 2));
+      case 'grade':
+        return text(JSON.stringify(await gradeDesignSystem(paths, normalizeDsRef(id ?? activeDsId(store))), null, 2));
+      case 'scaffold':
+        return text(scaffoldPrimitives(paths, id ?? activeDsId(store), from) ? `Scaffolded primitives into ${id}/code.` : 'Skipped.');
+      case 'conflicts':
+        return text(JSON.stringify(runtimeFor(paths).conflicts(normalizeDsRef(id ?? activeDsId(store))), null, 2));
+      case 'history': {
+        const rt = runtimeFor(paths); const dsId = id ?? activeDsId(store);
+        if (snapshot) rt.snapshot(dsId);
+        return text(JSON.stringify(rt.history(dsId), null, 2));
+      }
+      case 'list':
+        return text(JSON.stringify(runtimeFor(paths).list(), null, 2));
+      case 'list_bases':
+        return text(JSON.stringify(listBases(paths), null, 2));
+      default:
+        return text(`Unknown action: ${action}`);
+    }
+  });
 
-  server.registerTool(
-    'graph_get_context',
-    {
-      description: 'Rich neighborhood of a node (its tokens, props, variants, stories, governing rules, spec sections).',
-      inputSchema: { node: z.string() },
+  // ── 7. Query knowledge graph ─────────────────────────────────
+  server.registerTool('query_knowledge_graph', {
+    description: 'Query the design system knowledge graph. Use `where_to_fix` to trace a lint finding to its source token/file, `impact` to see what a change would break, `context` to explore a node\'s neighborhood, `build_guidance` for guidance on a new component, or `query` for a generic property-filtered search.',
+    inputSchema: {
+      mode: z.enum(['where_to_fix', 'impact', 'context', 'build_guidance', 'query'])
+        .describe('Query mode'),
+      artifact: z.string().optional().describe('Component/artifact name (for where_to_fix)'),
+      findingId: z.string().optional().describe('Lint finding ID (for where_to_fix)'),
+      node: z.string().optional().describe('Graph node ID (for impact, context)'),
+      name: z.string().optional().describe('New component name (for build_guidance)'),
+      intent: z.string().optional().describe('Component intent (for build_guidance)'),
+      label: z.string().optional().describe('Node label filter (for query)'),
+      edgeLabel: z.string().optional().describe('Edge label filter (for query)'),
+      from: z.string().optional().describe('Source node (for query)'),
+      to: z.string().optional().describe('Target node (for query)'),
+      where: z.record(z.unknown()).optional().describe('Property filter (for query)'),
     },
-    async ({ node }) => {
-      const { g } = graphWithCurrent();
-      const ctx = getContext(g, node);
-      return text(ctx ? JSON.stringify(ctx, null, 2) : `Node not found: ${node}`);
-    },
-  );
+  }, async (args) => {
+    const { g } = graphWithCurrent(store, paths);
+    switch (args.mode) {
+      case 'where_to_fix': {
+        if (!args.artifact || !args.findingId) return text('artifact and findingId required');
+        const res = whereToFix(g, `art/${args.artifact}`, args.findingId);
+        return text(res ? JSON.stringify(res, null, 2) : `No '${args.findingId}' violation on art/${args.artifact}.`);
+      }
+      case 'impact': {
+        if (!args.node) return text('node required');
+        return text(JSON.stringify(findAffected(g, args.node), null, 2));
+      }
+      case 'context': {
+        if (!args.node) return text('node required');
+        const ctx = getContext(g, args.node);
+        return text(ctx ? JSON.stringify(ctx, null, 2) : `Node not found: ${args.node}`);
+      }
+      case 'build_guidance':
+        return text(JSON.stringify(consistencyBrief(g, { name: args.name ?? 'Component', intent: args.intent }), null, 2));
+      case 'query':
+        return text(JSON.stringify(query(g, { label: args.label, edgeLabel: args.edgeLabel, from: args.from, to: args.to, where: args.where }), null, 2));
+      default:
+        return text(`Unknown mode: ${args.mode}`);
+    }
+  });
 
-  server.registerTool(
-    'graph_query',
-    {
-      description: 'Generic property-filtered query. Nodes: {label, where}. Edges: {edgeLabel, from, to, where}.',
-      inputSchema: {
-        label: z.string().optional(),
-        edgeLabel: z.string().optional(),
-        from: z.string().optional(),
-        to: z.string().optional(),
-        where: z.record(z.unknown()).optional(),
-      },
-    },
-    async (args) => {
-      const { g } = graphWithCurrent();
-      return text(JSON.stringify(query(g, args), null, 2));
-    },
-  );
+  // ── 8. Rebuild graph ─────────────────────────────────────────
+  server.registerTool('rebuild_graph', {
+    description: 'Rebuild the design system knowledge graph from scratch. Run after adding new components, tokens, or primitives. Shows graph statistics (nodes, edges, artifacts).',
+    inputSchema: { id: z.string().optional().describe('Design system ID (default: active)') },
+  }, async ({ id }) => {
+    const dsId = id ?? activeDsId(store);
+    const g = buildAndSave(paths, dsId);
+    return text(`Rebuilt graph: ${JSON.stringify(g.stats())}`);
+  });
 
-  // ---- critique / feedback loop ----
-
-  server.registerTool(
-    'screenshot_path',
-    {
-      description: 'Absolute path of the latest screenshot for a component (for the vision-critic subagent to Read).',
-      inputSchema: { component: z.string() },
+  // ── 9. Vision review ─────────────────────────────────────────
+  server.registerTool('vision_review', {
+    description: 'Run a vision-based visual critique on a rendered component using an LLM (Claude, Gemini, or Minimax). Modes: `critique` (standard review), `compare` (vs a reference image), `upload_reference` (upload a reference image for future comparisons).',
+    inputSchema: {
+      mode: z.enum(['critique', 'compare', 'upload_reference']).describe('What to do'),
+      component: z.string().describe('Component name'),
+      provider: z.enum(['claude', 'gemini', 'minimax']).optional().describe('LLM provider (default: claude)'),
+      referenceImagePath: z.string().optional().describe('Path to reference image (for compare mode, or path to upload for upload_reference)'),
+      ensembleProviders: z.array(z.enum(['claude', 'gemini', 'minimax'])).optional().describe('Providers for ensemble mode'),
     },
-    async ({ component }) => {
-      const p = path.join(paths.screenshotsDir, `${component}.actual.png`);
-      return text(fs.existsSync(p) ? p : `No screenshot yet for ${component}. Run run_visual_test first.`);
-    },
-  );
-
-  server.registerTool(
-    'critique_score',
-    {
-      description: 'The authoritative quality gate. Combines feedback scores (0..1) + mustFix into a composite and decision (ship/continue), with a per-component no-regression ratchet.',
-      inputSchema: {
-        scores: z.object({
-          visual: z.number().optional(),
-          tokens: z.number().optional(),
-          vision: z.number().optional(),
-          llm: z.number().optional(),
-          a11y: z.number().optional(),
-        }),
-        mustFix: z.number().int().nonnegative(),
-        threshold: z.number().optional(),
-        component: z.string().optional(),
-      },
-    },
-    async ({ scores, mustFix, threshold, component }) => {
-      const res = scoreComponent(paths, { scores, mustFix, threshold, component });
-      // Surface the combined critique to the panel.
-      store.update({ lastCritique: { scores, composite: res.composite, decision: res.decision, mustFix } });
-      return text(JSON.stringify(res, null, 2));
-    },
-  );
-
-  server.registerTool(
-    'record_evidence',
-    {
-      description: 'Save a round of feedback (scores + screenshot) under design/changes/<slug>/evidence/.',
-      inputSchema: {
-        slug: z.string(),
-        round: z.number().int(),
-        scores: z.record(z.number()),
-        mustFix: z.number().int(),
-        composite: z.number(),
-        decision: z.string(),
-        component: z.string().optional(),
-        notes: z.string().optional(),
-      },
-    },
-    async ({ slug, round, scores, mustFix, composite, decision, component, notes }) => {
-      const file = recordEvidence(paths, slug, { round, scores, mustFix, composite, decision, notes }, component);
-      return text(`Evidence saved: ${file}`);
-    },
-  );
-
-  // ---- vision critique tools ----
-
-  server.registerTool(
-    'vision_critique',
-    {
-      description: 'Vision-based visual critique of a rendered component. Supports multiple LLM providers (claude, gemini, minimax) and ensemble mode. Returns per-axis scores + findings + visionScore for the critique gate.',
-      inputSchema: {
-        component: z.string(),
-        provider: z.enum(['claude', 'gemini', 'minimax']).optional(),
-        mode: z.enum(['standard', 'regression', 'reference', 'ensemble']).optional(),
-        ensembleProviders: z.array(z.enum(['claude', 'gemini', 'minimax'])).optional(),
-        referenceImagePath: z.string().optional(),
-      },
-    },
-    async ({ component, provider, mode, ensembleProviders, referenceImagePath }) => {
-      // Ensure a fresh screenshot before critiquing.
-      try { await runVisualTest(paths, component); } catch { /* non-fatal — use existing if any */ }
-
-      const opts = {
-        component,
-        mode: (mode ?? 'standard') as any,
-        provider,
-        referenceImagePath,
-        ensemble: ensembleProviders ? { providers: ensembleProviders, strategy: 'average' as const } : undefined,
-      };
-      const result = await standardCritique(
-        {
-          root: paths.root,
-          screenshotsDir: paths.screenshotsDir,
-          designSystemsDir: paths.designSystemsDir,
-          activeDsId: store.get().activeDesignSystem ?? undefined,
-        },
-        opts,
-      );
-      // Surface the vision score to the panel via lastCritique.
-      const prev = store.get().lastCritique;
-      store.update({
-        lastCritique: {
-          scores: { ...(prev?.scores ?? {}), vision: result.visionScore },
-          composite: prev?.composite ?? 0,
-          decision: prev?.decision ?? '',
-          mustFix: (prev?.mustFix ?? 0) + result.mustFix,
-        },
-      });
-      return text(JSON.stringify(result, null, 2));
-    },
-  );
-
-  server.registerTool(
-    'vision_compare',
-    {
-      description: 'Compare a rendered component screenshot against a reference image. Returns fidelity score + differences. Used in the "upload reference → analyze → implement → compare → revise" loop.',
-      inputSchema: {
-        component: z.string(),
-        referenceImagePath: z.string(),
-        provider: z.enum(['claude', 'gemini', 'minimax']).optional(),
-      },
-    },
-    async ({ component, referenceImagePath, provider }) => {
-      const result = await standardCritique(
-        {
-          root: paths.root,
-          screenshotsDir: paths.screenshotsDir,
-          designSystemsDir: paths.designSystemsDir,
-          activeDsId: store.get().activeDesignSystem ?? undefined,
-        },
-        { component, mode: 'reference', provider, referenceImagePath },
-      );
-      return text(JSON.stringify(result, null, 2));
-    },
-  );
-
-  server.registerTool(
-    'vision_upload_reference',
-    {
-      description: 'Upload a reference image for comparison. Copies the image to __screenshots__/<component>.reference.png and returns the path for use with vision_compare.',
-      inputSchema: {
-        component: z.string(),
-        imagePath: z.string().describe('Absolute path to the reference image on disk.'),
-      },
-    },
-    async ({ component, imagePath }) => {
-      if (!fs.existsSync(imagePath)) return text(`Reference image not found: ${imagePath}`);
+  }, async ({ mode, component, provider, referenceImagePath, ensembleProviders }) => {
+    if (mode === 'upload_reference') {
+      if (!referenceImagePath) return text('referenceImagePath required for upload_reference');
+      if (!fs.existsSync(referenceImagePath)) return text(`File not found: ${referenceImagePath}`);
       const dest = path.join(paths.screenshotsDir, `${component}.reference.png`);
-      fs.copyFileSync(imagePath, dest);
+      fs.copyFileSync(referenceImagePath, dest);
       return text(dest);
-    },
-  );
+    }
+    // Ensure a fresh screenshot before critiquing.
+    try { await runVisualTest(paths, component); } catch { /* non-fatal */ }
+    const critiqueMode = mode === 'compare' ? 'reference' as const : 'standard' as const;
+    const result = await standardCritique(
+      { root: paths.root, screenshotsDir: paths.screenshotsDir, designSystemsDir: paths.designSystemsDir, activeDsId: store.get().activeDesignSystem ?? undefined },
+      {
+        component,
+        mode: critiqueMode,
+        provider,
+        referenceImagePath: mode === 'compare' ? referenceImagePath : undefined,
+        ensemble: ensembleProviders ? { providers: ensembleProviders, strategy: 'average' as const } : undefined,
+      },
+    );
+    const prev = store.get().lastCritique;
+    store.update({ lastCritique: { scores: { ...(prev?.scores ?? {}), vision: result.visionScore }, composite: prev?.composite ?? 0, decision: prev?.decision ?? '', mustFix: (prev?.mustFix ?? 0) + result.mustFix } });
+    return text(JSON.stringify(result, null, 2));
+  });
 
-  server.registerTool(
-    'graph_rebuild',
-    {
-      description: 'Rebuild the active design system graph and write design-systems/<id>/graph.json.',
-      inputSchema: { id: z.string().optional() },
+  // ── 10. Handle change requests ───────────────────────────────
+  server.registerTool('handle_change_request', {
+    description: 'Process the Storybook panel change-request queue. `poll` drains the next request and marks it in-progress. `resolve` marks it done/error. `changed_stories` shows which story files have changed since the last git commit. Use in a loop: poll → work → resolve.',
+    inputSchema: {
+      action: z.enum(['poll', 'resolve', 'changed_stories']).describe('What to do'),
+      id: z.string().optional().describe('Request ID (required for resolve)'),
+      status: z.enum(['done', 'error']).optional().describe('Resolution status (for resolve)'),
+      note: z.string().optional().describe('Resolution note (for resolve)'),
+      since: z.string().optional().describe('Git ref to check (for changed_stories, default: HEAD~1)'),
     },
-    async ({ id }) => {
-      const dsId = id ?? activeDsId(store);
-      const g = buildAndSave(paths, dsId);
-      return text(`Rebuilt graph for ${dsId}: ${JSON.stringify(g.stats())}`);
+  }, async ({ action, id, status, note, since }) => {
+    switch (action) {
+      case 'poll': {
+        const cr = store.nextQueued();
+        if (!cr) return text('(none)');
+        store.setChangeRequestStatus(cr.id, 'in_progress');
+        return text(JSON.stringify({ id: cr.id, type: cr.type ?? 'change-request', instruction: cr.instruction, target: cr.target, payload: cr.payload }));
+      }
+      case 'resolve': {
+        if (!id) return text('id required for resolve');
+        store.setChangeRequestStatus(id, status ?? 'done', note);
+        return text(`Intent ${id} → ${status ?? 'done'}.`);
+      }
+      case 'changed_stories': {
+        try {
+          const ref = since ?? 'HEAD~1';
+          const stdout = execSync(`git diff --name-only ${ref} -- '*.stories.*' 2>/dev/null || true`, { encoding: 'utf8', timeout: 5000 });
+          const files = stdout.trim().split('\n').filter(Boolean);
+          return text(files.length ? JSON.stringify(files, null, 2) : 'No changed story files.');
+        } catch {
+          return text('Could not check git diff.');
+        }
+      }
+      default:
+        return text(`Unknown action: ${action}`);
+    }
+  });
+
+  // ── 11. Discover components ──────────────────────────────────
+  server.registerTool('discover_components', {
+    description: 'Discover available components, stories, design systems, and their preview URLs. Use to understand what already exists before creating new components. Reads from Storybook index.json (richest) or falls back to filesystem scan.',
+    inputSchema: {
+      source: z.enum(['generated', 'components', 'primitives', 'all', 'design_systems']).optional().describe('What to list. Default: all stories'),
+      filter: z.string().optional().describe('Text search to filter results by name/title'),
     },
-  );
+  }, async ({ source, filter }) => {
+    if (source === 'design_systems') {
+      const systems = runtimeFor(paths).list();
+      return text(JSON.stringify(systems, null, 2));
+    }
+    // Try Storybook index.json first
+    const sbEntries = await fetchStorybookIndex(STORYBOOK_URL);
+    let entries;
+    if (sbEntries) {
+      entries = sbEntries;
+      if (source && source !== 'all') {
+        const prefix = source === 'primitives' ? 'design-systems-' : `${source}-`;
+        entries = entries.filter(e => e.id.startsWith(prefix));
+      }
+    } else {
+      const all = listAllStories(paths);
+      entries = all.map(e => ({ id: e.id, title: e.title, name: e.name, kind: e.kind }));
+      if (source && source !== 'all') entries = entries.filter(e => e.kind === source);
+    }
+    if (filter) {
+      const f = filter.toLowerCase();
+      entries = entries.filter(e => e.id.toLowerCase().includes(f) || e.title?.toLowerCase().includes(f));
+    }
+    // Attach preview URLs
+    const withUrls = (entries as any[]).map(e => ({
+      ...e,
+      previewUrl: `${STORYBOOK_URL}/iframe.html?id=${e.id}&viewMode=story`,
+    }));
+    return text(JSON.stringify(withUrls, null, 2));
+  });
+
+  // ── 12. Component documentation ──────────────────────────────
+  server.registerTool('get_component_documentation', {
+    description: 'Get comprehensive documentation for a component or specific story. Returns design system context, DESIGN.md excerpts, knowledge graph node info, story metadata, and the preview URL. Use to understand a component before editing or reusing.',
+    inputSchema: {
+      target: z.string().describe('Component name (PascalCase) or story ID (e.g. "generated-button--default")'),
+    },
+  }, async ({ target }) => {
+    const id = activeDsId(store);
+    const ds = resolveDesignSystem(paths, id);
+    const isStoryId = target.includes('--');
+    const name = isStoryId ? target.split('--')[0]!.replace(/^(generated|components)-/i, '') : target.replace(/^generated-/i, '');
+
+    let result: Record<string, unknown> = {
+      component: name,
+      designSystem: { id: ds.name ?? id, tokens: ds.declaredTokens?.length ?? 0, primitives: ds.primitives ?? [] },
+      previewUrl: `${STORYBOOK_URL}/iframe.html?id=${toStoryId(name)}&viewMode=story`,
+    };
+
+    // DESIGN.md excerpt
+    result.designMd = ds.designMd.slice(0, 1500) + (ds.designMd.length > 1500 ? '\n...(truncated)...' : '');
+
+    // Knowledge graph context
+    try {
+      const { g } = graphWithCurrent(store, paths);
+      const nodeId = g.has(`art/${name}`) ? `art/${name}` : null;
+      if (nodeId) result.graphContext = getContext(g, nodeId);
+    } catch { /* graph optional */ }
+
+    // Story file metadata
+    const storyFile = path.join(paths.generatedDir, `${name}${effectiveAdapter(paths).storyExt}`);
+    if (fs.existsSync(storyFile)) {
+      const source = fs.readFileSync(storyFile, 'utf8');
+      const { title, exports: storyExports } = parseCsfTitle(source);
+      result.story = { title, exports: storyExports };
+    }
+
+    // Story-specific details
+    if (isStoryId) {
+      const storyName = target.split('--')[1] ?? 'default';
+      result.storyDetail = { storyId: target, storyName };
+      const source = fs.existsSync(storyFile) ? fs.readFileSync(storyFile, 'utf8') : '';
+      result.storyDetail = { ...result.storyDetail as any, hasInteractionTest: source.includes('play(') || source.includes('.play(') };
+    }
+
+    return text(JSON.stringify(result, null, 2));
+  });
+
+  // ── 13. Capture component ────────────────────────────────────
+  server.registerTool('capture_component', {
+    description: 'Promote a generated component into a reusable, documented, git-tracked component under src/components/. Run after the component passes evaluation (evaluate_component returns "ship"). This is the final step in the build loop.',
+    inputSchema: { name: z.string().describe('Component name (PascalCase)') },
+  }, async ({ name }) => {
+    const out = await captureComponent(paths, name);
+    return text(`Captured ${name} → ${out}`);
+  });
 
   return server;
 }
