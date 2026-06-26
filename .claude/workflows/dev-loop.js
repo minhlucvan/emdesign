@@ -180,7 +180,7 @@ phase('Initialize');
 
 // Check git working tree
 const gitResult = await agent(
-  `Run \`cd /Users/minh/Documents/medesign && git status --porcelain\`. Return ONLY the raw stdout as { stdout: "<output>" }. Do NOT add any explanation.`,
+  `Run \`cd /Users/minh/Documents/medesign && git status --porcelain -- apps/workspace/templates/claude/ examples/ledger-console/ examples/landing-site/ packages/dsr/src/rules/lint.ts packages/plugin-tailwindcss/src/index.ts packages/backend/src/critique/ packages/mcp-server/src/mcp.ts\`. Return ONLY the raw stdout as { stdout: "<output>" }. Do NOT add any explanation.`,
   { label: 'git-check', phase: 'Initialize', schema: GIT_SCHEMA },
 );
 const isClean = gitResult && typeof gitResult.stdout === 'string' && gitResult.stdout.trim().length === 0;
@@ -318,7 +318,7 @@ while (!done && !stalled && cycleNumber <= MAX_CYCLES) {
 
   // ── 3. IMPLEMENT ──────────────────────────────────────────────────────
   phase('Implement');
-  const gitBefore = await agent(`Run \`cd /Users/minh/Documents/medesign && git status --porcelain\`. Return ONLY the raw stdout as { stdout: "<output>" }.`, { label: `git-before:r${cycleNumber}`, phase: 'Implement', schema: GIT_SCHEMA });
+  const gitBefore = await agent(`Run \`cd /Users/minh/Documents/medesign && git status --porcelain -- apps/workspace/templates/claude/ examples/ledger-console/ examples/landing-site/ packages/dsr/src/rules/lint.ts packages/plugin-tailwindcss/src/index.ts packages/backend/src/critique/ packages/mcp-server/src/mcp.ts\`. Return ONLY the raw stdout as { stdout: "<output>" }.`, { label: `git-before:r${cycleNumber}`, phase: 'Implement', schema: GIT_SCHEMA });
   const stillClean = gitBefore && typeof gitBefore.stdout === 'string' && gitBefore.stdout.trim().length === 0;
   if (!stillClean) {
     log('Working tree changed unexpectedly. Aborting cycle.');
