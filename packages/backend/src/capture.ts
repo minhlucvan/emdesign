@@ -27,7 +27,7 @@ export async function captureComponent(paths: RepoPaths, name: string): Promise<
   ensureDir(destDir);
 
   const header =
-    `/**\n * ${safe} — captured by medesign.\n * Reusable, design-system-bound component. Edit freely; re-capture to update.\n */\n`;
+    `/**\n * ${safe} — captured by emdesign.\n * Reusable, design-system-bound component. Edit freely; re-capture to update.\n */\n`;
   const compSrc = fs.readFileSync(fromComp, 'utf8');
   fs.writeFileSync(path.join(destDir, `${safe}${a.fileExt}`), header + compSrc);
 

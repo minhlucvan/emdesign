@@ -83,8 +83,8 @@ sanity-check how a component looks before/after a change.
 ### 3. CLI
 
 ```bash
-medesign vision-critique Button
-medesign vision-compare Button /path/to/reference.png
+emdesign vision-critique Button
+emdesign vision-compare Button /path/to/reference.png
 ```
 
 ### 4. MCP tools (for agent use)
@@ -190,7 +190,7 @@ packages/vision-critic/
 Implement the `VisionProvider` interface (from `types.ts`) and register it:
 
 ```typescript
-import { registerVisionProvider, type VisionProvider } from '@medesign/vision-critic';
+import { registerVisionProvider, type VisionProvider } from '@emdesign/vision-critic';
 
 const myProvider: VisionProvider = {
   id: 'my-vision',
@@ -214,4 +214,4 @@ registerVisionProvider(myProvider);
 - [`docs/harness-engine.md`](harness-engine.md) — the four-source critique loop and gate
 - [`packages/vision-critic/src/`](../packages/vision-critic/src/) — implementation
 - `.env` — `MINIMAX_API_KEY`, `ANTHROPIC_AUTH_TOKEN`, `GEMINI_API_KEY`
-- [`@medesign/backend/src/critique/scoreboard.ts`](../packages/backend/src/critique/scoreboard.ts) — composite score computation
+- [`@emdesign/backend/src/critique/scoreboard.ts`](../packages/backend/src/critique/scoreboard.ts) — composite score computation

@@ -1,7 +1,7 @@
 /**
  * Per-component quality gate — adapted from open-design's critique/scoreboard.ts (Apache-2.0).
  *
- * medesign replaces open-design's LLM panelists with DETERMINISTIC scorers (visual diff,
+ * emdesign replaces open-design's LLM panelists with DETERMINISTIC scorers (visual diff,
  * consistency lint, a11y). The gate semantics are identical and load-bearing:
  *   ships only if `composite >= threshold` AND `mustFix === 0`.
  * A great average score can never override a single blocking issue.

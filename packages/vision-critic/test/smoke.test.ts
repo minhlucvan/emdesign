@@ -13,7 +13,7 @@ import path from 'node:path';
 
 const HAS_MINIMAX = !!(process.env.MINIMAX_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN);
 const HAS_CLAUDE = !!process.env.ANTHROPIC_API_KEY;
-const REAL_SCREENSHOT = '/Users/minh/Documents/medesign/examples/landing-site/__screenshots__/Hero.actual.png';
+const REAL_SCREENSHOT = '/Users/minh/Documents/emdesign/examples/landing-site/__screenshots__/Hero.actual.png';
 
 describe.skipIf(!HAS_MINIMAX && !HAS_CLAUDE)('smoke', () => {
   it('minimax provider works with a real screenshot', async () => {

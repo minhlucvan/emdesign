@@ -61,7 +61,7 @@ function summarize(g, res) {
 // Resolve every intent in a group via the MCP resolve_intent tool (so the panel's Activity tab updates).
 async function resolveGroup(g, status, note) {
   await agent(
-    `For EACH id in ${JSON.stringify(g.intentIds || [])}, call the medesign MCP tool \`resolve_intent\` with ` +
+    `For EACH id in ${JSON.stringify(g.intentIds || [])}, call the emdesign MCP tool \`resolve_intent\` with ` +
       `{ id, status: "${status}", note: ${JSON.stringify(note || '')} }. Return "ok".`,
     { label: `resolve:${g.conflictKey || status}`, phase: 'Dispatch' },
   );
@@ -79,7 +79,7 @@ async function dispatchGroup(g) {
     } else if (g.route === 'system:create') {
       const p = g.payload || {};
       await agent(
-        `Call the medesign MCP tool \`create_design_system\` with ${JSON.stringify({ id: p.id, name: p.name, mode: p.mode, from: p.from })}. Return its JSON.`,
+        `Call the emdesign MCP tool \`create_design_system\` with ${JSON.stringify({ id: p.id, name: p.name, mode: p.mode, from: p.from })}. Return its JSON.`,
         { label: `scaffold:${p.id || g.target}`, phase: 'Dispatch' },
       );
       res = await workflow('design-system-loop', { id: p.id, mode: p.mode, from: p.from });
@@ -101,7 +101,7 @@ async function dispatchGroup(g) {
 // ── Drain ────────────────────────────────────────────────────────────────────────────────────────
 phase('Drain');
 const batch = await agent(
-  `Drain the medesign browser intent queue: repeatedly call the MCP tool \`poll_intent\` (no arguments) until it ` +
+  `Drain the emdesign browser intent queue: repeatedly call the MCP tool \`poll_intent\` (no arguments) until it ` +
     `returns the literal "(none)". Parse EACH returned intent JSON and collect them, preserving order. ` +
     `Return { intents: <array> } (\`{ intents: [] }\` if the very first call is "(none)").`,
   { label: 'drain', phase: 'Drain', schema: BATCH },

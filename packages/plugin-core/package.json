@@ -1,8 +1,8 @@
 {
-  "name": "@medesign/plugin-core",
+  "name": "@emdesign/plugin-core",
   "version": "0.0.0",
   "type": "module",
-  "description": "Universal always-on design-system rules for medesign — stack-agnostic production-readiness review (doctorRules) and rendered-artifact lint (renderedDoctorRules: overlap, contrast, spacing, tap-target, type-scale, overflow). Active in every medesign project via 'core' injection.",
+  "description": "Universal always-on design-system rules for emdesign — stack-agnostic production-readiness review (doctorRules) and rendered-artifact lint (renderedDoctorRules: overlap, contrast, spacing, tap-target, type-scale, overflow). Active in every emdesign project via 'core' injection.",
   "exports": {
     ".": "./src/index.ts"
   },
@@ -10,8 +10,8 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@medesign/dsr": "*",
-    "@medesign/plugin-api": "*"
+    "@emdesign/dsr": "*",
+    "@emdesign/plugin-api": "*"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",

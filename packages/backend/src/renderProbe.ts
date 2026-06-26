@@ -1,5 +1,5 @@
 /**
- * @medesign/backend — render probe.
+ * @emdesign/backend — render probe.
  *
  * Captures a Storybook story's live DOM + computed styles + element geometry via Playwright's
  * `page.evaluate`, producing a `RenderSnapshot` (to be consumed by `plugin-core`'s rendered
@@ -13,9 +13,9 @@ import { chromium } from 'playwright';
 import type { RepoPaths } from './paths.js';
 import { ensureDir } from './paths.js';
 import { toStoryId } from './visualTest.js';
-import type { RenderNode } from '@medesign/dsr';
+import type { RenderNode } from '@emdesign/dsr';
 
-const STORYBOOK_URL = process.env.MEDESIGN_STORYBOOK_URL ?? 'http://localhost:6006';
+const STORYBOOK_URL = process.env.EMDESIGN_STORYBOOK_URL ?? 'http://localhost:6006';
 
 /**
  * The CSS-selector-path logic (nth-of-type under root) — mirrored from `addon/src/preview.tsx:5-19`

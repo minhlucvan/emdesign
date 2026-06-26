@@ -1,4 +1,4 @@
-import type { MedesignPlugin, GraphParser, DesignReviewRule, ReviewContext } from '@medesign/plugin-api';
+import type { MedesignPlugin, GraphParser, DesignReviewRule, ReviewContext } from '@emdesign/plugin-api';
 
 // ---- small CSS helpers (this plugin OWNS CSS understanding) ----
 const COLOR_RE = /^(#[0-9a-f]{3,8}|rgb|hsl)/i;

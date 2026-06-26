@@ -1,7 +1,7 @@
-# @medesign/cli
+# @emdesign/cli
 
-The **medesign CLI** (`medesign`) — the thin client that agents, workspace commands, and gates invoke.
-Proxies to a running backend server over HTTP, or embeds the `@medesign/engine` for one-shot operations
+The **emdesign CLI** (`emdesign`) — the thin client that agents, workspace commands, and gates invoke.
+Proxies to a running backend server over HTTP, or embeds the `@emdesign/engine` for one-shot operations
 (init, attach, lint, validate, graph build).
 
 ## Role in the system
@@ -12,21 +12,21 @@ The CLI is the interface between the agent/developer and the backend engine. It'
 ## Usage
 
 ```bash
-medesign serve              # Start the HTTP + MCP server
-medesign mcp                # MCP server over stdio
-medesign init <framework>   # Scaffold a new medesign workspace
-medesign attach             # Attach to an existing Storybook project
-medesign ds <cmd>           # Design system commands: create, use, validate, list, bases, doctor
-medesign lint <Component>   # Consistency-lint a generated component
-medesign graph build <id>   # Rebuild the knowledge graph for a design system
+emdesign serve              # Start the HTTP + MCP server
+emdesign mcp                # MCP server over stdio
+emdesign init <framework>   # Scaffold a new emdesign workspace
+emdesign attach             # Attach to an existing Storybook project
+emdesign ds <cmd>           # Design system commands: create, use, validate, list, bases, doctor
+emdesign lint <Component>   # Consistency-lint a generated component
+emdesign graph build <id>   # Rebuild the knowledge graph for a design system
 ```
 
 ## Binaries
 
-- `medesign` / `medesign-backend` — both point at `dist/cli.js`
+- `emdesign` / `emdesign-backend` — both point at `dist/cli.js`
 
 ## Related
 
-- `@medesign/backend` — the engine library the CLI wraps
-- `@medesign/workspace` — init/attach installer
-- `@medesign/mcp-server` — MCP server wrapper
+- `@emdesign/backend` — the engine library the CLI wraps
+- `@emdesign/workspace` — init/attach installer
+- `@emdesign/mcp-server` — MCP server wrapper

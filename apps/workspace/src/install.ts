@@ -5,7 +5,7 @@ import { FRAMEWORKS, detectFramework, listFrameworks } from './registry.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const CLAUDE_TEMPLATE = path.resolve(HERE, '../templates/claude');
-const CONFIG_TEMPLATE = path.resolve(HERE, '../templates/medesign.config.template.json');
+const CONFIG_TEMPLATE = path.resolve(HERE, '../templates/emdesign.config.template.json');
 const STARTER_DS = path.resolve(HERE, '../../../design-systems/atelier');
 
 export interface InstallResult {
@@ -47,22 +47,22 @@ function readStorybookFramework(mainPath: string): string {
   return obj?.[1] ?? str?.[1] ?? 'react';
 }
 
-/** Idempotently add @medesign/addon to a Storybook main's `addons` array. Returns true if changed. */
+/** Idempotently add @emdesign/addon to a Storybook main's `addons` array. Returns true if changed. */
 function addAddonToMain(mainPath: string): boolean {
   let src = fs.readFileSync(mainPath, 'utf8');
-  if (src.includes('@medesign/addon')) return false;
+  if (src.includes('@emdesign/addon')) return false;
   const m = src.match(/addons:\s*\[/);
   if (!m) return false; // caller prints a manual instruction
   const idx = m.index! + m[0].length;
-  src = src.slice(0, idx) + `\n    '@medesign/addon',` + src.slice(idx);
+  src = src.slice(0, idx) + `\n    '@emdesign/addon',` + src.slice(idx);
   fs.writeFileSync(mainPath, src);
   return true;
 }
 
 function writeConfig(targetDir: string, framework: string, wrote: string[], notes: string[]): void {
-  const cfgPath = path.join(targetDir, 'medesign.config.json');
+  const cfgPath = path.join(targetDir, 'emdesign.config.json');
   if (fs.existsSync(cfgPath)) {
-    notes.push('medesign.config.json already exists — left untouched.');
+    notes.push('emdesign.config.json already exists — left untouched.');
     return;
   }
   const cfg = fs.readFileSync(CONFIG_TEMPLATE, 'utf8').replace('__FRAMEWORK__', framework);
@@ -71,7 +71,7 @@ function writeConfig(targetDir: string, framework: string, wrote: string[], note
 }
 
 /**
- * ATTACH (opt-in) — install medesign into an EXISTING project that already has Storybook.
+ * ATTACH (opt-in) — install emdesign into an EXISTING project that already has Storybook.
  * Additive: detects the framework, adds the addon, drops `.claude/`, writes config. Never clobbers.
  */
 export function attach(targetDir = process.cwd()): InstallResult {
@@ -80,14 +80,14 @@ export function attach(targetDir = process.cwd()): InstallResult {
   const mainPath = findStorybookMain(targetDir);
   if (!mainPath) {
     throw new Error(
-      `No Storybook found in ${targetDir} (.storybook/main.*). Install Storybook first (https://storybook.js.org), then re-run \`medesign attach\`.`,
+      `No Storybook found in ${targetDir} (.storybook/main.*). Install Storybook first (https://storybook.js.org), then re-run \`emdesign attach\`.`,
     );
   }
   const framework = detectFramework(readStorybookFramework(mainPath));
 
   if (addAddonToMain(mainPath)) wrote.push(mainPath);
-  else if (!fs.readFileSync(mainPath, 'utf8').includes('@medesign/addon'))
-    notes.push(`Could not auto-edit ${mainPath} — add '@medesign/addon' to its addons array manually.`);
+  else if (!fs.readFileSync(mainPath, 'utf8').includes('@emdesign/addon'))
+    notes.push(`Could not auto-edit ${mainPath} — add '@emdesign/addon' to its addons array manually.`);
 
   copyDir(CLAUDE_TEMPLATE, path.join(targetDir, '.claude'), false, wrote);
   writeConfig(targetDir, framework, wrote, notes);
@@ -98,7 +98,7 @@ export function attach(targetDir = process.cwd()): InstallResult {
     notes.push('Seeded a starter design system: design-systems/atelier.');
   }
 
-  notes.push('Next: `npm i -D @medesign/addon`, run Storybook + `medesign serve`, then `/mds:design "<idea>"`.');
+  notes.push('Next: `npm i -D @emdesign/addon`, run Storybook + `emdesign serve`, then `/mds:design "<idea>"`.');
   return { framework, wrote, notes };
 }
 
@@ -122,6 +122,6 @@ export function init(framework: string, targetDir: string): InstallResult {
   writeConfig(targetDir, framework, wrote, notes);
 
   if (!entry.implemented) notes.push(`Note: the ${framework} adapter is a stub — rule-based lint/parse is best-effort; the visual+vision+gate loop still runs.`);
-  notes.push('Next: `npm i`, run Storybook + `medesign serve`, then `/mds:design "<idea>"`.');
+  notes.push('Next: `npm i`, run Storybook + `emdesign serve`, then `/mds:design "<idea>"`.');
   return { framework, wrote, notes };
 }

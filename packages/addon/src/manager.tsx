@@ -11,9 +11,9 @@ import { CreateWizard } from './CreateWizard';
 import { Tool } from './Tool';
 
 /**
- * medesign manager UI:
+ * emdesign manager UI:
  *  - TOOL   (toolbar)      → comment · copy · pen tools (+ the canvas→intent bridge) · "+ Create" jump
- *  - PANEL  (bottom drawer)→ medesign — the system/status/logs dashboard (master/debug view)
+ *  - PANEL  (bottom drawer)→ emdesign — the system/status/logs dashboard (master/debug view)
  *  - TAB    System         → browse + edit design systems
  *  - TAB    + Create       → the creation wizard (component · story · view · design system)
  * Each TAB owns a viewMode + route so it is a top-level surface with its own URL.
@@ -24,7 +24,7 @@ const tabRoute = (vm: string) => ({ storyId, refId }: { storyId?: string; refId?
 addons.register(ADDON_ID, () => {
   addons.add(TOOL_ID, {
     type: types.TOOL,
-    title: 'medesign tools',
+    title: 'emdesign tools',
     match: ({ viewMode }) => viewMode === 'story',
     render: () => <Tool />,
   });

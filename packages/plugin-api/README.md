@@ -1,11 +1,11 @@
-# @medesign/plugin-api
+# @emdesign/plugin-api
 
-The **medesign plugin contract** — the `MedesignPlugin` interface and hook types that framework,
+The **emdesign plugin contract** — the `MedesignPlugin` interface and hook types that framework,
 styling, and library plugins implement.
 
 ## Role in the system
 
-`plugin-api` is a leaf dependency consumed by the backend and every `@medesign/plugin-*`. It defines
+`plugin-api` is a leaf dependency consumed by the backend and every `@emdesign/plugin-*`. It defines
 the capability-typed interface for:
 
 - **`codegenInstructions(ds)`** — stack-specific generation rules for the agent prompt
@@ -17,8 +17,8 @@ the capability-typed interface for:
 
 ## Related
 
-- `@medesign/plugin-core` — always-on universal rules
-- `@medesign/plugin-react` — React renderer plugin
-- `@medesign/plugin-css` — CSS parsing and rules
-- `@medesign/plugin-tailwindcss` — Tailwind CSS plugin
-- `@medesign/plugin-shadcn` — shadcn/ui plugin
+- `@emdesign/plugin-core` — always-on universal rules
+- `@emdesign/plugin-react` — React renderer plugin
+- `@emdesign/plugin-css` — CSS parsing and rules
+- `@emdesign/plugin-tailwindcss` — Tailwind CSS plugin
+- `@emdesign/plugin-shadcn` — shadcn/ui plugin

@@ -1,9 +1,9 @@
 /**
- * Consistency lint — now a thin compatibility shim over `@medesign/dsr`'s rule
+ * Consistency lint — now a thin compatibility shim over `@emdesign/dsr`'s rule
  * engine (the single source of truth for rules). Existing call sites (adapters, mcp, http, cli,
  * graph) keep this API; the predicates live in the domain layer.
  */
-import { componentLint, tokenReferenceLint, type Diagnostic } from '@medesign/dsr';
+import { componentLint, tokenReferenceLint, type Diagnostic } from '@emdesign/dsr';
 
 export type Severity = 'P0' | 'P1' | 'P2';
 

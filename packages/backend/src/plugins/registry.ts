@@ -1,12 +1,12 @@
-import type { MedesignPlugin } from '@medesign/plugin-api';
-import { reactPlugin } from '@medesign/plugin-react';
-import { cssPlugin } from '@medesign/plugin-css';
-import { tailwindPlugin } from '@medesign/plugin-tailwindcss';
-import { shadcnPlugin } from '@medesign/plugin-shadcn';
-import { corePlugin } from '@medesign/plugin-core';
+import type { MedesignPlugin } from '@emdesign/plugin-api';
+import { reactPlugin } from '@emdesign/plugin-react';
+import { cssPlugin } from '@emdesign/plugin-css';
+import { tailwindPlugin } from '@emdesign/plugin-tailwindcss';
+import { shadcnPlugin } from '@emdesign/plugin-shadcn';
+import { corePlugin } from '@emdesign/plugin-core';
 
-/** Built-in plugins (each a separate @medesign/plugin-* package). External plugins
- *  (`@medesign/plugin-<id>` / `medesign-plugin-<id>`) can be added at startup via registerPlugin();
+/** Built-in plugins (each a separate @emdesign/plugin-* package). External plugins
+ *  (`@emdesign/plugin-<id>` / `emdesign-plugin-<id>`) can be added at startup via registerPlugin();
  *  resolvePlugin is the single lookup point. */
 const REGISTRY = new Map<string, MedesignPlugin>([
   [reactPlugin.id, reactPlugin],

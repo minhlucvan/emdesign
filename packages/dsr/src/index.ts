@@ -1,5 +1,5 @@
 /**
- * @medesign/dsr — the DDD domain layer over @medesign/graph.
+ * @emdesign/dsr — the DDD domain layer over @emdesign/graph.
  * Load/read/manage a design system like a typed code library: aggregates, value objects, a rule
  * engine, validation, references, conflicts, cache, and history. Design as code.
  */

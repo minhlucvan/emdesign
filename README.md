@@ -1,5 +1,5 @@
 <p align="center">
-  <img alt="medesign" src="assets/medesign-banner.svg" width="800">
+  <img alt="emdesign" src="assets/emdesign-banner.svg" width="800">
 </p>
 
 <p align="center">
@@ -26,7 +26,7 @@
 
 ## What is this?
 
-medesign is a **design-engineering engine** — a headless Studio backend that powers **Storybook as
+emdesign is a **design-engineering engine** — a headless Studio backend that powers **Storybook as
 your front-end design surface**. You describe an idea; an agent turns it into a reusable,
 visually-tested React component that matches your design system exactly.
 
@@ -54,16 +54,16 @@ No Figma handoff. No design-system drift. No one-off AI-slop components.
 - **Solo founders / indie hackers** who want UI that looks designed, stays on-system, and drops into
   the codebase as reusable components — without being a designer or hiring one.
 - **Vibe-coders** who've tried prompting for UI and gotten "looks kinda like Bootstrap 2015" —
-  medesign adds a DESIGN.md contract + a consistency lint + a visual diff gate that pushes output
+  emdesign adds a DESIGN.md contract + a consistency lint + a visual diff gate that pushes output
   from generic to deliberately designed.
-- **Teams that already use Storybook** — drop medesign in (`medesign attach`) and your design system
+- **Teams that already use Storybook** — drop emdesign in (`emdesign attach`) and your design system
   becomes an agent-driven quality surface instead of a static library page.
 
 ## Quickstart
 
 ```bash
 npm install && npx playwright install chromium   # one-time
-npm run studio    # → http://localhost:6006       (Storybook + medesign panel)
+npm run studio    # → http://localhost:6006       (Storybook + emdesign panel)
 npm run backend   # → http://localhost:4321       (HTTP bridge + MCP for agent)
 ```
 
@@ -76,9 +76,9 @@ Connect your agent to the backend via `.mcp.json`, and ask:
 The agent reads your design system, writes code, and Storybook hot-reloads it — linted, diffed, and
 ready to refine. Full walkthrough: [`docs/QUICKSTART.md`](docs/QUICKSTART.md).
 
-## Why medesign?
+## Why emdesign?
 
-| This vs | medesign |
+| This vs | emdesign |
 |---|---|
 | **Prompting ChatGPT/Gemini for HTML** | You get a reusable React component + CSF story, committed to your repo — not one-off HTML you paste and lose |
 | **open-design** (the pioneer) | Medesign adopts its DESIGN.md contract + critique gate, then **beats it** — deterministic visual tests replace LLM juries, and you get code‑first components instead of embedded HTML |
@@ -88,7 +88,7 @@ ready to refine. Full walkthrough: [`docs/QUICKSTART.md`](docs/QUICKSTART.md).
 
 ## How it works
 
-<img alt="How medesign works: Idea → Agent → Backend Engine → Storybook → Your Repo, with a feedback loop back to the agent" src="assets/medesign-how-it-works-v3.svg">
+<img alt="How emdesign works: Idea → Agent → Backend Engine → Storybook → Your Repo, with a feedback loop back to the agent" src="assets/emdesign-how-it-works-v3.svg">
 
 Each refinement is a change request → diff → instant re-render → snapshot vs baseline. "Works
 smoothly" = visually verified + lint-clean. See [`docs/architecture.md`](docs/architecture.md).
@@ -97,13 +97,13 @@ smoothly" = visually verified + lint-clean. See [`docs/architecture.md`](docs/ar
 
 Every component goes through **four independent feedback sources** before shipping:
 
-<img alt="The medesign quality loop: Rule/Lint, Visual Diff, Vision, LLM Review, and Human feedback converge on the Critique Gate, which either ships or iterates" src="assets/medesign-quality-loop-v3.svg">
+<img alt="The emdesign quality loop: Rule/Lint, Visual Diff, Vision, LLM Review, and Human feedback converge on the Critique Gate, which either ships or iterates" src="assets/emdesign-quality-loop-v3.svg">
 
 See [`docs/harness-engine.md`](docs/harness-engine.md).
 
 ### System architecture
 
-<img alt="medesign system architecture: Agent column (Claude Code, /mds commands, Critics) → Backend column (MCP Server, Prompt Composer, Consistency Lint, Visual Test, Critique Gate) → Frontend column (Storybook, medesign Addon), with Design Systems and Generated Components below" src="assets/medesign-architecture-v3.svg">
+<img alt="emdesign system architecture: Agent column (Claude Code, /mds commands, Critics) → Backend column (MCP Server, Prompt Composer, Consistency Lint, Visual Test, Critique Gate) → Frontend column (Storybook, emdesign Addon), with Design Systems and Generated Components below" src="assets/emdesign-architecture-v3.svg">
 
 ## Repo layout
 
@@ -115,7 +115,7 @@ design-systems/   atelier/ DESIGN.md (9 sections) + tokens.css + code/ primitive
 skills/           web-section/ + _vendor/open-design/ (159 vendored skills, Apache-2.0)
 scripts/gates/    lint.sh · visual.sh · build.sh (exit code = verdict)
 packages/
-  cli/            CLI (`medesign`): agent + gates invoke this
+  cli/            CLI (`emdesign`): agent + gates invoke this
   backend/        Headless engine: MCP · lint · visual test · critique gate · capture
   graph/          Knowledge graph: where-to-fix · impact · consistency brief
   addon/          Storybook panel: chat · scores · capture · diff
@@ -134,8 +134,8 @@ apps/
   workspace-react/  Storybook dogfood instance + init templates
 ```
 
-> **Portable + opt-in + framework-agnostic.** Drop medesign into any project that already has
-> Storybook (`medesign attach`) or scaffold a new one (`medesign init <framework>`). The engines
+> **Portable + opt-in + framework-agnostic.** Drop emdesign into any project that already has
+> Storybook (`emdesign attach`) or scaffold a new one (`emdesign init <framework>`). The engines
 > stay in `packages/*`; only a `FrameworkAdapter` is per-framework (React implemented;
 > Vue/Svelte/web-components/Angular stubbed). See [`docs/workspace.md`](docs/workspace.md).
 
@@ -144,7 +144,7 @@ apps/
 Every project starts from a **design system**, then you **craft** against it:
 
 - **Design System** — [`/mds:system:create`](docs/workspace.md) (brief/blank/import/extract) · `:update` · `:use`.
-  Start from a prebuilt base: `medesign ds create noir import atelier` clones a known-good system to
+  Start from a prebuilt base: `emdesign ds create noir import atelier` clones a known-good system to
   customize. See [`docs/authoring-design-systems.md`](docs/authoring-design-systems.md).
 - **Craft** — [`/mds:craft:component`](docs/harness-engine.md) · `:view` · `:story` · `:update`.
   Shared: `/mds:review`, `/mds:vision`, `/mds:ship`.
@@ -159,12 +159,12 @@ and [`docs/open-design-analysis.md`](docs/open-design-analysis.md).
 
 ## Knowledge graph
 
-`@medesign/graph` encodes the whole design system as a **labeled property graph** (files, stories,
+`@emdesign/graph` encodes the whole design system as a **labeled property graph** (files, stories,
 components, tokens, colors, fonts, specs, rules, themes — each with `file:line` provenance). It
 powers *where-to-fix* localization, *impact propagation* ("what breaks if I change
 `--color-accent`?"), and *consistency briefs* for building new on-system components.
 
-<img alt="Knowledge graph showing PricingTiers artifact connected to primitives (Button, Card, Badge), token --color-accent, concrete color #b4532a, the Color section, rules, and stories via labeled edges" src="assets/medesign-knowledge-graph.svg">
+<img alt="Knowledge graph showing PricingTiers artifact connected to primitives (Button, Card, Badge), token --color-accent, concrete color #b4532a, the Color section, rules, and stories via labeled edges" src="assets/emdesign-knowledge-graph.svg">
 
 See [`docs/data-model.md`](docs/data-model.md) for the full node/edge specification and query intents.
 
@@ -190,4 +190,4 @@ Design and code patterns adapted from [open-design](https://github.com/nexu-io/o
 
 ## License
 
-[Apache 2.0](LICENSE). Copyright 2026 the medesign authors.
+[Apache 2.0](LICENSE). Copyright 2026 the emdesign authors.

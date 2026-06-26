@@ -2,24 +2,24 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { ensureDir, normalizeDsRef, type RepoPaths } from '@medesign/backend';
-import type { Store } from '@medesign/backend';
-import { resolveDesignSystem, composePrompt } from '@medesign/backend';
-import { renderFindingsForAgent, countMustFix } from '@medesign/backend';
-import { effectiveAdapter } from '@medesign/backend';
-import { captureComponent } from '@medesign/backend';
-import { runVisualTest, toStoryId } from '@medesign/backend';
-import { findAffected, whereToFix, consistencyBrief, getContext, query } from '@medesign/graph';
-import { buildAndSave, loadOrBuild, overlayGenerated } from '@medesign/backend';
-import { scoreComponent } from '@medesign/backend';
-import { recordEvidence } from '@medesign/backend';
-import { standardCritique } from '@medesign/vision-critic';
-import { createDesignSystem, scaffoldPrimitives, validateDesignSystem, listDesignSystems, listBases, applyDesignSystem } from '@medesign/backend';
-import { runtimeFor } from '@medesign/backend';
-import { gradeDesignSystem, renderSnapshot } from '@medesign/backend';
-import type { RenderSnapshotOutput } from '@medesign/backend';
+import { ensureDir, normalizeDsRef, type RepoPaths } from '@emdesign/backend';
+import type { Store } from '@emdesign/backend';
+import { resolveDesignSystem, composePrompt } from '@emdesign/backend';
+import { renderFindingsForAgent, countMustFix } from '@emdesign/backend';
+import { effectiveAdapter } from '@emdesign/backend';
+import { captureComponent } from '@emdesign/backend';
+import { runVisualTest, toStoryId } from '@emdesign/backend';
+import { findAffected, whereToFix, consistencyBrief, getContext, query } from '@emdesign/graph';
+import { buildAndSave, loadOrBuild, overlayGenerated } from '@emdesign/backend';
+import { scoreComponent } from '@emdesign/backend';
+import { recordEvidence } from '@emdesign/backend';
+import { standardCritique } from '@emdesign/vision-critic';
+import { createDesignSystem, scaffoldPrimitives, validateDesignSystem, listDesignSystems, listBases, applyDesignSystem } from '@emdesign/backend';
+import { runtimeFor } from '@emdesign/backend';
+import { gradeDesignSystem, renderSnapshot } from '@emdesign/backend';
+import type { RenderSnapshotOutput } from '@emdesign/backend';
 
-const STORYBOOK_URL = process.env.MEDESIGN_STORYBOOK_URL ?? 'http://localhost:6006';
+const STORYBOOK_URL = process.env.EMDESIGN_STORYBOOK_URL ?? 'http://localhost:6006';
 
 function text(s: string) {
   return { content: [{ type: 'text' as const, text: s }] };
@@ -46,9 +46,9 @@ function lintSource(paths: RepoPaths, store: Store, source: string) {
   return { ds, findings, mustFix: countMustFix(findings), report: renderFindingsForAgent(findings) };
 }
 
-/** The medesign MCP server — the tool surface any agent drives the loop through. */
+/** The emdesign MCP server — the tool surface any agent drives the loop through. */
 export function createMcpServer(store: Store, paths: RepoPaths): McpServer {
-  const server = new McpServer({ name: 'medesign', version: '0.0.0' });
+  const server = new McpServer({ name: 'emdesign', version: '0.0.0' });
 
   server.registerTool(
     'get_design_context',

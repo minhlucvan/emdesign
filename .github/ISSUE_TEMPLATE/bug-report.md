@@ -24,7 +24,7 @@ If applicable, add screenshots or console output to help explain.
 **Environment (please complete):**
 - OS: [e.g. macOS 14]
 - Node version: [e.g. 20.11]
-- medesign version: [e.g. 0.0.0, or commit hash]
+- emdesign version: [e.g. 0.0.0, or commit hash]
 - Agent: [e.g. Claude Code 0.5.0]
 
 **Additional context**

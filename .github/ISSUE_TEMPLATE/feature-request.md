@@ -1,6 +1,6 @@
 ---
 name: Feature request
-about: Suggest an idea for medesign
+about: Suggest an idea for emdesign
 title: ''
 labels: enhancement
 assignees: ''
@@ -15,7 +15,7 @@ A clear and concise description of what you want to happen.
 **Describe alternatives you've considered**
 A clear and concise description of any alternative solutions or features you've considered.
 
-**How this fits in medesign**
+**How this fits in emdesign**
 Which part of the system does this affect? (e.g. backend, CLI, addon, graph, plugin-*, docs)
 
 **Additional context**

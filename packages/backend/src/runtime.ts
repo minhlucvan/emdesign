@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { createRuntime, type DesignSystemRuntime } from '@medesign/dsr';
+import { createRuntime, type DesignSystemRuntime } from '@emdesign/dsr';
 import type { RepoPaths } from './paths.js';
 import { effectiveAdapter } from './adapters/index.js';
 

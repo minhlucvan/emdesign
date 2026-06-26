@@ -1,9 +1,9 @@
-# medesign DESIGN.md specification
+# emdesign DESIGN.md specification
 
 > The design-system contract. A `DESIGN.md` is what the agent reads as part of its system prompt; its
 > richness is the single biggest lever on output quality. This schema is a **compatible superset** of
 > open-design's 9-section format — keep the H2 titles and order and their tooling (and their 70+ systems)
-> round-trips with ours. medesign adds a token-contract layer and a **`code/` binding** so the same
+> round-trips with ours. emdesign adds a token-contract layer and a **`code/` binding** so the same
 > contract yields reusable React/Tailwind components, not one-off HTML. See
 > [`open-design-analysis.md`](./open-design-analysis.md) for the source analysis.
 
@@ -14,7 +14,7 @@ design-systems/<id>/
   manifest.json        machine metadata (schema, id, name, category, files map)
   DESIGN.md            the contract: frontmatter + H1 + 9 sections (this spec)
   tokens.css           :root custom properties — the token contract (see §Tokens)
-  code/                medesign EXTENSION — React/Tailwind primitives + CSF stories
+  code/                emdesign EXTENSION — React/Tailwind primitives + CSF stories
     Button.tsx  Card.tsx  …  index.ts
   components.html       optional standalone fixture (legacy / preview)
   assets/  fonts/  preview/   optional
@@ -78,7 +78,7 @@ Optional additive section (ignored by the positional H2 parser, useful to author
 
 ## Tokens (`tokens.css`)
 
-`tokens.css` is the machine contract — a single `:root` block. medesign's runtime maps semantic Tailwind
+`tokens.css` is the machine contract — a single `:root` block. emdesign's runtime maps semantic Tailwind
 classes (`bg-surface`, `text-accent`, `rounded`) to these custom properties, so generated components
 reference roles, never raw values. Required role families (superset of open-design's `TOKEN_SCHEMA`):
 
@@ -104,9 +104,9 @@ reference roles, never raw values. Required role families (superset of open-desi
 A `tokens.css` is valid when (self-check, enforced by the linter): every required role is declared, no
 unknown roles are declared, and every `var(--x)` reference resolves to a declared role.
 
-## `code/` binding (medesign extension)
+## `code/` binding (emdesign extension)
 
-This is what makes medesign code-first. `code/` holds the design system's **primitives** as React +
+This is what makes emdesign code-first. `code/` holds the design system's **primitives** as React +
 Tailwind components that reference only semantic token classes, plus a CSF story per primitive. Generated
 and captured components compose these primitives, so they inherit the system by construction. See
 [`authoring-design-systems.md`](./authoring-design-systems.md) for the authoring rubric and

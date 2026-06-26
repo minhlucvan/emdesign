@@ -1,5 +1,5 @@
 /**
- * @medesign/vision-critic — multi-model LLM vision critique for medesign.
+ * @emdesign/vision-critic — multi-model LLM vision critique for emdesign.
  *
  * Use in three ways:
  *   1. Import critique functions directly (standardCritique, referenceCritique, …)

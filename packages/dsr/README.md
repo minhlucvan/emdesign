@@ -1,6 +1,6 @@
-# @medesign/dsr
+# @emdesign/dsr
 
-The **design-system runtime** — a DDD domain layer over the `@medesign/graph` data model. Lets you
+The **design-system runtime** — a DDD domain layer over the `@emdesign/graph` data model. Lets you
 load, read, and manage a design system like a typed code library.
 
 ## Role in the system
@@ -16,6 +16,6 @@ load, read, and manage a design system like a typed code library.
 
 ## Related
 
-- `@medesign/graph` — the underlying graph data model
-- `@medesign/doctor` — rule-based production-readiness linting (runs over dsr aggregates)
-- `@medesign/plugin-*` — plugins extend dsr's rule engine via `doctorRules()`
+- `@emdesign/graph` — the underlying graph data model
+- `@emdesign/doctor` — rule-based production-readiness linting (runs over dsr aggregates)
+- `@emdesign/plugin-*` — plugins extend dsr's rule engine via `doctorRules()`

@@ -1,11 +1,11 @@
 ---
 name: using-design-skills
-description: Meta-router for medesign's design loop. Use at the START of any design/build/fix task to pick the right skill + /mds command + feedback sources, and to follow the non-negotiable operating behaviors. Maps each phase (analyze → intent → build → verify → ship) to its tools.
+description: Meta-router for emdesign's design loop. Use at the START of any design/build/fix task to pick the right skill + /mds command + feedback sources, and to follow the non-negotiable operating behaviors. Maps each phase (analyze → intent → build → verify → ship) to its tools.
 ---
 
 # Using design skills (router)
 
-medesign has **two flows**. **Always select or create a design system first** (Flow A), then craft
+emdesign has **two flows**. **Always select or create a design system first** (Flow A), then craft
 against it (Flow B). This skill routes a request; read it first, then dispatch.
 
 ## Flow A — Design System (the contract every project starts from)
@@ -30,7 +30,7 @@ against it (Flow B). This skill routes a request; read it first, then dispatch.
 | Ship | gate + capture | — | `/mds:ship` | `critique_score` + human approval |
 
 ## Browser bridge (the Storybook panel)
-Humans also drive both flows from the **medesign Storybook panel** — pointing at an element to comment,
+Humans also drive both flows from the **emdesign Storybook panel** — pointing at an element to comment,
 or clicking *New component* / *Create design system*. Those become **typed intents** in a queue. Start a
 working session with **`/mds:inbox`**: it runs the `inbox-loop` workflow, which drains the whole queue
 (`poll_intent`), has the **`intent-router`** subagent classify + group each intent — sub-classifying free-text

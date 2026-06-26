@@ -1,6 +1,6 @@
-# @medesign/mcp-server
+# @emdesign/mcp-server
 
-The **medesign MCP server** — wraps `@medesign/backend`'s API as Model Context Protocol tools that
+The **emdesign MCP server** — wraps `@emdesign/backend`'s API as Model Context Protocol tools that
 agents (Claude Code, etc.) can call directly.
 
 ## Role in the system
@@ -16,11 +16,11 @@ The backend writes `.mcp.json` automatically when it spawns an agent. To connect
 yourself, add to `.mcp.json`:
 
 ```jsonc
-{ "mcpServers": { "medesign": { "command": "npm", "args": ["run", "backend", "--", "mcp"] } } }
+{ "mcpServers": { "emdesign": { "command": "npm", "args": ["run", "backend", "--", "mcp"] } } }
 ```
 
 ## Related
 
-- `@medesign/backend` — the engine this wraps
-- `@medesign/cli` — the CLI that serves the MCP transport
+- `@emdesign/backend` — the engine this wraps
+- `@emdesign/cli` — the CLI that serves the MCP transport
 - `docs/architecture.md` — how MCP tools fit in the loop

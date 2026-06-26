@@ -1,4 +1,4 @@
-import type { RenderedReviewRule, RenderedReviewContext, Severity } from '@medesign/dsr';
+import type { RenderedReviewRule, RenderedReviewContext, Severity } from '@emdesign/dsr';
 import type { DoctorFinding, DoctorReport } from './lint.js';
 
 const RANK: Record<Severity, number> = { P0: 0, P1: 1, P2: 2 };

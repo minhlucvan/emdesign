@@ -2,7 +2,7 @@
  * Rule registry — the canonical metadata for every consistency-lint rule, consumed by the graph
  * (rule nodes, `governs`/`violates` edges, and where-to-fix remediation).
  *
- * Mirrors the rule ids emitted by `@medesign/backend`'s linter
+ * Mirrors the rule ids emitted by `@emdesign/backend`'s linter
  * (`packages/backend/src/lint/`). Keep the ids in sync; this module owns the remediation +
  * applicability metadata the graph needs.
  */

@@ -21,7 +21,7 @@ const VALIDATE = {
 phase('Author');
 if (MODE === 'brief' || MODE === 'extract') {
   await agent(
-    `Author the design system "${ID}" to the medesign quality bar (docs/spec.md + docs/authoring-design-systems.md). ` +
+    `Author the design system "${ID}" to the emdesign quality bar (docs/spec.md + docs/authoring-design-systems.md). ` +
       `Source: ${MODE}${BRIEF ? ` — ${JSON.stringify(BRIEF)}` : ''}. ` +
       `Edit design-systems/${ID}/DESIGN.md (fill all 9 sections with EXACT values, semantic role names, and real anti-patterns) ` +
       `and re-value design-systems/${ID}/tokens.css for every required role. Use the design-system-author skill` +
@@ -37,7 +37,7 @@ phase('Validate');
 let ok = false;
 for (let round = 1; round <= MAX && !ok; round++) {
   const v = await agent(
-    `Call the medesign MCP tool \`validate_design_system\` with id="${ID}". If not ok, EDIT design-systems/${ID}/tokens.css ` +
+    `Call the emdesign MCP tool \`validate_design_system\` with id="${ID}". If not ok, EDIT design-systems/${ID}/tokens.css ` +
       `to declare every missing role (sensible on-brand values), then return the latest validate result.`,
     { schema: VALIDATE, label: `validate:r${round}`, phase: 'Validate' },
   );
@@ -47,14 +47,14 @@ for (let round = 1; round <= MAX && !ok; round++) {
 
 phase('Primitives');
 await agent(
-  `Ensure base primitives exist for "${ID}": call the medesign MCP tool \`scaffold_primitives\` with id="${ID}" ` +
+  `Ensure base primitives exist for "${ID}": call the emdesign MCP tool \`scaffold_primitives\` with id="${ID}" ` +
     `(it skips if code/ already exists). Report what happened.`,
   { label: 'primitives', phase: 'Primitives' },
 );
 
 phase('Index');
 await agent(
-  `Rebuild the knowledge graph for "${ID}": call the medesign MCP tool \`graph_rebuild\` with id="${ID}". Report stats.`,
+  `Rebuild the knowledge graph for "${ID}": call the emdesign MCP tool \`graph_rebuild\` with id="${ID}". Report stats.`,
   { label: 'graph', phase: 'Index' },
 );
 

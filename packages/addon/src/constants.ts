@@ -1,4 +1,4 @@
-export const ADDON_ID = 'medesign';
+export const ADDON_ID = 'emdesign';
 export const PANEL_ID = `${ADDON_ID}/panel`;
 export const TAB_ID = `${ADDON_ID}/tab`;
 export const DS_TAB_ID = `${ADDON_ID}/ds`;
@@ -6,17 +6,17 @@ export const CREATE_TAB_ID = `${ADDON_ID}/create`;
 export const TOOL_ID = `${ADDON_ID}/tool`;
 
 /** Each full-page tab owns a viewMode + route (so it's a top-level surface, not docked). */
-export const VIEW_MODE_SYSTEM = 'medesign';
-export const VIEW_MODE_DS = 'medesign-ds';
-export const VIEW_MODE_CREATE = 'medesign-create';
+export const VIEW_MODE_SYSTEM = 'emdesign';
+export const VIEW_MODE_DS = 'emdesign-ds';
+export const VIEW_MODE_CREATE = 'emdesign-create';
 
 /**
- * The medesign Studio backend HTTP bridge. The addon (browser) talks to the backend over
+ * The emdesign Studio backend HTTP bridge. The addon (browser) talks to the backend over
  * this API; the agent drives generation through the backend's MCP tools. They share one
  * state store, so the panel reflects whatever the agent is doing in real time.
  */
 export const BACKEND_URL =
-  (typeof process !== 'undefined' && process.env?.MEDESIGN_BACKEND_URL) ||
+  (typeof process !== 'undefined' && process.env?.EMDESIGN_BACKEND_URL) ||
   'http://localhost:4321';
 
 export type IntentType =

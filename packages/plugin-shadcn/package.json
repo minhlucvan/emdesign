@@ -1,15 +1,15 @@
 {
-  "name": "@medesign/plugin-shadcn",
+  "name": "@emdesign/plugin-shadcn",
   "version": "0.0.0",
   "type": "module",
-  "description": "medesign shadcn/ui plugin (library): component-catalog codegen guidance + lint rules. Stacks on react + tailwind.",
+  "description": "emdesign shadcn/ui plugin (library): component-catalog codegen guidance + lint rules. Stacks on react + tailwind.",
   "exports": {
     ".": "./src/index.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json"
   },
-  "dependencies": { "@medesign/plugin-api": "*" },
+  "dependencies": { "@emdesign/plugin-api": "*" },
   "devDependencies": {
     "@types/node": "^20.14.0",
     "typescript": "^5.5.0"

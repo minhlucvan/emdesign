@@ -5,7 +5,7 @@ description: Infer a design system's tokens + voice from a brand reference (scre
 
 # brand-extract
 
-Adapted from open-design's `brand-extract`, constrained to medesign's token contract: extraction produces
+Adapted from open-design's `brand-extract`, constrained to emdesign's token contract: extraction produces
 **token roles + a DESIGN.md draft**, never raw values pasted into components.
 
 ## Steps

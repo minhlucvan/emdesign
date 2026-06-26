@@ -1,6 +1,6 @@
-# @medesign/plugin-core
+# @emdesign/plugin-core
 
-**Universal stack-agnostic design-system rules** — the always-on default ruleset that every medesign
+**Universal stack-agnostic design-system rules** — the always-on default ruleset that every emdesign
 project runs. Provides production-readiness review (`doctorRules`) and rendered-artifact lint
 (`renderedDoctorRules`).
 
@@ -16,6 +16,6 @@ and cover:
 
 ## Related
 
-- `@medesign/plugin-api` — the plugin interface this implements
-- `@medesign/dsr` — the rule engine this extends
-- `@medesign/doctor` — consumes these rules in production-readiness reports
+- `@emdesign/plugin-api` — the plugin interface this implements
+- `@emdesign/dsr` — the rule engine this extends
+- `@emdesign/doctor` — consumes these rules in production-readiness reports

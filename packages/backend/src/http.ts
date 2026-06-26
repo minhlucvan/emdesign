@@ -7,7 +7,7 @@ import { captureComponent } from './capture.js';
 import { runVisualTest } from './visualTest.js';
 import { PNG } from 'pngjs';
 import { scoreComponent } from './critique/score.js';
-import { standardCritique } from '@medesign/vision-critic';
+import { standardCritique } from '@emdesign/vision-critic';
 import { resolveDesignSystem } from './designContext.js';
 import { countMustFix } from './lint/index.js';
 import { effectiveAdapter } from './adapters/index.js';
@@ -41,7 +41,7 @@ export function createHttpBridge(store: Store, paths: RepoPaths) {
     const s = store.get();
     res.json({
       ok: true,
-      name: 'medesign',
+      name: 'emdesign',
       version: '0.0.0',
       activeDesignSystem: s.activeDesignSystem,
       currentComponent: s.currentComponent,
@@ -304,6 +304,6 @@ export function startHttpBridge(store: Store, paths: RepoPaths, port = 4321) {
   const app = createHttpBridge(store, paths);
   return app.listen(port, () => {
     // eslint-disable-next-line no-console
-    console.error(`[medesign] HTTP bridge on http://localhost:${port} (repo: ${path.basename(paths.root)})`);
+    console.error(`[emdesign] HTTP bridge on http://localhost:${port} (repo: ${path.basename(paths.root)})`);
   });
 }

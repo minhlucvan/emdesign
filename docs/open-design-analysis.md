@@ -2,13 +2,13 @@
 
 > Source: [`nexu-io/open-design`](https://github.com/nexu-io/open-design) `v0.11.1`, **Apache-2.0**.
 > Apache-2.0 lets us adapt the code directly with attribution (see [`/NOTICE`](../NOTICE)).
-> This doc is the engineering record behind medesign's design-quality engine. It distills a close
+> This doc is the engineering record behind emdesign's design-quality engine. It distills a close
 > read of the daemon source: `apps/daemon/src/runtimes/**` (harness), `critique/**` (quality loop),
 > and `design-systems/**` + `lint-artifact.ts` (the DESIGN.md contract + consistency lint).
 
 open-design's design quality is **not** a model trick. It comes from three file-based assets — a very
 rich `DESIGN.md` contract, Skills, and Templates — fed to any agent through a disciplined **harness**,
-with a **critique loop** that re-scores output and a **lint** that blocks "AI-slop." medesign adopts all
+with a **critique loop** that re-scores output and a **lint** that blocks "AI-slop." emdesign adopts all
 four, then beats open-design by emitting **reusable, visually-tested code components** (not one-off HTML).
 
 ---
@@ -58,9 +58,9 @@ agents** over a multi-round generate→score→revise loop. Three pieces matter 
   sustained breakage). We reframe it per-component: **a new version replaces the baseline only if its
   composite ≥ baseline AND `mustFix === 0`**.
 
-**medesign's adaptation** — replace the stochastic LLM panel with deterministic scorers:
+**emdesign's adaptation** — replace the stochastic LLM panel with deterministic scorers:
 
-| open-design panelist | medesign deterministic scorer |
+| open-design panelist | emdesign deterministic scorer |
 |---|---|
 | critic / designer (visual) | Storybook **visual diff** vs baseline (`run_visual_test`) |
 | brand | **consistency lint** (token-contract + anti-slop, §4) |
@@ -90,7 +90,7 @@ every schema token declared, no non-schema tokens, every `var()` resolves.
 
 **Prompt composition**: parsed identity + **verbatim DESIGN.md body (the 9 H2 sections)** + `tokens.css`
 (`:root`) + a *summarized* components manifest + a token-grade summary. The 9 sections are parsed
-positionally; their order is the authoring template's order. medesign's `docs/spec.md` keeps these 9
+positionally; their order is the authoring template's order. emdesign's `docs/spec.md` keeps these 9
 section titles verbatim (compatible superset) and adds a `tokens.css`-backed token layer.
 
 ---
@@ -117,11 +117,11 @@ value is not. Which rules apply is gated by a `craft.applies`/`exemptions` flag 
 
 ---
 
-## 5. Net: medesign's plan vs open-design
+## 5. Net: emdesign's plan vs open-design
 
 - **Adopt:** the 9-section DESIGN.md contract (verbatim titles → import their 70+ systems), the token
   contract + self-check, the anti-slop lint, the harness adapter pattern, the critique gate
   (`computeComposite` + dual-gate `decideRound`) and the no-regression ratchet.
-- **Beat:** open-design emits one-off HTML scored by an LLM jury. medesign emits **reusable React/Tailwind
+- **Beat:** open-design emits one-off HTML scored by an LLM jury. emdesign emits **reusable React/Tailwind
   components + CSF stories** committed to the repo, scored by **deterministic** visual tests + lint, served
   on a **Storybook** front end, refined through a **live change-request loop**.

@@ -5,7 +5,7 @@ description: Reason about color on-system — pick/adjust accent, surfaces, and 
 
 # color-expert
 
-Adapted from open-design's `color-expert`, constrained to medesign's token contract: color decisions are
+Adapted from open-design's `color-expert`, constrained to emdesign's token contract: color decisions are
 **token-role** decisions, never raw hex in a component.
 
 ## Steps

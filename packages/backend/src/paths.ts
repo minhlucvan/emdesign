@@ -2,7 +2,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 
 /**
- * medesign config (medesign.config.json at the project root). Lets the server target ANY
+ * emdesign config (emdesign.config.json at the project root). Lets the server target ANY
  * project — the dogfood workspace (apps/workspace-react) or an attached existing Storybook repo.
  * All dir fields are relative to the project root (where this config lives).
  */
@@ -34,15 +34,15 @@ const DEFAULT_CONFIG: MedesignConfig = {
 
 export function readConfig(root: string): MedesignConfig {
   try {
-    return { ...DEFAULT_CONFIG, ...JSON.parse(fs.readFileSync(path.join(root, 'medesign.config.json'), 'utf8')) };
+    return { ...DEFAULT_CONFIG, ...JSON.parse(fs.readFileSync(path.join(root, 'emdesign.config.json'), 'utf8')) };
   } catch {
     return { ...DEFAULT_CONFIG };
   }
 }
 
 /**
- * Resolves the well-known locations medesign reads/writes inside a project. Everything is
- * code-first and lives in the project — no proprietary store. Driven by medesign.config.json.
+ * Resolves the well-known locations emdesign reads/writes inside a project. Everything is
+ * code-first and lives in the project — no proprietary store. Driven by emdesign.config.json.
  */
 export interface RepoPaths {
   root: string;
@@ -50,8 +50,8 @@ export interface RepoPaths {
   /** Resolved ordered plugin stack (from config.plugins, else derived from framework). */
   plugins: string[];
   storybookUrl: string;
-  /** Where the medesign state store + run artifacts live. */
-  medesignDir: string;
+  /** Where the emdesign state store + run artifacts live. */
+  emdesignDir: string;
   stateFile: string;
   /** design-systems/<name>/ (DESIGN.md + tokens.css + code/). */
   designSystemsDir: string;
@@ -68,14 +68,14 @@ export interface RepoPaths {
 export function resolveRepoPaths(root = process.cwd()): RepoPaths {
   const cfg = readConfig(root);
   const abs = (p: string) => path.resolve(root, p);
-  const medesignDir = path.join(root, '.medesign');
+  const emdesignDir = path.join(root, '.emdesign');
   return {
     root,
     framework: cfg.framework,
     plugins: cfg.plugins?.length ? cfg.plugins : frameworkToStack(cfg.framework),
     storybookUrl: cfg.storybookUrl,
-    medesignDir,
-    stateFile: path.join(medesignDir, 'state.json'),
+    emdesignDir,
+    stateFile: path.join(emdesignDir, 'state.json'),
     designSystemsDir: abs(cfg.designSystemsDir),
     studioDir: root,
     generatedDir: abs(cfg.generatedDir),

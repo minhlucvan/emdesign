@@ -36,16 +36,16 @@ Set `manifest.craft.exemptions` to skip rules that conflict with the system's in
 `sans-display` for a deliberately sans, utilitarian system). Everything else stays enforced.
 
 ## Starting from a base
-You don't have to start blank. medesign ships **prebuilt bases** under
+You don't have to start blank. emdesign ships **prebuilt bases** under
 `design-systems/_vendor/open-design/` — design systems derived from open-design (brutalist, editorial,
 Swiss, fintech, dark decks, minimalist, …), each a full DESIGN.md + token contract with atelier's
 primitives re-skinned by its palette, plus the origin SKILL.md and reference assets bundled in.
 
-- **List them:** `medesign ds bases` (or the `list_design_system_bases` MCP tool). Each entry has a
+- **List them:** `emdesign ds bases` (or the `list_design_system_bases` MCP tool). Each entry has a
   `ref` like `open-design/brutalist`.
-- **Start from one:** `medesign ds create <id> import <ref>` (or `/mds:system:create … --mode import <ref>`).
+- **Start from one:** `emdesign ds create <id> import <ref>` (or `/mds:system:create … --mode import <ref>`).
   The clone is re-id'd (its vendor `source` provenance dropped), graph-built, and validated — ready to
-  `medesign ds use <id>`. Then edit its DESIGN.md/tokens to differentiate; you're customizing a known-good
+  `emdesign ds use <id>`. Then edit its DESIGN.md/tokens to differentiate; you're customizing a known-good
   system instead of authoring from scratch.
 
 Bases are excluded from `ds list` / the active-system picker (they live under the `_vendor/` prefix) — they

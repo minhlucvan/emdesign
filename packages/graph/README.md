@@ -1,4 +1,4 @@
-# @medesign/graph
+# @emdesign/graph
 
 A **labeled property graph** that encodes any information about a design system — files, stories,
 components, tokens, colors, fonts, specs, rules, themes, props, variants, states, and artifacts —
@@ -16,7 +16,7 @@ The graph powers the agent's awareness of the design system:
 ## Usage
 
 ```bash
-medesign graph build <id>    # Build from source → commits to design-systems/<id>/graph.json
+emdesign graph build <id>    # Build from source → commits to design-systems/<id>/graph.json
 ```
 
 Or via the `graph_rebuild` MCP tool. The graph is built **deterministically from code + metadata** —
@@ -32,5 +32,5 @@ never reconstructed by an LLM.
 
 ## Related
 
-- `@medesign/dsr` — DDD domain layer over the graph data model
+- `@emdesign/dsr` — DDD domain layer over the graph data model
 - `docs/data-model.md` — full node/edge kind specification

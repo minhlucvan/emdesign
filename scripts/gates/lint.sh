@@ -3,5 +3,5 @@
 # Usage: scripts/gates/lint.sh <ComponentName>
 set -euo pipefail
 COMPONENT="${1:?usage: lint.sh <ComponentName>}"
-MDS="${MEDESIGN_CLI:-npx tsx packages/cli/src/cli.ts}"
+MDS="${EMDESIGN_CLI:-npx tsx packages/cli/src/cli.ts}"
 exec $MDS lint "$COMPONENT"

@@ -85,7 +85,7 @@ export const Pill = styled.span<{ tone?: 'ok' | 'warn' | 'bad' | 'muted' }>(({ t
 
 export const ErrorBanner = ({ error }: { error: string }) => (
   <Section style={{ borderColor: '#c0392b' }}>
-    <Muted>Backend not reachable ({error}). Start it with <code>medesign serve</code>.</Muted>
+    <Muted>Backend not reachable ({error}). Start it with <code>emdesign serve</code>.</Muted>
   </Section>
 );
 

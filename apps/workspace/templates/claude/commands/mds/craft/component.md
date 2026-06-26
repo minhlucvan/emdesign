@@ -7,9 +7,9 @@ tags: [craft, workflow, feedback-loop, component]
 
 # MDS: Craft Component
 
-Drive the medesign closed feedback loop to produce a component that is **beautiful, consistent, testable,
+Drive the emdesign closed feedback loop to produce a component that is **beautiful, consistent, testable,
 shippable**. **Precondition: an active design system** (`/mds:system:use <id>` or `/mds:system:create`).
-The medesign server must be running (`medesign serve`) and Storybook up (`npm run studio`).
+The emdesign server must be running (`emdesign serve`) and Storybook up (`npm run studio`).
 
 **Input**: a natural-language component request, optionally a PascalCase `name`.
 Example: `/mds:craft:component "a testimonial section with three quotes" Testimonials`
@@ -18,7 +18,7 @@ Example: `/mds:craft:component "a testimonial section with three quotes" Testimo
 
 1. **Approve scope.** Use `AskUserQuestion` to confirm the component `name`, the active design system, and
    the quality `threshold` (default 0.8). Do not proceed without approval.
-2. **Analyze context.** Call MCP `get_design_context` (it injects the `@medesign/graph` consistency brief:
+2. **Analyze context.** Call MCP `get_design_context` (it injects the `@emdesign/graph` consistency brief:
    composable primitives, tokens by kind, governing rules, and the vibe). Read the DESIGN.md sections it
    points to.
 3. **Understand intent (spec).** Write `design/changes/<slug>/intent.md` (what + why + acceptance) and

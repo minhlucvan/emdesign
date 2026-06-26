@@ -1,5 +1,5 @@
 {
-  "name": "@medesign/graph",
+  "name": "@emdesign/graph",
   "version": "0.0.0",
   "type": "module",
   "description": "Labeled property graph that encodes any information of a design system — files, stories, components, tokens, colors, fonts, specs, rules, themes, artifacts — for craft, fix, impact analysis, and consistency.",

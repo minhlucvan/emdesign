@@ -10,7 +10,7 @@ import type { ReviewFinding } from './review.js';
  * This is the deterministic third leg alongside the advisory LLM vision-critic.
  *
  * Types live in dsr so doctor + plugin-api + plugin-core can all reference them without
- * depending on @medesign/backend.
+ * depending on @emdesign/backend.
  */
 
 // ---------------------------------------------------------------------------

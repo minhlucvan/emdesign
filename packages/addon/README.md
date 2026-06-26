@@ -1,6 +1,6 @@
-# @medesign/addon
+# @emdesign/addon
 
-The **medesign Storybook addon** — the live design-to-change-request loop panel. Adds a panel to
+The **emdesign Storybook addon** — the live design-to-change-request loop panel. Adds a panel to
 Storybook where you can chat with the agent, see critique scores, view visual diffs, and capture
 components as reusable parts.
 
@@ -17,13 +17,13 @@ This is the **human feedback channel** in the four-source critique loop. The pan
 
 ```bash
 # Add to your .storybook/main.* addons array:
-npm i -D @medesign/addon
+npm i -D @emdesign/addon
 ```
 
-Then open the medesign panel in Storybook's addon drawer.
+Then open the emdesign panel in Storybook's addon drawer.
 
 ## Related
 
-- `@medesign/backend` — serves the addon's HTTP API
+- `@emdesign/backend` — serves the addon's HTTP API
 - `docs/architecture.md` — how the addon connects to the backend
 - `docs/harness-engine.md` — the four-source critique loop

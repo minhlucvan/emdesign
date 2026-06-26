@@ -2,10 +2,10 @@ import type { FrameworkAdapter } from '../adapters/index.js';
 import type { DesignSystem } from '../designContext.js';
 import type { LintOptions, Finding } from '../lint/index.js';
 import type { RepoPaths } from '../paths.js';
-import type { MedesignPlugin, ParseCtx, TokenInput, ThemeInput, FileEmit, GraphParser, DesignReviewRule, RenderedReviewRule } from '@medesign/plugin-api';
+import type { MedesignPlugin, ParseCtx, TokenInput, ThemeInput, FileEmit, GraphParser, DesignReviewRule, RenderedReviewRule } from '@emdesign/plugin-api';
 import { resolvePlugin } from './registry.js';
-import { reactPlugin } from '@medesign/plugin-react';
-import { RuleEngine, type Diagnostic } from '@medesign/dsr';
+import { reactPlugin } from '@emdesign/plugin-react';
+import { RuleEngine, type Diagnostic } from '@emdesign/dsr';
 
 /** The composed adapter: today's FrameworkAdapter surface + the new plugin hooks. */
 export interface EffectiveAdapter extends FrameworkAdapter {

@@ -1,5 +1,5 @@
-medesign
-Copyright 2026 the medesign authors
+emdesign
+Copyright 2026 the emdesign authors
 
 This product includes software design and code patterns adapted from open-design
 (https://github.com/nexu-io/open-design), Copyright the open-design authors,
@@ -13,7 +13,7 @@ and /design-systems).
 
 In addition, the prebuilt design-system bases under `design-systems/_vendor/open-design/`
 are derived from open-design's vendored skills (`skills/_vendor/open-design/`): their
-palettes, type, and visual specifications are mapped into medesign's DESIGN.md + token
+palettes, type, and visual specifications are mapped into emdesign's DESIGN.md + token
 contract, and each base bundles its origin SKILL.md and reference assets. Per-base
 provenance (the source skill, its `upstream`, and license) is recorded in each base's
 `manifest.json` `source` block and in `design-systems/_vendor/open-design/catalog.json`.

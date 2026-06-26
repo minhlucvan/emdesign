@@ -1,15 +1,15 @@
 {
-  "name": "@medesign/plugin-tailwindcss",
+  "name": "@emdesign/plugin-tailwindcss",
   "version": "0.0.0",
   "type": "module",
-  "description": "medesign Tailwind CSS plugin (styling): class<->token-role map, tailwind.config<->tokens parsing, theming, and config emission from the token contract.",
+  "description": "emdesign Tailwind CSS plugin (styling): class<->token-role map, tailwind.config<->tokens parsing, theming, and config emission from the token contract.",
   "exports": {
     ".": "./src/index.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json"
   },
-  "dependencies": { "@medesign/plugin-api": "*" },
+  "dependencies": { "@emdesign/plugin-api": "*" },
   "devDependencies": {
     "@types/node": "^20.14.0",
     "typescript": "^5.5.0"

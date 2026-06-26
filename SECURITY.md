@@ -2,10 +2,10 @@
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in medesign, please report it privately.
+If you discover a security vulnerability in emdesign, please report it privately.
 **Do not disclose it as a public issue.**
 
-Send details to the project maintainers via [GitHub Security Advisories](https://github.com/medesign/medesign/security/advisories/new)
+Send details to the project maintainers via [GitHub Security Advisories](https://github.com/minhlucvan/emdesign/security/advisories/new)
 or email [INSERT EMAIL].
 
 Please include:
@@ -20,6 +20,6 @@ as the fix progresses.
 
 ## Scope
 
-This policy covers the `@medesign/*` packages on npm and the medesign CLI. The vendored
+This policy covers the `@emdesign/*` packages on npm and the emdesign CLI. The vendored
 design-systems under `design-systems/_vendor/` and `skills/_vendor/` are imported from
 third-party sources — report vulnerabilities in those to their respective maintainers.

@@ -101,7 +101,7 @@ export class Store {
   }
 
   private persist(): void {
-    ensureDir(this.paths.medesignDir);
+    ensureDir(this.paths.emdesignDir);
     fs.writeFileSync(this.paths.stateFile, JSON.stringify(this.state, null, 2));
     try { this.mtimeMs = fs.statSync(this.paths.stateFile).mtimeMs; } catch { /* ignore */ }
   }

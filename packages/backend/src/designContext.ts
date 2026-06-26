@@ -96,7 +96,7 @@ export function composePrompt(input: ComposeInput): string {
   const { ds, componentName, currentSource, instruction, lintFeedback, graphContext, codegenInstructions } = input;
   const mode = currentSource ? 'EDIT' : 'CREATE';
   return [
-    `You are medesign's design engineer. ${mode} the component "${componentName}".`,
+    `You are emdesign's design engineer. ${mode} the component "${componentName}".`,
     '',
     'RULES (non-negotiable):',
     // Framework-specific generation rules come from the active FrameworkAdapter.

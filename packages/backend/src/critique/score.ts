@@ -52,7 +52,7 @@ export function scoreComponent(paths: RepoPaths, input: ScoreInput): ScoreResult
 }
 
 function baselineFile(paths: RepoPaths): string {
-  return path.join(paths.medesignDir, 'baselines.json');
+  return path.join(paths.emdesignDir, 'baselines.json');
 }
 
 function readBaseline(paths: RepoPaths, component: string): number | null {
@@ -65,7 +65,7 @@ function readBaseline(paths: RepoPaths, component: string): number | null {
 }
 
 function writeBaseline(paths: RepoPaths, component: string, composite: number): void {
-  ensureDir(paths.medesignDir);
+  ensureDir(paths.emdesignDir);
   let all: Record<string, number> = {};
   try {
     all = JSON.parse(fs.readFileSync(baselineFile(paths), 'utf8'));

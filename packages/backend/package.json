@@ -1,8 +1,8 @@
 {
-  "name": "@medesign/backend",
+  "name": "@emdesign/backend",
   "version": "0.0.0",
   "type": "module",
-  "description": "medesign Studio backend — headless design-engineering engine (library): MCP server, agent harness, prompt composer, code-first capture, visual testing, consistency linter, graph + critique. The executable lives in @medesign/cli.",
+  "description": "emdesign Studio backend — headless design-engineering engine (library): MCP server, agent harness, prompt composer, code-first capture, visual testing, consistency linter, graph + critique. The executable lives in @emdesign/cli.",
   "main": "dist/index.js",
   "exports": {
     ".": "./src/index.ts"
@@ -11,15 +11,15 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@medesign/dsr": "*",
-    "@medesign/graph": "*",
-    "@medesign/doctor": "*",
-    "@medesign/plugin-api": "*",
-    "@medesign/plugin-core": "*",
-    "@medesign/plugin-react": "*",
-    "@medesign/plugin-css": "*",
-    "@medesign/plugin-tailwindcss": "*",
-    "@medesign/plugin-shadcn": "*",
+    "@emdesign/dsr": "*",
+    "@emdesign/graph": "*",
+    "@emdesign/doctor": "*",
+    "@emdesign/plugin-api": "*",
+    "@emdesign/plugin-core": "*",
+    "@emdesign/plugin-react": "*",
+    "@emdesign/plugin-css": "*",
+    "@emdesign/plugin-tailwindcss": "*",
+    "@emdesign/plugin-shadcn": "*",
     "express": "^4.19.0",
     "gray-matter": "^4.0.3",
     "pixelmatch": "^6.0.0",

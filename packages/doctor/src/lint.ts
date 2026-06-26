@@ -1,4 +1,4 @@
-import type { DesignReviewRule, ReviewContext, Severity } from '@medesign/dsr';
+import type { DesignReviewRule, ReviewContext, Severity } from '@emdesign/dsr';
 import { CORE_RULES } from './rules.js';
 
 export interface DoctorFinding {

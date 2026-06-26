@@ -1,9 +1,9 @@
 /**
- * Core types for @medesign/vision-critic — the multi-model LLM vision critique system.
+ * Core types for @emdesign/vision-critic — the multi-model LLM vision critique system.
  *
  * A VisionProvider is the primitive. critique strategies (standard / regression / reference / ensemble)
  * compose providers with context (screenshot, DOM, design system) and return structured results that
- * feed into the medesign critique gate (vision scorer key, weight 0.25).
+ * feed into the emdesign critique gate (vision scorer key, weight 0.25).
  */
 
 // ---------------------------------------------------------------------------
@@ -39,7 +39,7 @@ export interface VisionContext {
   /** Design system context: DESIGN.md excerpt + tokens.css snippet. */
   designContext?: string;
   /**
-   * Optional structured DOM snapshot from renderProbe (RenderSnapshot from @medesign/dsr).
+   * Optional structured DOM snapshot from renderProbe (RenderSnapshot from @emdesign/dsr).
    * Populated once the render-lint plan ships renderProbe.ts + plugin-core.
    */
   renderSnapshot?: string;

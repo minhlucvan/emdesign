@@ -1,4 +1,4 @@
-import { SEMANTIC_TOKEN_ROLES, tokenReferenceLint, type DesignReviewRule, type ReviewContext } from '@medesign/dsr';
+import { SEMANTIC_TOKEN_ROLES, tokenReferenceLint, type DesignReviewRule, type ReviewContext } from '@emdesign/dsr';
 
 const LINT_CODES = ['off-token', 'ai-default-indigo', 'purple-gradient', 'trust-gradient', 'emoji-icon', 'invented-metric', 'filler-copy', 'external-image', 'accent-overuse', 'left-accent-card', 'sans-display'];
 

@@ -1,5 +1,5 @@
 /**
- * @medesign/doctor — rule-based design-system linting over the dsr/graph data model.
+ * @emdesign/doctor — rule-based design-system linting over the dsr/graph data model.
  * Runs the built-in production-readiness ruleset + any plugin-contributed DesignReviewRules and
  * reports findings (severity · detail · fix · where) + an X/Y "rules passed" summary.
  */

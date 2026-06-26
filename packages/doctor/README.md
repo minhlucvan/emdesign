@@ -1,7 +1,7 @@
-# @medesign/doctor
+# @emdesign/doctor
 
-The **design-system doctor** — rule-based production-readiness linting over the `@medesign/dsr` +
-`@medesign/graph` data model. Reports findings with severity, fix, and location, plus an `X/Y rules
+The **design-system doctor** — rule-based production-readiness linting over the `@emdesign/dsr` +
+`@emdesign/graph` data model. Reports findings with severity, fix, and location, plus an `X/Y rules
 passed` grade.
 
 ## Role in the system
@@ -13,8 +13,8 @@ with a concrete fix and where to apply it.
 ## Usage
 
 ```bash
-medesign ds doctor <id>                # Print findings + grade
-medesign ds doctor <id> --gate         # Exit 1 if any P0/P1 remains (CI gate)
+emdesign ds doctor <id>                # Print findings + grade
+emdesign ds doctor <id> --gate         # Exit 1 if any P0/P1 remains (CI gate)
 ```
 
 ## Rule extensibility
@@ -28,6 +28,6 @@ Rules are `DesignReviewRule` objects contributed by each plugin in the stack:
 
 ## Related
 
-- `@medesign/dsr` — the rule engine and review context
-- `@medesign/plugin-api` — how plugins contribute rules
+- `@emdesign/dsr` — the rule engine and review context
+- `@emdesign/plugin-api` — how plugins contribute rules
 - `docs/doctor.md` — full documentation

@@ -1,8 +1,8 @@
 {
-  "name": "@medesign/addon",
+  "name": "@emdesign/addon",
   "version": "0.0.0",
   "type": "module",
-  "description": "medesign Storybook addon — the live design ↔ change-request loop panel (chat · capture · visual-diff).",
+  "description": "emdesign Storybook addon — the live design ↔ change-request loop panel (chat · capture · visual-diff).",
   "exports": {
     "./manager": "./src/manager.tsx",
     "./preview": "./src/preview.tsx",

@@ -9,7 +9,7 @@ export function Hero() {
   return (
     <div className="bg-surface text-text" style={{ padding: 96 }}>
       <Stack gap={3} className="items-start" style={{ maxWidth: '64ch' }}>
-        <Eyebrow>medesign</Eyebrow>
+        <Eyebrow>emdesign</Eyebrow>
         <Heading level={1} size="display">Kỹ thuật thiết kế — đúng hệ thống ngay từ trong cấu trúc.</Heading>
         <p className="font-[var(--font-sans)] text-text-muted" style={{ fontSize: 18, lineHeight: 1.6 }}>
           Chọn một hệ thống thiết kế, rồi tạo nên các thành phần luôn nhất quán, kiểm thử được và sẵn sàng

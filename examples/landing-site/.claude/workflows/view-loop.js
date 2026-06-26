@@ -90,7 +90,7 @@ while (round < MAX_ROUNDS && !shipped) {
   round++;
   phase('Verify');
   const [vision, llm, tokens, visual] = await parallel([
-    () => agent(`Call the medesign MCP tool \`vision_critique\` with component="${NAME}", mode="standard". Return the visionScore + findings.`, { schema: VISION, label: `vision:r${round}`, phase: 'Verify' }),
+    () => agent(`Call the emdesign MCP tool \`vision_critique\` with component="${NAME}", mode="standard". Return the visionScore + findings.`, { schema: VISION, label: `vision:r${round}`, phase: 'Verify' }),
     () => agent(`Review the composed page "${NAME}" (slug "${SLUG}") — composition, reuse of captured components, intent-fit, voice.`, { agentType: 'design-reviewer', schema: LLM, label: `llm:r${round}`, phase: 'Verify' }),
     () => agent(`Audit page "${NAME}" consistency (lint + graph where-to-fix).`, { agentType: 'consistency-auditor', schema: TOKENS, label: `tokens:r${round}`, phase: 'Verify' }),
     () => agent(`Call run_visual_test for "${NAME}"; map status 'pass'|'new'→1.0, 'changed'→0.5, 'error'→0.0. Return {visual,status}.`, { schema: VISUAL, label: `visual:r${round}`, phase: 'Verify' }),

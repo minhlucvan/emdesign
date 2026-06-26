@@ -39,7 +39,7 @@ function buildTarget(el: Element, root: Element, storyId?: string, component?: s
 /** A human-readable + machine-readable descriptor of a picked element (for the copy tool). */
 function describe(t: CommentTarget): string {
   const lines = [
-    'medesign element',
+    'emdesign element',
     t.component ? `component: ${t.component}` : '',
     t.storyId ? `story: ${t.storyId}` : '',
     `selector: ${t.selector}`,
@@ -53,9 +53,9 @@ function describe(t: CommentTarget): string {
 
 const HINTS: Record<ToolMode, string> = {
   off: '',
-  comment: 'medesign: click an element to comment · Esc to cancel',
-  copy: 'medesign: click an element to copy its identifier · Esc to cancel',
-  text: 'medesign: click a text element to edit it inline · Enter to apply · Esc to cancel',
+  comment: 'emdesign: click an element to comment · Esc to cancel',
+  copy: 'emdesign: click an element to copy its identifier · Esc to cancel',
+  text: 'emdesign: click a text element to edit it inline · Enter to apply · Esc to cancel',
 };
 
 /**
@@ -189,7 +189,7 @@ function ToolOverlay({ storyId, component }: { storyId?: string; component?: str
 
       {(active || toast) && (
         <div style={{ position: 'fixed', top: 8, left: '50%', transform: 'translateX(-50%)', zIndex: 99999, background: '#111', color: '#fff', font: '12px sans-serif', padding: '5px 10px', borderRadius: 6, pointerEvents: 'none', boxShadow: '0 2px 8px rgba(0,0,0,.4)' }}>
-          {toast ?? (composing ? 'medesign: type your comment' : HINTS[mode])}
+          {toast ?? (composing ? 'emdesign: type your comment' : HINTS[mode])}
         </div>
       )}
 

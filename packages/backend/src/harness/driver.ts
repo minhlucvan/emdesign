@@ -22,7 +22,7 @@ export interface RunAgentInput {
   resumeSessionId?: string | null;
   newSessionId?: string;
   allowedDirs?: string[];
-  /** MCP servers written to `.mcp.json` so the agent can call medesign's tools. */
+  /** MCP servers written to `.mcp.json` so the agent can call emdesign's tools. */
   mcpServers?: Record<string, McpServerConfig>;
   signal?: AbortSignal;
 }
@@ -80,7 +80,7 @@ export async function probeCapabilities(def: MinimalAgentDef, binPath: string): 
   return caps;
 }
 
-/** Write `.mcp.json` into cwd so a `claude-mcp-json` agent auto-loads medesign's tools. */
+/** Write `.mcp.json` into cwd so a `claude-mcp-json` agent auto-loads emdesign's tools. */
 export async function writeMcpJson(cwd: string, servers: Record<string, McpServerConfig>): Promise<void> {
   const file = path.join(cwd, '.mcp.json');
   await fsp.writeFile(file, JSON.stringify({ mcpServers: servers }, null, 2));

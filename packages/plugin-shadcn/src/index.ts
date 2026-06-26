@@ -1,4 +1,4 @@
-import type { MedesignPlugin, Rule } from '@medesign/plugin-api';
+import type { MedesignPlugin, Rule } from '@emdesign/plugin-api';
 
 const CATALOG = ['Button', 'Card', 'Input', 'Badge', 'Dialog', 'Tabs', 'Tooltip', 'Select'];
 

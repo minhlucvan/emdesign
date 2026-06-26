@@ -1,6 +1,6 @@
 # Design-system data model — the knowledge graph
 
-`@medesign/graph` encodes **any information of a design system** as a **labeled property graph** so the
+`@emdesign/graph` encodes **any information of a design system** as a **labeled property graph** so the
 agent can craft, customize, and fix a design system with full awareness: *where* to fix something (down to
 `file:line`), *what a change affects* (impact propagation), and *how to build something new* that's
 on-system. This is the data-modeling reference; the package lives at `packages/graph/`.
@@ -109,7 +109,7 @@ art/PricingTiers ──composes──▶ atelier/Button ──uses──▶ atel
 - `whereToFix('art/PricingTiers', 'off-token-color')` → "use `--color-accent` (atelier/tokens.css:8, defined §Color); offending code at art/PricingTiers (file:line)."
 
 ## Build modes
-The graph is built **deterministically from code + metadata** via the CLI/MCP (`medesign graph build`,
+The graph is built **deterministically from code + metadata** via the CLI/MCP (`emdesign graph build`,
 `graph_rebuild`) — never reconstructed by the LLM. Two modes, chosen by the project's framework adapter:
 - **AST + metadata** (`parseCode: true`, e.g. `react-tailwind`): real wiring — `uses`/`composes`/`hasProp`/
   `hasVariant` from the source, plus the metadata layer.
@@ -122,5 +122,5 @@ The **intent overlay** (`intent` node + `produces` edge) is layered on at artifa
 source of truth.
 
 ## Persistence
-`design-systems/<id>/graph.json` (committed, diffable), built on demand via `medesign-backend graph build <id>`
+`design-systems/<id>/graph.json` (committed, diffable), built on demand via `emdesign-backend graph build <id>`
 or the `graph_rebuild` MCP tool. Artifacts are overlaid at query time.

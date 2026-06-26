@@ -3,7 +3,7 @@ import path from 'node:path';
 import { ensureDir, normalizeDsRef, type RepoPaths } from './paths.js';
 import { parseDeclaredTokens, resolveDesignSystem } from './designContext.js';
 import { buildAndSave } from './graph.js';
-import { SEMANTIC_TOKEN_ROLES } from '@medesign/dsr';
+import { SEMANTIC_TOKEN_ROLES } from '@emdesign/dsr';
 
 /** Design-system scaffolding — the create/validate engine behind the Design System flow. */
 
@@ -277,9 +277,9 @@ export function applyDesignSystem(paths: RepoPaths, id: string): ApplyResult {
   fs.writeFileSync(cssFile, `/* active design system */\n@import "${rel}";\n`);
   wired.push(cssFile);
 
-  ensureDir(paths.medesignDir);
-  fs.writeFileSync(path.join(paths.medesignDir, 'active-ds'), id);
-  wired.push(path.join(paths.medesignDir, 'active-ds'));
+  ensureDir(paths.emdesignDir);
+  fs.writeFileSync(path.join(paths.emdesignDir, 'active-ds'), id);
+  wired.push(path.join(paths.emdesignDir, 'active-ds'));
 
   let graphRebuilt = false;
   try { buildAndSave(paths, id); graphRebuilt = true; } catch { /* may be mid-authoring */ }

@@ -5,17 +5,17 @@ where to improve to be production-ready. The grade is intentionally minimal (`X/
 **findings are the product**. It runs over the rich **dsr + graph data model**, not by re-parsing files.
 
 ```bash
-medesign ds doctor <id>            # print the findings report + X/Y rules passed
-medesign ds doctor <id> --gate     # exit 1 if any P0/P1 finding remains (CI gate)
-medesign ds doctor open-design/digits-fintech-swiss   # grade a vendored base
+emdesign ds doctor <id>            # print the findings report + X/Y rules passed
+emdesign ds doctor <id> --gate     # exit 1 if any P0/P1 finding remains (CI gate)
+emdesign ds doctor open-design/digits-fintech-swiss   # grade a vendored base
 ```
 Also the MCP tool `grade_design_system` and `gradeDesignSystem(paths, id)`. Implementation:
-**`@medesign/doctor`** (`lintDesignSystem` + the built-in ruleset, depends on `@medesign/dsr` only); the backend
+**`@emdesign/doctor`** (`lintDesignSystem` + the built-in ruleset, depends on `@emdesign/dsr` only); the backend
 orchestrates (loads the aggregate, gathers conflicts + graph stats + the composed stack's `doctorRules()`).
 
 ## Rules are plugin-extensible
 A review rule is a `DesignReviewRule { id, category, title, severity, target, check(ctx) → { pass, detail, fix } }`
-(in `@medesign/dsr`). The doctor runs the **core ruleset** + every rule a plugin in the stack contributes via
+(in `@emdesign/dsr`). The doctor runs the **core ruleset** + every rule a plugin in the stack contributes via
 `doctorRules()`. Today:
 - **core** — token-contract, sections, type-scale depth, components-with-states, token richness, theming,
   doc-depth, motion, craft-contract, conflicts, anti-slop, primitives.

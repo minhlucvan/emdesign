@@ -1,12 +1,12 @@
-import { detectConflicts } from '@medesign/dsr';
-import { lintDesignSystem, lintRendered, mergeReports, renderReport, type DoctorReport } from '@medesign/doctor';
+import { detectConflicts } from '@emdesign/dsr';
+import { lintDesignSystem, lintRendered, mergeReports, renderReport, type DoctorReport } from '@emdesign/doctor';
 import { normalizeDsRef, type RepoPaths } from './paths.js';
 import { runtimeFor } from './runtime.js';
 import { buildAndSave } from './graph.js';
 import { effectiveAdapter } from './adapters/index.js';
 import { renderSnapshot } from './renderProbe.js';
 import type { RenderSnapshotOutput } from './renderProbe.js';
-import type { RenderedReviewContext, RenderedReviewRule, RenderSnapshot } from '@medesign/dsr';
+import type { RenderedReviewContext, RenderedReviewRule, RenderSnapshot } from '@emdesign/dsr';
 
 export interface GradeReport extends DoctorReport {
   /** Production-ready when no P0/P1 finding remains. */
@@ -36,7 +36,7 @@ export interface GradeOptions {
  * Extract component names from the graph's primitive/story nodes.
  * Returns a set of deduplicated names, e.g. "Button", "Card", "PricingTiers".
  */
-function componentNamesFromGraph(graph: import('@medesign/graph').Graph): string[] {
+function componentNamesFromGraph(graph: import('@emdesign/graph').Graph): string[] {
   const names = new Set<string>();
 
   // 1. Primitives — node id format: `${dsId}/${Name}`
@@ -100,7 +100,7 @@ export async function gradeDesignSystem(paths: RepoPaths, ref: string, opts: Gra
       // Try to reach Storybook quickly; skip gracefully on failure
       let storybookReachable = false;
       try {
-        const baseUrl = paths.storybookUrl || process.env.MEDESIGN_STORYBOOK_URL || 'http://localhost:6006';
+        const baseUrl = paths.storybookUrl || process.env.EMDESIGN_STORYBOOK_URL || 'http://localhost:6006';
         const resp = await fetch(baseUrl, { signal: AbortSignal.timeout(STORYBOOK_TIMEOUT_MS) });
         storybookReachable = resp.ok;
       } catch {
@@ -161,5 +161,5 @@ export async function gradeDesignSystem(paths: RepoPaths, ref: string, opts: Gra
   };
 }
 
-/** Render a GradeReport as human-readable text. Delegates to @medesign/doctor's renderReport. */
+/** Render a GradeReport as human-readable text. Delegates to @emdesign/doctor's renderReport. */
 export const renderGrade = renderReport;

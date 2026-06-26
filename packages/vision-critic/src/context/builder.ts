@@ -5,7 +5,7 @@ import type { VisionCritiqueResult } from '../types.js';
 
 /**
  * Construct a VisionContext from component name + repo paths + options.
- * This is the bridge between the medesign backend paths and the vision providers.
+ * This is the bridge between the emdesign backend paths and the vision providers.
  *
  * Reuses the same directory conventions as visualTest.ts and designContext.ts:
  * - Screenshots live in paths.screenshotsDir (default __screenshots__/)

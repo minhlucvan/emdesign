@@ -1,6 +1,6 @@
-# @medesign/plugin-css
+# @emdesign/plugin-css
 
-The **CSS plugin** — owns CSS-to-graph parsing for medesign. Parses tokens, themes, and colors from
+The **CSS plugin** — owns CSS-to-graph parsing for emdesign. Parses tokens, themes, and colors from
 CSS source, emits new node types (`breakpoint`, `mediaQuery`, `cssVarGroup`, `contrastPair`), and
 provides CSS-specific production-readiness doctor rules.
 
@@ -16,6 +16,6 @@ provides CSS-specific production-readiness doctor rules.
 
 ## Related
 
-- `@medesign/plugin-api` — the plugin interface this implements
-- `@medesign/graph` — the graph model these parsers emit into
-- `@medesign/doctor` — consumes CSS doctor rules
+- `@emdesign/plugin-api` — the plugin interface this implements
+- `@emdesign/graph` — the graph model these parsers emit into
+- `@emdesign/doctor` — consumes CSS doctor rules

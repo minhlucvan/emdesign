@@ -15,7 +15,7 @@ Make a design system active. This is the "select → update workspace" action.
 1. (Optional) `list_design_systems` to show choices.
 2. MCP `apply_design_system({id})` → rewires the workspace:
    - rewrites `src/active-design-system.css` to import the system's `tokens.css` (hot-reloads),
-   - writes `.medesign/active-ds` (the `@ds` Vite alias reads it),
+   - writes `.emdesign/active-ds` (the `@ds` Vite alias reads it),
    - rebuilds the knowledge graph (`design-systems/<id>/graph.json`).
 3. Tell the user to **restart Storybook** so the `@ds` alias repoints (tokens hot-reload without restart).
 4. Confirm with `validate_design_system({id})`; surface any missing roles.

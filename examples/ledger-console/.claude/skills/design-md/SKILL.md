@@ -5,7 +5,7 @@ description: Author or maintain a design system's DESIGN.md + tokens.css (the co
 
 # design-md
 
-Adapted from open-design's `design-md`. In medesign the DESIGN.md is the contract the agent builds *from* and
+Adapted from open-design's `design-md`. In emdesign the DESIGN.md is the contract the agent builds *from* and
 the graph + lint enforce, so changes here ripple — use the graph to see the blast radius.
 
 ## When to use
@@ -19,7 +19,7 @@ anti-pattern, an under-specified component spec). `consistency-auditor` / `graph
    forbidding something. Keep `tokens.css` self-consistent (every role declared; every `var()` resolves).
 3. **Assess impact** — `graph_find_affected('<ds>/--<token>')` before changing a token: which primitives,
    variants, stories, and artifacts move. Decide whether to re-baseline affected visual tests.
-4. `medesign graph build <id>` to re-index, then re-verify affected components.
+4. `emdesign graph build <id>` to re-index, then re-verify affected components.
 
 ## Guardrails
 - A system change is bigger than a component change — surface it to the human and note the affected set.

@@ -5,7 +5,7 @@ import {
 } from './ui';
 import type { HealthInfo, LogsResponse, GraphStats } from './constants';
 
-/** The "medesign" tab: a system/status/logs dashboard — health, activity feed, evidence logs, graph. */
+/** The "emdesign" tab: a system/status/logs dashboard — health, activity feed, evidence logs, graph. */
 export function SystemTab() {
   const { state, error } = useStudioState(2000);
   const [health, setHealth] = useState<HealthInfo | null>(null);
@@ -37,7 +37,7 @@ export function SystemTab() {
 
   return (
     <Page>
-      <PageTitle>medesign</PageTitle>
+      <PageTitle>emdesign</PageTitle>
       <Sub>system status · activity · logs</Sub>
       <Grid2>
         <Stack gap={12}>
@@ -58,7 +58,7 @@ export function SystemTab() {
                 <Row gap={8}><Muted>{graph.id}</Muted><Pill>{graph.stats.nodes ?? 0} nodes</Pill><Pill>{graph.stats.edges ?? 0} edges</Pill></Row>
                 <Muted>{Object.entries(graph.stats).filter(([k]) => k.startsWith('node:')).map(([k, v]) => `${k.slice(5)} ${v}`).join(' · ') || '—'}</Muted>
               </Stack>
-            ) : <Muted>no graph (build with <code>medesign graph build</code>)</Muted>}
+            ) : <Muted>no graph (build with <code>emdesign graph build</code>)</Muted>}
           </Section>
 
           <Section>

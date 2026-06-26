@@ -2,7 +2,7 @@
 
 A **skill** is a reusable recipe for producing a kind of UI (a pricing section, a dashboard, an
 onboarding flow). It's agent-agnostic: the same `SKILL.md` renders against any adapter. Adapted from
-open-design's Skills (`skills/<name>/SKILL.md`), specialized for medesign's **code-first, component**
+open-design's Skills (`skills/<name>/SKILL.md`), specialized for emdesign's **code-first, component**
 output instead of one-off HTML.
 
 ## Folder
@@ -40,7 +40,7 @@ example_prompt: "a pricing section with three tiers, highlight the middle one"
 ## Workflow (markdown body)
 
 Numbered steps the agent follows. A skill **binds the active design system** (it does not define its own
-styling) and **emits a component + CSF story**. Steps should reference medesign's MCP tools.
+styling) and **emits a component + CSF story**. Steps should reference emdesign's MCP tools.
 
 ## Composition
 

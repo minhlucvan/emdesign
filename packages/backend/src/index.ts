@@ -1,4 +1,4 @@
-/** @medesign/backend — programmatic surface (the engine; the CLI lives in @medesign/cli). */
+/** @emdesign/backend — programmatic surface (the engine; the CLI lives in @emdesign/cli). */
 export { resolveRepoPaths, readConfig, ensureDir } from './paths.js';
 export type { RepoPaths, MedesignConfig } from './paths.js';
 export { Store } from './state.js';
@@ -22,12 +22,12 @@ export { runtimeFor } from './runtime.js';
 export { gradeDesignSystem, renderGrade } from './doctor.js';
 export type { GradeReport } from './doctor.js';
 export { recordEvidence } from './evidence.js';
-export type { DoctorReport, DoctorFinding } from '@medesign/doctor';
-export { lintRendered, mergeReports } from '@medesign/doctor';
+export type { DoctorReport, DoctorFinding } from '@emdesign/doctor';
+export { lintRendered, mergeReports } from '@emdesign/doctor';
 export { getAdapter, effectiveAdapter, availableFrameworks, availablePlugins } from './adapters/index.js';
 export type { FrameworkAdapter } from './adapters/index.js';
 export type { EffectiveAdapter } from './plugins/compose.js';
-export type { MedesignPlugin, PluginKind } from '@medesign/plugin-api';
+export type { MedesignPlugin, PluginKind } from '@emdesign/plugin-api';
 export { registerPlugin, resolvePlugin } from './plugins/registry.js';
 export { runAgent, resolveExecutable } from './harness/driver.js';
 export { claudeAdapter } from './harness/claude.js';

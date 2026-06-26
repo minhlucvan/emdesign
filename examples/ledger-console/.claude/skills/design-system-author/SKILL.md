@@ -1,6 +1,6 @@
 ---
 name: design-system-author
-description: Create or update a design system to the medesign quality bar — author the 9-section DESIGN.md + tokens.css + base primitives. Use for the System flow (/mds:system:create | :update). Knows the four sources: brief, blank, import, extract.
+description: Create or update a design system to the emdesign quality bar — author the 9-section DESIGN.md + tokens.css + base primitives. Use for the System flow (/mds:system:create | :update). Knows the four sources: brief, blank, import, extract.
 ---
 
 # design-system-author
@@ -12,7 +12,7 @@ quality (see `docs/authoring-design-systems.md`).
 - **brief** — turn a prompt ("warm editorial, serif display, terracotta accent") into a full system.
 - **blank** — fill the scaffolded skeleton.
 - **import** — start from a prebuilt **base** and customize. Call `list_design_system_bases` (or
-  `medesign ds bases`) to see the catalog of vendored open-design systems under
+  `emdesign ds bases`) to see the catalog of vendored open-design systems under
   `design-systems/_vendor/open-design/` (e.g. `open-design/brutalist`, `open-design/editorial-burgundy`),
   pass its `ref` as `from`, then differentiate. Each base bundles its origin SKILL.md + reference assets.
 - **extract** — infer tokens/voice from a brand/reference (pair with the `brand-extract` skill).

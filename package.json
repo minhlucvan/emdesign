@@ -1,5 +1,5 @@
 {
-  "name": "medesign",
+  "name": "emdesign",
   "version": "0.0.0",
   "private": true,
   "description": "Design Engineering for the agent era — a Studio backend that drives Storybook as its front end.",
@@ -9,11 +9,11 @@
     "examples/*"
   ],
   "scripts": {
-    "backend": "npm run dev -w @medesign/cli",
-    "studio": "npm run storybook -w @medesign/workspace-react",
+    "backend": "npm run dev -w @emdesign/cli",
+    "studio": "npm run storybook -w @emdesign/workspace-react",
     "dev": "npm run backend & npm run studio",
     "build": "npm run build --workspaces --if-present",
-    "test:visual": "npm run test:visual -w @medesign/workspace-react"
+    "test:visual": "npm run test:visual -w @emdesign/workspace-react"
   },
   "engines": {
     "node": ">=20"

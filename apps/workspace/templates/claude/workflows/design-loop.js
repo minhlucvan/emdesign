@@ -56,7 +56,7 @@ const GATE = {
 
 phase('Analyze');
 const brief = await agent(
-  `Call the medesign MCP tool \`get_design_context\` with componentName="${NAME}" and instruction=${JSON.stringify(
+  `Call the emdesign MCP tool \`get_design_context\` with componentName="${NAME}" and instruction=${JSON.stringify(
     INSTRUCTION,
   )}. Return its full text (the design system + tokens + consistency brief). Output only that text.`,
   { label: 'analyze' },
@@ -74,7 +74,7 @@ while (round < MAX_ROUNDS && !shipped) {
   // 'update' edits the existing component from round 1; build/compose create it on round 1, then edit.
   const op = round === 1 && !UPDATE ? 'create' : 'edit';
   await agent(
-    `${op === 'create' ? 'CREATE' : 'EDIT'} the React+Tailwind component "${NAME}" via the medesign MCP tool ` +
+    `${op === 'create' ? 'CREATE' : 'EDIT'} the React+Tailwind component "${NAME}" via the emdesign MCP tool ` +
       `\`${op === 'create' ? 'create_component' : 'edit_component'}\` (write a CSF story too, title "Generated/${NAME}"). ` +
       (UPDATE && round === 1
         ? `Apply this change-request to the EXISTING component — modify it in place, do NOT rebuild from scratch: ${JSON.stringify(
@@ -91,7 +91,7 @@ while (round < MAX_ROUNDS && !shipped) {
   const [vision, llm, tokens, visual] = await parallel([
     () =>
       agent(
-        `Call the medesign MCP tool \`vision_critique\` with component="${NAME}", mode="standard". Return the visionScore + findings. Use visionScore as your vision score.`,
+        `Call the emdesign MCP tool \`vision_critique\` with component="${NAME}", mode="standard". Return the visionScore + findings. Use visionScore as your vision score.`,
         { schema: VISION, label: `vision:r${round}`, phase: 'Critique' },
       ),
     () =>
@@ -110,7 +110,7 @@ while (round < MAX_ROUNDS && !shipped) {
       }),
     () =>
       agent(
-        `Call the medesign MCP tool \`run_visual_test\` for "${NAME}". Map the result: status 'pass'|'new' → visual=1.0, 'changed' → 0.5, 'error' → 0.0. Return {visual,status}.`,
+        `Call the emdesign MCP tool \`run_visual_test\` for "${NAME}". Map the result: status 'pass'|'new' → visual=1.0, 'changed' → 0.5, 'error' → 0.0. Return {visual,status}.`,
         { schema: VISUAL, label: `visual:r${round}`, phase: 'Critique' },
       ),
   ]);
@@ -125,7 +125,7 @@ while (round < MAX_ROUNDS && !shipped) {
 
   phase('Gate');
   const gate = await agent(
-    `Call the medesign MCP tool \`critique_score\` with scores=${JSON.stringify(scores)}, mustFix=${mustFix}, ` +
+    `Call the emdesign MCP tool \`critique_score\` with scores=${JSON.stringify(scores)}, mustFix=${mustFix}, ` +
       `threshold=${THRESHOLD}, component="${NAME}". Then call \`record_evidence\` with slug="${SLUG}", round=${round}, ` +
       `scores=${JSON.stringify(scores)}, mustFix=${mustFix}, composite=(from the result), decision=(from the result), ` +
       `component="${NAME}". Return the critique_score JSON.`,

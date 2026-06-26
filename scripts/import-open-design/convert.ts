@@ -1,5 +1,5 @@
 /**
- * Convert vendored open-design systems into selectable medesign bases.
+ * Convert vendored open-design systems into selectable emdesign bases.
  *
  *   npx tsx scripts/import-open-design/convert.ts [--force] [id ...]
  *
@@ -7,11 +7,11 @@
  * contract (atelier primitives re-skinned by the mapped palette), a DESIGN.md skeleton pre-seeded with
  * the extracted palette + source pointers, a manifest carrying provenance + per-look craft tuning, and
  * the bundled source SKILL.md / assets / references. Run from the repo root. Idempotent: existing bases
- * are skipped unless --force. After this, author each DESIGN.md to the bar and `medesign ds validate`.
+ * are skipped unless --force. After this, author each DESIGN.md to the bar and `emdesign ds validate`.
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { resolveRepoPaths, scaffoldPrimitives, baseTokensCss, manifestJson } from '@medesign/backend';
+import { resolveRepoPaths, scaffoldPrimitives, baseTokensCss, manifestJson } from '@emdesign/backend';
 import { BASES, type BaseSpec } from './bases.js';
 
 const args = process.argv.slice(2);
@@ -82,7 +82,7 @@ colors:
 ${spec.description}
 
 > **DRAFT** — scaffolded from the bundled open-design source. Author every section below to the bar in
-> \`docs/authoring-design-systems.md\`, then \`medesign ds validate open-design/${spec.id}\`.
+> \`docs/authoring-design-systems.md\`, then \`emdesign ds validate open-design/${spec.id}\`.
 > Source material to draw from: ${bundled.map((b) => `\`${b}\``).join(', ') || '(none bundled)'}.
 
 ## 1. Visual Theme & Atmosphere

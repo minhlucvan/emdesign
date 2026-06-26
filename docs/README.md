@@ -1,6 +1,6 @@
-# medesign docs
+# emdesign docs
 
-The medesign design-engineering engine — a headless Studio backend that drives **Storybook as its front
+The emdesign design-engineering engine — a headless Studio backend that drives **Storybook as its front
 end**, turning ideas into reusable, visually-tested React components through an agent-driven live loop.
 
 ## Getting started

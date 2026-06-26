@@ -45,7 +45,7 @@ export function CreateWizard() {
       {kind === 'view' && <ViewForm onSubmit={submit} />}
       {kind === 'design-system' && <DesignSystemForm onSubmit={submit} />}
 
-      {sent && <Section style={{ marginTop: 12 }}><Row gap={8}><Pill tone="ok">queued</Pill><Muted>{sent} — watch the <strong>medesign</strong> tab’s Activity.</Muted></Row></Section>}
+      {sent && <Section style={{ marginTop: 12 }}><Row gap={8}><Pill tone="ok">queued</Pill><Muted>{sent} — watch the <strong>emdesign</strong> tab’s Activity.</Muted></Row></Section>}
     </Page>
   );
 }

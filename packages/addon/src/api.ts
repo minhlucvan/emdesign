@@ -17,7 +17,7 @@ async function json<T>(path: string, init?: RequestInit): Promise<T> {
     headers: { 'Content-Type': 'application/json' },
     ...init,
   });
-  if (!res.ok) throw new Error(`medesign backend ${res.status}: ${await res.text()}`);
+  if (!res.ok) throw new Error(`emdesign backend ${res.status}: ${await res.text()}`);
   return res.json() as Promise<T>;
 }
 

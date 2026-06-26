@@ -54,7 +54,7 @@
   <rect x="640" y="90" width="140" height="130" rx="12" fill="#9dd4c7" stroke="#4a4a4a" stroke-width="2.5" filter="url(#shadow)"/>
   <text x="710" y="130" text-anchor="middle" fill="#1a1a1a" font-size="16" font-weight="600">Storybook</text>
   <text x="710" y="152" text-anchor="middle" fill="#4a4a4a" font-size="13">Live HMR</text>
-  <text x="710" y="170" text-anchor="middle" fill="#4a4a4a" font-size="13">medesign Addon</text>
+  <text x="710" y="170" text-anchor="middle" fill="#4a4a4a" font-size="13">emdesign Addon</text>
   <text x="710" y="192" text-anchor="middle" fill="#4a4a4a" font-size="13">Chat · Scores</text>
   <text x="710" y="210" text-anchor="middle" fill="#4a4a4a" font-size="13">Diff · Capture</text>
 

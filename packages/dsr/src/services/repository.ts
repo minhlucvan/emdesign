@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { buildGraph, loadGraph, saveGraph, type GraphParser } from '@medesign/graph';
+import { buildGraph, loadGraph, saveGraph, type GraphParser } from '@emdesign/graph';
 import { DesignSystem, type RawAssets } from '../domain/designSystem.js';
 
 export interface RepoConfig {

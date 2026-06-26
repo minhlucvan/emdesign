@@ -1,43 +1,43 @@
-# The medesign workspace — portable, framework-agnostic, opt-in
+# The emdesign workspace — portable, framework-agnostic, opt-in
 
-medesign is **opt-in** and **framework-agnostic**: you drop it into a project that already has Storybook,
+emdesign is **opt-in** and **framework-agnostic**: you drop it into a project that already has Storybook,
 or scaffold a fresh one. The workspace is split like the rest of the system — an **abstract core** plus
 **per-framework** providers.
 
 ## Two layers
-- **`@medesign/workspace`** (`apps/workspace`) — the abstract core: the `init`/`attach` installer, the
-  canonical `.claude/` template (commands · agents · skills · workflows), the `medesign.config.json`
+- **`@emdesign/workspace`** (`apps/workspace`) — the abstract core: the `init`/`attach` installer, the
+  canonical `.claude/` template (commands · agents · skills · workflows), the `emdesign.config.json`
   schema, and the **framework registry**. No Storybook of its own.
-- **`@medesign/workspace-react`** (`apps/workspace-react`) — the implemented React/Tailwind provider: the
+- **`@emdesign/workspace-react`** (`apps/workspace-react`) — the implemented React/Tailwind provider: the
   Storybook + Tailwind dogfood instance **and** the `init` template source. Future `workspace-vue`,
   `-svelte`, `-web-components`, `-angular` follow the same shape (stubbed today).
 
 The engines stay in `packages/*` (server/CLI/addon/graph). Only the **`FrameworkAdapter`** is per-framework.
 
 ## Attach to an existing project (the opt-in path)
-Your project already has Storybook? Install medesign additively:
+Your project already has Storybook? Install emdesign additively:
 ```bash
-npm i -D @medesign/addon @medesign/cli
-medesign attach        # run at your repo root
+npm i -D @emdesign/addon @emdesign/cli
+emdesign attach        # run at your repo root
 ```
 `attach` is **additive and idempotent** — it:
 1. detects `.storybook/main.*` (errors if there's no Storybook; install it first),
 2. infers the framework from its `framework:` field,
-3. adds `'@medesign/addon'` to the Storybook `addons` array (skips if present),
+3. adds `'@emdesign/addon'` to the Storybook `addons` array (skips if present),
 4. copies the `.claude/` workspace (never overwriting your files),
-5. writes `medesign.config.json` (only if absent),
+5. writes `emdesign.config.json` (only if absent),
 6. seeds `design-systems/atelier` if you have no design systems yet.
-Then: run Storybook + `medesign serve`, and drive `/mds:design "<idea>"`.
+Then: run Storybook + `emdesign serve`, and drive `/mds:design "<idea>"`.
 
 ## Init a new project
 No Storybook yet?
 ```bash
-medesign init react-tailwind ./my-app    # unknown framework → lists available providers
+emdesign init react-tailwind ./my-app    # unknown framework → lists available providers
 cd my-app && npm i
 ```
 `init` lays down the provider's Storybook scaffold + `.claude/` + a starter design system + config.
 
-## `medesign.config.json` (at the project root)
+## `emdesign.config.json` (at the project root)
 Re-targets the whole server at this project. All dirs are relative to the project root.
 ```jsonc
 { "framework": "react-tailwind",
@@ -63,10 +63,10 @@ Like open-design, work splits into **Design System** then **Craft**:
   DESIGN.md + tokens.css + base primitives (tools: `create_design_system`, `validate_design_system`, the
   `design-system-loop` workflow, `design-system-author`/`brand-extract` skills).
 - `/mds:system:update` — edit tokens/spec with `graph_find_affected` impact + re-validate + re-baseline.
-- `/mds:system:use <id>` — **select → rewire the workspace**: rebind `tokens.css`, write `.medesign/active-ds`
+- `/mds:system:use <id>` — **select → rewire the workspace**: rebind `tokens.css`, write `.emdesign/active-ds`
   (the `@ds` alias reads it), rebuild the graph. *(Restart Storybook to repoint `@ds`; tokens hot-reload.)*
 
-CLI parity for scripts/gates: `medesign ds create|use|validate|list`.
+CLI parity for scripts/gates: `emdesign ds create|use|validate|list`.
 
 **B. Craft** — build against the active system (4-source loop + gate).
 - `/mds:craft:component` (build) · `/mds:craft:update` (change-request) · `/mds:craft:view` (compose captured
@@ -93,7 +93,7 @@ interface FrameworkAdapter {
 ```
 `react-tailwind` is implemented (wraps the JSX/Tailwind lint + the React codegen rules). `vue`, `svelte`,
 `web-components`, `angular` are **stubs**: the agnostic loop (build + visual + vision + gate) still runs; the
-deterministic lint/parse is the TODO. `medesign frameworks` lists them.
+deterministic lint/parse is the TODO. `emdesign frameworks` lists them.
 
 ### Add a framework
 1. Create `apps/workspace-<fw>/templates/storybook/` (a Storybook scaffold for that renderer) + register it

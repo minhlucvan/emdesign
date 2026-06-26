@@ -40,7 +40,7 @@
 
   <!-- CLI -->
   <rect x="60" y="360" width="240" height="50" rx="8" fill="#f4e4c1" stroke="#4a4a4a" stroke-width="2" filter="url(#shadow)"/>
-  <text x="180" y="387" text-anchor="middle" fill="#1a1a1a" font-size="14" font-weight="600">CLI (medesign)</text>
+  <text x="180" y="387" text-anchor="middle" fill="#1a1a1a" font-size="14" font-weight="600">CLI (emdesign)</text>
   <text x="180" y="404" text-anchor="middle" fill="#4a4a4a" font-size="11">Thin client · Gates invoke</text>
 
   <!-- Gates -->
@@ -80,7 +80,7 @@
   <text x="780" y="177" text-anchor="middle" fill="#4a4a4a" font-size="13">HMR · Live preview</text>
 
   <rect x="660" y="210" width="240" height="60" rx="10" fill="#e8e6e3" stroke="#4a4a4a" stroke-width="2" filter="url(#shadow)"/>
-  <text x="780" y="237" text-anchor="middle" fill="#1a1a1a" font-size="15" font-weight="600">medesign Addon</text>
+  <text x="780" y="237" text-anchor="middle" fill="#1a1a1a" font-size="15" font-weight="600">emdesign Addon</text>
   <text x="780" y="258" text-anchor="middle" fill="#4a4a4a" font-size="12">Chat · Scores · Diff · Capture</text>
 
   <!-- Feedback arrow -->

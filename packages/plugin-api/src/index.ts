@@ -1,5 +1,5 @@
 /**
- * @medesign/plugin-api — the composable plugin contract.
+ * @emdesign/plugin-api — the composable plugin contract.
  *
  * A project's stack (e.g. ["react","tailwind","shadcn"]) is a list of plugins that COMPOSE into one
  * effective adapter. Plugins are capability-typed:
@@ -8,13 +8,13 @@
  *  - library    → a component catalog + codegen/lint — contributions aggregate
  * Every hook is optional; the host (backend) aggregates the present ones across the ordered stack.
  *
- * This is a leaf package: it depends only on @medesign/dsr (for the lint Rule type) and uses
+ * This is a leaf package: it depends only on @emdesign/dsr (for the lint Rule type) and uses
  * structural views of the design system / paths so plugin packages never depend back on the engine.
  */
-import type { Rule, DesignReviewRule, RenderedReviewRule } from '@medesign/dsr';
-import type { GraphParser } from '@medesign/graph';
-export type { Rule, DesignReviewRule, RenderedReviewRule, ReviewContext, ReviewFinding, RenderedReviewContext, RenderSnapshot, RenderNode } from '@medesign/dsr';
-export type { GraphParser, GraphParseCtx } from '@medesign/graph';
+import type { Rule, DesignReviewRule, RenderedReviewRule } from '@emdesign/dsr';
+import type { GraphParser } from '@emdesign/graph';
+export type { Rule, DesignReviewRule, RenderedReviewRule, ReviewContext, ReviewFinding, RenderedReviewContext, RenderSnapshot, RenderNode } from '@emdesign/dsr';
+export type { GraphParser, GraphParseCtx } from '@emdesign/graph';
 
 export type PluginKind = 'framework' | 'styling' | 'library';
 

@@ -1,5 +1,5 @@
 /**
- * The convertible open-design systems → medesign base specs.
+ * The convertible open-design systems → emdesign base specs.
  *
  * Each entry drives the converter (./convert.ts): it locates the vendored source skill under
  * skills/_vendor/open-design/<srcSkill>/, copies atelier's primitives, maps the source palette onto the

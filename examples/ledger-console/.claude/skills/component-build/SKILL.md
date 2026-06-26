@@ -1,6 +1,6 @@
 ---
 name: component-build
-description: Build a reusable, on-system React+Tailwind component from an intent. Use when creating or editing a component in medesign. Composes design-system primitives from "@ds", references token roles only, emits a CSF story, and feeds the verify loop.
+description: Build a reusable, on-system React+Tailwind component from an intent. Use when creating or editing a component in emdesign. Composes design-system primitives from "@ds", references token roles only, emits a CSF story, and feeds the verify loop.
 ---
 
 # component-build

@@ -7,13 +7,13 @@ tags: [inbox, intents, browser, bridge, workflow, dispatch]
 
 # MDS: Inbox
 
-The bridge between the browser cockpit (the medesign Storybook panel) and the Claude workflow. Humans
+The bridge between the browser cockpit (the emdesign Storybook panel) and the Claude workflow. Humans
 point-and-comment / click buttons in Storybook; those become **typed intents**. This command is a thin
 supervisor over the **`inbox-loop`** workflow, which drains the whole queue, classifies + groups every intent
 (via the `intent-router` subagent), and dispatches independent groups to **isolated subagents in parallel** —
 serializing and coalescing same-target work so two agents never edit the same file.
 
-**Input**: none. Run it while the panel + `medesign serve` are up.
+**Input**: none. Run it while the panel + `emdesign serve` are up.
 
 ## Workflow
 1. **Drain + dispatch a batch.** Call `Workflow({ name: 'inbox-loop' })`. It returns

@@ -1,4 +1,4 @@
-# @medesign/vision-critic
+# @emdesign/vision-critic
 
 **Multi-model LLM vision critique** — captures a screenshot of a rendered component and scores it
 across five visual axes: hierarchy, balance, spacing/rhythm, on-brand fit, and polish.
@@ -24,6 +24,6 @@ scorers in the composite.
 
 ## Related
 
-- `@medesign/backend` — the critique gate that consumes vision scores
+- `@emdesign/backend` — the critique gate that consumes vision scores
 - `docs/vision-feedback.md` — full documentation with provider notes
 - `.env` — API key configuration

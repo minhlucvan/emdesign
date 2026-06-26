@@ -7,7 +7,7 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 
 /** Canonical template paths (same as install.ts). */
 const CLAUDE_TEMPLATE = path.resolve(HERE, '../templates/claude');
-const CONFIG_TEMPLATE = path.resolve(HERE, '../templates/medesign.config.template.json');
+const CONFIG_TEMPLATE = path.resolve(HERE, '../templates/emdesign.config.template.json');
 const STARTER_DS = path.resolve(HERE, '../../../design-systems/atelier');
 const STORYBOOK_TEMPLATE_PKG = path.resolve(HERE, '../templates/storybook-package.json');
 
@@ -122,14 +122,14 @@ function syncClaude(targetDir: string, opts: UpdateOptions, result: UpdateResult
 }
 
 // ---------------------------------------------------------------------------
-// Phase 2 — medesign.config.json merge
+// Phase 2 — emdesign.config.json merge
 // ---------------------------------------------------------------------------
 
 function mergeConfig(targetDir: string, opts: UpdateOptions, result: UpdateResult): void {
-  const cfgPath = path.join(targetDir, 'medesign.config.json');
+  const cfgPath = path.join(targetDir, 'emdesign.config.json');
 
   if (!fs.existsSync(cfgPath)) {
-    result.notes.push('No medesign.config.json found — cannot merge config. Run `medesign attach` first.');
+    result.notes.push('No emdesign.config.json found — cannot merge config. Run `emdesign attach` first.');
     return;
   }
   if (!fs.existsSync(CONFIG_TEMPLATE)) {
@@ -155,7 +155,7 @@ function mergeConfig(targetDir: string, opts: UpdateOptions, result: UpdateResul
     if (!opts.dryRun) {
       fs.writeFileSync(cfgPath, JSON.stringify(workspaceCfg, null, 2) + '\n');
     }
-    result.notes.push('medesign.config.json updated with new template fields.');
+    result.notes.push('emdesign.config.json updated with new template fields.');
   }
 }
 
@@ -166,7 +166,7 @@ function mergeConfig(targetDir: string, opts: UpdateOptions, result: UpdateResul
 function checkAtelier(targetDir: string, result: UpdateResult): void {
   const wsAtelier = path.join(targetDir, 'design-systems', 'atelier');
   if (!fs.existsSync(wsAtelier)) {
-    result.notes.push('No design-systems/atelier/ found. Run `medesign attach` to seed the starter design system.');
+    result.notes.push('No design-systems/atelier/ found. Run `emdesign attach` to seed the starter design system.');
     return;
   }
   if (!fs.existsSync(STARTER_DS)) return;
@@ -202,7 +202,7 @@ function checkAtelier(targetDir: string, result: UpdateResult): void {
 }
 
 function checkStorybookTemplates(targetDir: string, result: UpdateResult): void {
-  const cfgPath = path.join(targetDir, 'medesign.config.json');
+  const cfgPath = path.join(targetDir, 'emdesign.config.json');
   if (!fs.existsSync(cfgPath)) return;
 
   let framework = 'react-tailwind';
@@ -261,11 +261,11 @@ function checkPackageJson(targetDir: string, result: UpdateResult): void {
       }
     }
 
-    // @medesign/* devDependencies
+    // @emdesign/* devDependencies
     const tplDeps: Record<string, string> = { ...tplPkg.devDependencies, ...tplPkg.dependencies };
     const wsDeps: Record<string, string> = { ...(wsPkg.devDependencies ?? {}), ...(wsPkg.dependencies ?? {}) };
     for (const [dep, ver] of Object.entries(tplDeps)) {
-      if (dep.startsWith('@medesign/')) {
+      if (dep.startsWith('@emdesign/')) {
         if (!(dep in wsDeps)) {
           result.notes.push(`package.json: missing dep "${dep}": "${ver}"`);
         }
@@ -284,28 +284,28 @@ function checkPackageJson(targetDir: string, result: UpdateResult): void {
 // ---------------------------------------------------------------------------
 
 /**
- * Bring a medesign workspace up to date with the latest canonical templates.
+ * Bring a emdesign workspace up to date with the latest canonical templates.
  *
  * Three phases:
  *   1. `.claude/` — add new template files, update changed ones (or skip
  *      if they appear user-modified), optionally remove orphans.
- *   2. `medesign.config.json` — merge in new top-level keys from the template.
+ *   2. `emdesign.config.json` — merge in new top-level keys from the template.
  *   3. Read-only reports — atelier starter, Storybook scaffold, package.json.
  */
 export function update(opts: UpdateOptions = {}): UpdateResult {
   const targetDir = path.resolve(opts.targetDir ?? process.cwd());
   const result: UpdateResult = { added: [], updated: [], skipped: [], removed: [], notes: [] };
 
-  // Verify this is a medesign workspace (or at least plausible)
-  if (!fs.existsSync(path.join(targetDir, 'medesign.config.json'))) {
-    result.notes.push(`No medesign.config.json found in ${targetDir} — not a medesign workspace. Run \`medesign init\` or \`medesign attach\` first.`);
+  // Verify this is a emdesign workspace (or at least plausible)
+  if (!fs.existsSync(path.join(targetDir, 'emdesign.config.json'))) {
+    result.notes.push(`No emdesign.config.json found in ${targetDir} — not a emdesign workspace. Run \`emdesign init\` or \`emdesign attach\` first.`);
     return result;
   }
 
   // Phase 1 — .claude/
   syncClaude(targetDir, opts, result);
 
-  // Phase 2 — medesign.config.json
+  // Phase 2 — emdesign.config.json
   mergeConfig(targetDir, opts, result);
 
   // Phase 3 — read-only reports
@@ -318,7 +318,7 @@ export function update(opts: UpdateOptions = {}): UpdateResult {
 
   // Summary note if nothing changed
   if (!result.added.length && !result.updated.length && !result.removed.length && !result.skipped.length) {
-    result.notes.push('Workspace is up to date with the latest medesign templates.');
+    result.notes.push('Workspace is up to date with the latest emdesign templates.');
   }
 
   return result;

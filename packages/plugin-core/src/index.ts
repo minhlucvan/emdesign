@@ -1,5 +1,5 @@
 /**
- * @medesign/plugin-core — universal, always-on design-system rules.
+ * @emdesign/plugin-core — universal, always-on design-system rules.
  *
  * Provides two rule categories:
  *  1. `doctorRules()` — stack-agnostic **logical** DS rules (spacing scale, palette coherence,
@@ -8,8 +8,8 @@
  *     snapshots (overlap, overflow, off-scale spacing, WCAG contrast, tap-target size,
  *     type-scale sprawl). Always-on for any project with a running Storybook.
  */
-import type { MedesignPlugin, DesignReviewRule, ReviewContext, RenderedReviewRule, RenderedReviewContext } from '@medesign/plugin-api';
-import type { ReviewFinding, RenderSnapshot, RenderNode } from '@medesign/plugin-api';
+import type { MedesignPlugin, DesignReviewRule, ReviewContext, RenderedReviewRule, RenderedReviewContext } from '@emdesign/plugin-api';
+import type { ReviewFinding, RenderSnapshot, RenderNode } from '@emdesign/plugin-api';
 
 // =========================================================================
 // Helper utilities

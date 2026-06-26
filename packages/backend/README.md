@@ -1,7 +1,7 @@
-# @medesign/backend
+# @emdesign/backend
 
-The **medesign Studio backend** — the headless design-engineering engine. It's a library (not a
-standalone binary — use `@medesign/cli` for that) containing:
+The **emdesign Studio backend** — the headless design-engineering engine. It's a library (not a
+standalone binary — use `@emdesign/cli` for that) containing:
 
 - **MCP server** — tool surface agents drive the design loop through
 - **Agent harness** — pluggable adapter registry for spawning coding-agent CLIs
@@ -14,14 +14,14 @@ standalone binary — use `@medesign/cli` for that) containing:
 
 ## Role in the system
 
-The backend is the brain: it owns `.medesign/` state, `design-systems/<id>/graph.json`,
+The backend is the brain: it owns `.emdesign/` state, `design-systems/<id>/graph.json`,
 and all the deterministic quality tools (lint, visual test, scoreboard gate). It exposes
 its capabilities via MCP tools and HTTP endpoints.
 
 ## Related
 
-- `@medesign/cli` — wraps the backend as a CLI binary
-- `@medesign/dsr` — design-system runtime domain layer
-- `@medesign/graph` — knowledge graph data model
-- `@medesign/doctor` — rule-based design-system linting
-- `@medesign/plugin-*` — framework/styling/library plugins
+- `@emdesign/cli` — wraps the backend as a CLI binary
+- `@emdesign/dsr` — design-system runtime domain layer
+- `@emdesign/graph` — knowledge graph data model
+- `@emdesign/doctor` — rule-based design-system linting
+- `@emdesign/plugin-*` — framework/styling/library plugins

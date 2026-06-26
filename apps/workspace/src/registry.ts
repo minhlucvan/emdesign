@@ -1,7 +1,7 @@
 /**
  * Framework registry — maps a framework id to its concrete workspace provider (which supplies the
  * Storybook scaffold for `init`) and the server adapter id. Detection maps a Storybook framework
- * package (from an existing `.storybook/main.*`) to a medesign framework id for `attach`.
+ * package (from an existing `.storybook/main.*`) to a emdesign framework id for `attach`.
  */
 export interface FrameworkEntry {
   id: string;
@@ -15,17 +15,17 @@ export interface FrameworkEntry {
 export const FRAMEWORKS: Record<string, FrameworkEntry> = {
   'react-tailwind': {
     id: 'react-tailwind',
-    providerPackage: '@medesign/workspace-react',
+    providerPackage: '@emdesign/workspace-react',
     providerTemplatesPath: '../../workspace-react/templates/storybook',
     implemented: true,
   },
-  vue: { id: 'vue', providerPackage: '@medesign/workspace-vue', providerTemplatesPath: '../../workspace-vue/templates/storybook', implemented: false },
-  svelte: { id: 'svelte', providerPackage: '@medesign/workspace-svelte', providerTemplatesPath: '../../workspace-svelte/templates/storybook', implemented: false },
-  'web-components': { id: 'web-components', providerPackage: '@medesign/workspace-web-components', providerTemplatesPath: '../../workspace-web-components/templates/storybook', implemented: false },
-  angular: { id: 'angular', providerPackage: '@medesign/workspace-angular', providerTemplatesPath: '../../workspace-angular/templates/storybook', implemented: false },
+  vue: { id: 'vue', providerPackage: '@emdesign/workspace-vue', providerTemplatesPath: '../../workspace-vue/templates/storybook', implemented: false },
+  svelte: { id: 'svelte', providerPackage: '@emdesign/workspace-svelte', providerTemplatesPath: '../../workspace-svelte/templates/storybook', implemented: false },
+  'web-components': { id: 'web-components', providerPackage: '@emdesign/workspace-web-components', providerTemplatesPath: '../../workspace-web-components/templates/storybook', implemented: false },
+  angular: { id: 'angular', providerPackage: '@emdesign/workspace-angular', providerTemplatesPath: '../../workspace-angular/templates/storybook', implemented: false },
 };
 
-/** Map a Storybook framework package (in .storybook/main) → a medesign framework id. */
+/** Map a Storybook framework package (in .storybook/main) → a emdesign framework id. */
 export function detectFramework(storybookFramework: string): string {
   if (/react/.test(storybookFramework)) return 'react-tailwind';
   if (/vue/.test(storybookFramework)) return 'vue';

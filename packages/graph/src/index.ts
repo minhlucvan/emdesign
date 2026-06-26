@@ -1,5 +1,5 @@
 /**
- * @medesign/graph — labeled property graph of a design-system library.
+ * @emdesign/graph — labeled property graph of a design-system library.
  * Encodes files, stories, components, tokens, colors, fonts, specs, rules, themes, and artifacts
  * for craft, fix (where-to-fix), impact propagation, and on-system consistency.
  */

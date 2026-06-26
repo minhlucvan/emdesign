@@ -1,4 +1,4 @@
-import type { MedesignPlugin, PluginDesignSystem, DesignReviewRule } from '@medesign/plugin-api';
+import type { MedesignPlugin, PluginDesignSystem, DesignReviewRule } from '@emdesign/plugin-api';
 
 /** React renderer review rules. */
 const hasStories: DesignReviewRule = {

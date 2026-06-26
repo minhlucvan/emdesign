@@ -1,10 +1,10 @@
 import type { StorybookConfig } from '@storybook/react-vite';
 
 /**
- * medesign Studio = Storybook as the front end.
+ * emdesign Studio = Storybook as the front end.
  * Generated components land in `src/generated/**` as CSF stories and render here;
  * captured (reusable) components live in `src/components/**`.
- * The medesign addon panel (chat · capture · visual-diff) is registered via `@medesign/addon`.
+ * The emdesign addon panel (chat · capture · visual-diff) is registered via `@emdesign/addon`.
  */
 const config: StorybookConfig = {
   stories: [
@@ -15,7 +15,7 @@ const config: StorybookConfig = {
   ],
   addons: [
     '@storybook/addon-essentials',
-    '@medesign/addon',
+    '@emdesign/addon',
   ],
   framework: {
     name: '@storybook/react-vite',
@@ -28,8 +28,8 @@ const config: StorybookConfig = {
     const fs = await import('node:fs');
     const { fileURLToPath } = await import('node:url');
     const here = path.dirname(fileURLToPath(import.meta.url));
-    // Resolve `@ds` to the ACTIVE design system (written by `apply_design_system` → .medesign/active-ds).
-    const activeFile = path.resolve(here, '../.medesign/active-ds');
+    // Resolve `@ds` to the ACTIVE design system (written by `apply_design_system` → .emdesign/active-ds).
+    const activeFile = path.resolve(here, '../.emdesign/active-ds');
     const active = fs.existsSync(activeFile) ? fs.readFileSync(activeFile, 'utf8').trim() : 'atelier';
     vite.resolve = vite.resolve ?? {};
     vite.resolve.alias = {

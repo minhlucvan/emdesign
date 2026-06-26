@@ -7,7 +7,7 @@ import {
   loadGraph,
   type Graph,
   type GraphFinding,
-} from '@medesign/graph';
+} from '@emdesign/graph';
 import type { RepoPaths } from './paths.js';
 import { resolveDesignSystem } from './designContext.js';
 import { effectiveAdapter } from './adapters/index.js';

@@ -1,15 +1,15 @@
-# medesign architecture
+# emdesign architecture
 
 ```
                          ┌───────────────────────────────────────────────┐
                          │  Storybook (FRONT END)  apps/workspace-react             │
    you ───change req──▶  │  • renders generated CSF stories (live, HMR)    │
-                         │  • @medesign/addon panel: chat · capture · diff │
+                         │  • @emdesign/addon panel: chat · capture · diff │
                          └───────▲───────────────────────┬─────────────────┘
                           HTTP   │ /api/state             │ change requests
                           bridge │                        ▼
                          ┌───────┴───────────────────────────────────────┐
-                         │  medesign Studio backend  packages/backend
+                         │  emdesign Studio backend  packages/backend
                          │  ┌─────────────┐  ┌──────────────┐  ┌─────────┐ │
    agent (Claude Code) ─▶│  │ MCP server  │  │ prompt       │  │ harness │ │─▶ spawns agent
    via .mcp.json         │  │ (tools)     │  │ composer     │  │ (CLIs)  │ │   (optional)
@@ -29,7 +29,7 @@
 
 ## The loop (Phase 0)
 
-1. **You** type a change request in the Storybook **addon panel** → `POST /api/change-request` → queued in the shared `Store` (`.medesign/state.json`).
+1. **You** type a change request in the Storybook **addon panel** → `POST /api/change-request` → queued in the shared `Store` (`.emdesign/state.json`).
 2. The **agent** (Claude Code, connected to the backend's MCP server via the `.mcp.json` the harness writes) calls `poll_change_request`, then `get_design_context` (DESIGN.md + tokens + primitives + rules).
 3. The agent writes the component via `create_component`/`edit_component` → backend writes `apps/workspace-react/src/generated/<Name>.tsx` + story and runs the **consistency lint**.
 4. Storybook **hot-reloads** the story. The agent (or the panel) calls `run_visual_test` → screenshot diff vs baseline.
@@ -54,7 +54,7 @@ Two ways to drive step 2–5: **(a)** an MCP-capable agent you already run (simp
 | Design systems | `design-systems/<id>/` | DESIGN.md + tokens.css + `code/` primitives (+ committed `graph.json`) |
 | Knowledge graph | `packages/graph/` | labeled property graph of the library; `graph_*` MCP tools for where-to-fix, impact, consistency brief, context — see [`data-model.md`](./data-model.md) |
 | Workspace | `.claude/` | the agent-facing orchestration: `/mds:*` commands, critic subagents, skills (+ router), `design-loop` workflow engine, gates — see [`harness-engine.md`](./harness-engine.md) |
-| CLI | `@medesign/cli` (`packages/cli`, bin `medesign`) | thin client the agent + gates invoke; proxies to the running server (HTTP) or embeds the engine; also `init`/`attach` |
+| CLI | `@emdesign/cli` (`packages/cli`, bin `emdesign`) | thin client the agent + gates invoke; proxies to the running server (HTTP) or embeds the engine; also `init`/`attach` |
 | Critique gate | `backend/src/critique/` | `critique_score` = `computeComposite` + dual-gate `decideRound` + per-component ratchet (the four-source gate) |
 
 ## Token binding

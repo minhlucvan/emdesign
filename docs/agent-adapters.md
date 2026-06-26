@@ -1,6 +1,6 @@
 # Agent adapters
 
-medesign drives generation through a pluggable **agent-adapter registry**, adapted from open-design's
+emdesign drives generation through a pluggable **agent-adapter registry**, adapted from open-design's
 `runtimes/` harness (Apache-2.0; see [`open-design-analysis.md`](./open-design-analysis.md) §1). An
 adapter teaches the backend how to launch one coding-agent CLI. Phase 0 ships the Claude Code adapter.
 
@@ -20,7 +20,7 @@ interface MinimalAgentDef {
   helpArgs?: string[];                                // capability probe
   capabilityFlags?: Record<string, string>;           // help substring → capability bit
   resumesSessionViaCli?: boolean;                     // keep working memory across turns
-  mcpConfigStrategy?: 'claude-mcp-json';              // how medesign's tools are exposed
+  mcpConfigStrategy?: 'claude-mcp-json';              // how emdesign's tools are exposed
 }
 ```
 
@@ -34,7 +34,7 @@ Four load-bearing ideas (the only ones we kept from open-design's 26-agent harne
 ## Driver (`harness/driver.ts`)
 
 `runAgent()` does: resolve the binary (`bin` → `fallbackBins`), probe capabilities **in `os.tmpdir()`**
-(never touch the repo), write `.mcp.json` so the agent can call medesign's tools, build a hardened child
+(never touch the repo), write `.mcp.json` so the agent can call emdesign's tools, build a hardened child
 `PATH` (prepend Node dir + the agent dir, append toolchains), `spawn`, stream the prompt in as a
 stream-json user message, and parse the stdout stream-json events to completion.
 

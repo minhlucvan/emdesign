@@ -13,19 +13,19 @@ const Label = styled.span({ marginLeft: 6, fontSize: 12 });
 const TOOLS: Array<{ mode: Exclude<ToolMode, 'off'>; title: string; label: string; icon: React.ReactNode }> = [
   {
     mode: 'comment',
-    title: 'medesign: comment on an element',
+    title: 'emdesign: comment on an element',
     label: 'Comment',
     icon: <path d="M2 3.5A1.5 1.5 0 0 1 3.5 2h9A1.5 1.5 0 0 1 14 3.5v5A1.5 1.5 0 0 1 12.5 10H6.5l-3 3v-3H3.5A1.5 1.5 0 0 1 2 8.5v-5Z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />,
   },
   {
     mode: 'copy',
-    title: 'medesign: copy an element’s identifier context',
+    title: 'emdesign: copy an element’s identifier context',
     label: 'Copy',
     icon: <path d="M5.5 5.5V3.2A1.2 1.2 0 0 1 6.7 2h6.1A1.2 1.2 0 0 1 14 3.2v6.1a1.2 1.2 0 0 1-1.2 1.2h-2.3M3.2 5.5h6.1A1.2 1.2 0 0 1 10.5 6.7v6.1A1.2 1.2 0 0 1 9.3 14H3.2A1.2 1.2 0 0 1 2 12.8V6.7A1.2 1.2 0 0 1 3.2 5.5Z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />,
   },
   {
     mode: 'text',
-    title: 'medesign: edit text inline (pen)',
+    title: 'emdesign: edit text inline (pen)',
     label: 'Edit text',
     icon: <path d="M9.5 3.5l3 3L6 13l-3.2.6L3.4 10l6.1-6.5Zm0 0l1.6-1.6a1 1 0 0 1 1.4 0l1.6 1.6a1 1 0 0 1 0 1.4L12.5 6.5" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />,
   },
@@ -73,11 +73,11 @@ export function Tool() {
     <>
       <Separator />
       {TOOLS.map((t) => (
-        <IconButton key={`medesign-${t.mode}`} active={mode === t.mode} title={t.title} onClick={() => select(t.mode)}>
+        <IconButton key={`emdesign-${t.mode}`} active={mode === t.mode} title={t.title} onClick={() => select(t.mode)}>
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden>{t.icon}</svg>
         </IconButton>
       ))}
-      <IconButton key="medesign-create" title="medesign: create a component, story, view, or design system" onClick={openCreate}>
+      <IconButton key="emdesign-create" title="emdesign: create a component, story, view, or design system" onClick={openCreate}>
         <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden>
           <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
         </svg>

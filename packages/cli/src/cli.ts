@@ -24,15 +24,15 @@ import {
   applyDesignSystem,
   runtimeFor,
   normalizeDsRef,
-} from '@medesign/backend';
-import { createMcpServer } from '@medesign/mcp-server';
-import { standardCritique } from '@medesign/vision-critic';
+} from '@emdesign/backend';
+import { createMcpServer } from '@emdesign/mcp-server';
+import { standardCritique } from '@emdesign/vision-critic';
 
-const PORT = Number(process.env.MEDESIGN_PORT ?? 4321);
-const BASE = process.env.MEDESIGN_BACKEND_URL ?? `http://localhost:${PORT}`;
+const PORT = Number(process.env.EMDESIGN_PORT ?? 4321);
+const BASE = process.env.EMDESIGN_BACKEND_URL ?? `http://localhost:${PORT}`;
 
 /**
- * medesign CLI — the client the agent (and workspace commands/gates) invoke.
+ * emdesign CLI — the client the agent (and workspace commands/gates) invoke.
  *
  *   serve | mcp | use <id> | graph build <id>          (server / one-shot)
  *   init <framework> [dir] | attach [dir]              (opt-in workspace install)
@@ -43,7 +43,7 @@ const BASE = process.env.MEDESIGN_BACKEND_URL ?? `http://localhost:${PORT}`;
  *   frameworks | capture <component>
  *
  * Stateful commands prefer a RUNNING SERVER (HTTP) when one is up; otherwise they embed the
- * @medesign/backend engine for a stateless one-shot.
+ * @emdesign/backend engine for a stateless one-shot.
  */
 async function serverUp(): Promise<boolean> {
   try {
@@ -94,7 +94,7 @@ async function main() {
   switch (cmd) {
     case 'mcp': {
       await createMcpServer(store, paths).connect(new StdioServerTransport());
-      console.error('[medesign] MCP server ready on stdio.');
+      console.error('[emdesign] MCP server ready on stdio.');
       break;
     }
     case 'serve': {
@@ -103,23 +103,23 @@ async function main() {
       break;
     }
     case 'use': {
-      if (!a1) throw new Error('usage: medesign use <design-system-id>');
+      if (!a1) throw new Error('usage: emdesign use <design-system-id>');
       resolveDesignSystem(paths, a1);
       store.update({ activeDesignSystem: a1 });
-      console.error(`[medesign] active design system → ${a1}`);
+      console.error(`[emdesign] active design system → ${a1}`);
       break;
     }
     case 'graph': {
-      if (a1 !== 'build') throw new Error('usage: medesign graph build <id>');
+      if (a1 !== 'build') throw new Error('usage: emdesign graph build <id>');
       const g = buildAndSave(paths, a2 ?? activeDs(store));
-      console.error(`[medesign] graph: ${JSON.stringify(g.stats())}`);
+      console.error(`[emdesign] graph: ${JSON.stringify(g.stats())}`);
       break;
     }
     case 'ds': {
-      // medesign ds create <id> [mode] [from] | use <id> | validate <id> | bases | list
+      // emdesign ds create <id> [mode] [from] | use <id> | validate <id> | bases | list
       switch (a1) {
         case 'create': {
-          if (!a2) throw new Error('usage: medesign ds create <id> [blank|brief|import|extract] [from]');
+          if (!a2) throw new Error('usage: emdesign ds create <id> [blank|brief|import|extract] [from]');
           out(createDesignSystem(paths, { id: a2, mode: (a3 as any) ?? 'blank', from: argv[4] }));
           break;
         }
@@ -128,34 +128,34 @@ async function main() {
           break;
         }
         case 'use': {
-          if (!a2) throw new Error('usage: medesign ds use <id>');
+          if (!a2) throw new Error('usage: emdesign ds use <id>');
           const r = applyDesignSystem(paths, a2);
           store.update({ activeDesignSystem: a2 });
           out(r);
           break;
         }
         case 'validate': {
-          if (!a2) throw new Error('usage: medesign ds validate <id|open-design/base>');
+          if (!a2) throw new Error('usage: emdesign ds validate <id|open-design/base>');
           const r = runtimeFor(paths).validate(normalizeDsRef(a2));
           out(r);
           if (!r.ok) process.exit(1); // gate
           break;
         }
         case 'conflicts': {
-          if (!a2) throw new Error('usage: medesign ds conflicts <id>');
+          if (!a2) throw new Error('usage: emdesign ds conflicts <id>');
           out(runtimeFor(paths).conflicts(a2));
           break;
         }
         case 'doctor': {
-          if (!a2) throw new Error('usage: medesign ds doctor <id> [--gate]');
-          const { gradeDesignSystem, renderGrade } = await import('@medesign/backend');
+          if (!a2) throw new Error('usage: emdesign ds doctor <id> [--gate]');
+          const { gradeDesignSystem, renderGrade } = await import('@emdesign/backend');
           const r = await gradeDesignSystem(paths, a2);
           out(renderGrade(r));
           if (argv.includes('--gate') && !r.matchesGrade) process.exit(1); // gate: exit code = verdict
           break;
         }
         case 'history': {
-          if (!a2) throw new Error('usage: medesign ds history <id> [--snapshot]');
+          if (!a2) throw new Error('usage: emdesign ds history <id> [--snapshot]');
           const rt = runtimeFor(paths);
           if (a3 === '--snapshot') rt.snapshot(a2);
           out(rt.history(a2));
@@ -168,7 +168,7 @@ async function main() {
       break;
     }
     case 'frameworks': {
-      const { availableFrameworks } = await import('@medesign/backend');
+      const { availableFrameworks } = await import('@emdesign/backend');
       out(availableFrameworks());
       break;
     }
@@ -177,20 +177,20 @@ async function main() {
       break;
     }
     case 'init': {
-      if (!a1) throw new Error('usage: medesign init <framework> [dir]');
-      const { init } = await import('@medesign/workspace');
+      if (!a1) throw new Error('usage: emdesign init <framework> [dir]');
+      const { init } = await import('@emdesign/workspace');
       const r = init(a1, path.resolve(a2 ?? '.'));
       out({ framework: r.framework, filesWritten: r.wrote.length, notes: r.notes });
       break;
     }
     case 'attach': {
-      const { attach } = await import('@medesign/workspace');
+      const { attach } = await import('@emdesign/workspace');
       const r = attach(path.resolve(a1 ?? '.'));
       out({ framework: r.framework, filesWritten: r.wrote.length, notes: r.notes });
       break;
     }
     case 'update': {
-      const { update } = await import('@medesign/workspace');
+      const { update } = await import('@emdesign/workspace');
       const dirArg = a1 && !a1.startsWith('--') ? a1 : undefined;
       const flags = new Set(argv.filter(a => a.startsWith('--')));
       const result = update({
@@ -206,7 +206,7 @@ async function main() {
       if (result.removed.length) out({ removed: result.removed });
       for (const n of result.notes) out({ note: n });
       if (!result.added.length && !result.updated.length && !result.removed.length && !result.skipped.length)
-        out({ ok: 'Workspace is up to date with the latest medesign templates.' });
+        out({ ok: 'Workspace is up to date with the latest emdesign templates.' });
       break;
     }
     case 'design-context': {
@@ -216,14 +216,14 @@ async function main() {
       break;
     }
     case 'lint': {
-      if (!a1) throw new Error('usage: medesign lint <component>');
+      if (!a1) throw new Error('usage: emdesign lint <component>');
       const res = await lint(paths, store, a1);
       out(renderFindingsForAgent(res.findings));
       if (res.mustFix > 0) process.exit(1); // gate: exit code = verdict
       break;
     }
     case 'visual-test': {
-      if (!a1) throw new Error('usage: medesign visual-test <component>');
+      if (!a1) throw new Error('usage: emdesign visual-test <component>');
       const diff = (await serverUp()) ? (await post('/api/visual-test', { component: a1 })).lastDiff : await runVisualTest(paths, a1);
       out(diff);
       if (diff?.status === 'changed') process.exit(1); // gate
@@ -237,26 +237,26 @@ async function main() {
       break;
     }
     case 'capture': {
-      if (!a1) throw new Error('usage: medesign capture <component>');
+      if (!a1) throw new Error('usage: emdesign capture <component>');
       const r = (await serverUp()) ? await post('/api/capture', { name: a1 }) : { path: await captureComponent(paths, a1) };
       out(r);
       break;
     }
     case 'render-lint': {
-      if (!a1) throw new Error('usage: medesign render-lint <component> [--themes light,dark]');
+      if (!a1) throw new Error('usage: emdesign render-lint <component> [--themes light,dark]');
       const rlThemesArg = argv.includes('--themes') ? argv[argv.indexOf('--themes') + 1]?.split(',').filter((t): t is 'light' | 'dark' => t === 'light' || t === 'dark') : undefined;
       const rlThemes: ('light' | 'dark')[] = rlThemesArg?.length ? rlThemesArg : ['light', 'dark'];
       try {
         const snapshots = await renderSnapshot(paths, a1, { themes: rlThemes });
         out({ component: a1, snapshots: snapshots.length, themes: snapshots.map((s) => s.theme), nodes: snapshots[0]?.nodes.length ?? 0 });
       } catch (e) {
-        console.error(`[medesign] render-lint failed for "${a1}":`, (e as Error).message);
+        console.error(`[emdesign] render-lint failed for "${a1}":`, (e as Error).message);
         process.exit(1);
       }
       break;
     }
     case 'vision-critique': {
-      if (!a1) throw new Error('usage: medesign vision-critique <component> [--provider claude|gemini|minimax] [--mode standard|regression|reference]');
+      if (!a1) throw new Error('usage: emdesign vision-critique <component> [--provider claude|gemini|minimax] [--mode standard|regression|reference]');
       const vcProvider = argv.includes('--provider') ? argv[argv.indexOf('--provider') + 1] : undefined;
       const vcMode = argv.includes('--mode') ? argv[argv.indexOf('--mode') + 1] : 'standard';
       const result = (await serverUp())
@@ -269,7 +269,7 @@ async function main() {
       break;
     }
     case 'vision-compare': {
-      if (!a1 || !a2) throw new Error('usage: medesign vision-compare <component> <referenceImagePath> [--provider claude|gemini|minimax]');
+      if (!a1 || !a2) throw new Error('usage: emdesign vision-compare <component> <referenceImagePath> [--provider claude|gemini|minimax]');
       const cmpProvider = argv.includes('--provider') ? argv[argv.indexOf('--provider') + 1] : undefined;
       const cmpResult = (await serverUp())
         ? await post('/api/vision-compare', { component: a1, referenceImagePath: a2, provider: cmpProvider })
@@ -286,6 +286,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error('[medesign] fatal:', err instanceof Error ? err.message : err);
+  console.error('[emdesign] fatal:', err instanceof Error ? err.message : err);
   process.exit(1);
 });

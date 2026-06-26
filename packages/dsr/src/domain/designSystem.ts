@@ -1,4 +1,4 @@
-import { Graph, findAffected as graphFindAffected, type GNode } from '@medesign/graph';
+import { Graph, findAffected as graphFindAffected, type GNode } from '@emdesign/graph';
 import type { Provenance, Reference, TokenKind } from './values.js';
 
 export interface RawAssets {

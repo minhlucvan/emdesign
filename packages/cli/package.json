@@ -1,11 +1,11 @@
 {
-  "name": "@medesign/cli",
+  "name": "@emdesign/cli",
   "version": "0.0.0",
   "type": "module",
-  "description": "medesign CLI — the client the AI (and workspace commands/gates) invoke. Proxies to a running server over HTTP, or embeds the @medesign/backend engine for one-shot ops. Also provides init/attach.",
+  "description": "emdesign CLI — the client the AI (and workspace commands/gates) invoke. Proxies to a running server over HTTP, or embeds the @emdesign/backend engine for one-shot ops. Also provides init/attach.",
   "bin": {
-    "medesign": "dist/cli.js",
-    "medesign-backend": "dist/cli.js"
+    "emdesign": "dist/cli.js",
+    "emdesign-backend": "dist/cli.js"
   },
   "main": "dist/cli.js",
   "scripts": {
@@ -15,9 +15,9 @@
     "start": "node dist/cli.js serve"
   },
   "dependencies": {
-    "@medesign/backend": "*",
-    "@medesign/mcp-server": "*",
-    "@medesign/workspace": "*",
+    "@emdesign/backend": "*",
+    "@emdesign/mcp-server": "*",
+    "@emdesign/workspace": "*",
     "@modelcontextprotocol/sdk": "^1.0.0"
   },
   "devDependencies": {

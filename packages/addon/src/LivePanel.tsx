@@ -55,7 +55,7 @@ export function LivePanel() {
         </Row>
       </Section>
 
-      <Muted>More in the <strong>medesign</strong> tab (design systems · queue · composers).</Muted>
+      <Muted>More in the <strong>emdesign</strong> tab (design systems · queue · composers).</Muted>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-# The medesign harness engine
+# The emdesign harness engine
 
 How **workflow + skills + tools** drive the agent in a **positive feedback loop** that turns an idea into a
 component that is **beautiful, consistent, testable, shippable** — by feeding it four independent feedback
@@ -8,7 +8,7 @@ sources and gating on a single authoritative score. Modeled on the spec-driven C
 ## Four components
 
 ```
- 1. CLAUDE WORKSPACE (.claude/)        2. CLI (`medesign`)        3. SERVER (daemon)        4. FRONTEND
+ 1. CLAUDE WORKSPACE (.claude/)        2. CLI (`emdesign`)        3. SERVER (daemon)        4. FRONTEND
     commands /mds:*                       thin client the AI         engines: generation,      Storybook add-on
     subagents (critics)        ──CLI──▶   invokes; gates call   ──▶  graph, lint, visual,  ◀──  live preview, diff,
     skills (+ router)          ──MCP──────────────────────────▶      critique               ──  scores, HUMAN
@@ -16,9 +16,9 @@ sources and gating on a single authoritative score. Modeled on the spec-driven C
 ```
 
 - **Workspace** `.claude/` — the agent-facing orchestration. Operates on the project source.
-- **CLI** `medesign` — what the agent + gates invoke; proxies to the running server when up, else embeds the engine.
-- **Server** `@medesign/backend` — the engines behind **MCP + HTTP**; owns state (`.medesign/`, `design-systems/<id>/graph.json`).
-- **Frontend** `@medesign/addon` — live design surface + the **human** feedback channel.
+- **CLI** `emdesign` — what the agent + gates invoke; proxies to the running server when up, else embeds the engine.
+- **Server** `@emdesign/backend` — the engines behind **MCP + HTTP**; owns state (`.emdesign/`, `design-systems/<id>/graph.json`).
+- **Frontend** `@emdesign/addon` — live design surface + the **human** feedback channel.
 
 ## The loop
 
@@ -77,8 +77,8 @@ The deterministic tools are authoritative — pass/fail comes from `critique_sco
 ## Worked run
 
 ```
-$ medesign serve            # server (MCP + HTTP) on :4321
-$ npm run studio            # Storybook + medesign panel on :6006
+$ emdesign serve            # server (MCP + HTTP) on :4321
+$ npm run studio            # Storybook + emdesign panel on :6006
 # in Claude Code:
 > /mds:design "a testimonial section with three quotes" Testimonials
   1. AskUserQuestion → confirm name/system/threshold
@@ -100,5 +100,5 @@ Evidence for every round (scores + screenshot) lands under `design/changes/testi
   [`open-design-analysis.md`](./open-design-analysis.md); its skill library is vendored.
 - **mzspec** → the Claude Code workflow shape (commands ending in a `Workflow()` call, meta-router skill,
   exit-code gates, evidence-required, human checkpoints, never-self-ship).
-- **medesign** adds: code-first reusable components, the knowledge graph ([`data-model.md`](./data-model.md)),
+- **emdesign** adds: code-first reusable components, the knowledge graph ([`data-model.md`](./data-model.md)),
   and the **vision** feedback source — fused into one loop.
