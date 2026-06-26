@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "od-design-system-project/v1",
+  "id": "plank",
+  "name": "Plank",
+  "category": "Editorial",
+  "description": "A warm, editorial-inspired design system with a decisive terracotta accent. Clean, engineered calm.",
+  "files": {
+    "design": "DESIGN.md",
+    "tokens": "tokens.css",
+    "components": "components.html"
+  },
+  "craft": {
+    "applies": [
+      "off-token-color",
+      "ai-default-indigo",
+      "accent-overuse",
+      "token-self-check"
+    ],
+    "exemptions": []
+  }
+}
