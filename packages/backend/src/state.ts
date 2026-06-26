@@ -144,6 +144,7 @@ export class Store {
   }
 
   setChangeRequestStatus(id: string, status: ChangeRequestStatus, note?: string): void {
+    this.get(); // sync cross-process writes (HTTP bridge may have enqueued intents)
     this.state.changeRequests = this.state.changeRequests.map((cr) =>
       cr.id === id ? { ...cr, status, ...(note ? { note } : {}) } : cr,
     );
@@ -152,6 +153,7 @@ export class Store {
 
   /** The next request the agent should act on, if any. */
   nextQueued(): ChangeRequest | undefined {
+    this.get(); // sync cross-process writes (HTTP bridge may have enqueued intents)
     return this.state.changeRequests.find((cr) => cr.status === 'queued');
   }
 }

@@ -6,8 +6,28 @@
       "id": "cr_1782429509301_0",
       "type": "create-view",
       "instruction": "a comprehensive landing page",
-      "status": "queued",
+      "status": "in_progress",
       "createdAt": "2026-06-25T23:18:29.301Z",
+      "payload": {
+        "name": "landing"
+      }
+    },
+    {
+      "id": "cr_1782437146318_0",
+      "type": "create-view",
+      "instruction": "a laning page fintech",
+      "status": "in_progress",
+      "createdAt": "2026-06-26T01:25:46.318Z",
+      "payload": {
+        "name": "landing"
+      }
+    },
+    {
+      "id": "cr_1782437223514_1",
+      "type": "create-view",
+      "instruction": "a fintech landing page",
+      "status": "in_progress",
+      "createdAt": "2026-06-26T01:27:03.514Z",
       "payload": {
         "name": "landing"
       }
