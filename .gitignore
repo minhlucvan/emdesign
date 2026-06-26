@@ -9,6 +9,9 @@ test-results/
 playwright-report/
 **/__screenshots__/*.actual.png
 **/__screenshots__/*.diff.png
+**/__screenshots__/*.baseline.png
+**/src/generated/
+**/design/changes/
 .env
 .claude/settings.local.json
 .claude/worktrees/

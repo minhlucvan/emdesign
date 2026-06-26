@@ -14,6 +14,7 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.12.1",
     "@emdesign/addon": "*",
     "@emdesign/backend": "*",
     "@storybook/addon-essentials": "^8.2.0",
