@@ -189,7 +189,7 @@ if (!isClean) {
 }
 
 // Load or create history
-let history = { startTime: new Date().toISOString(), initialBaseline: '', bestOverallAvg: 0, cycles: [] };
+let history = { startTime: (args && args.timestamp) || 'unknown', initialBaseline: '', bestOverallAvg: 0, cycles: [] };
 const historyRaw = await agent(
   `Read bench-results/dev-loop-history.json if it exists. If it exists, parse it and return the JSON. If it doesn't exist or is empty, return { cycles: [] }.`,
   { label: 'load-history', phase: 'Initialize', schema: HISTORY_SCHEMA },
@@ -204,7 +204,7 @@ const hadBaseline = history.cycles.length > 0;
 
 if (!hadBaseline) {
   log('No baseline found. Running initial benchmark...');
-  const baseline = await workflow('run-benchmark', { runId: `baseline-${Date.now()}`, filter: '', threshold: 0.8 });
+  const baseline = await workflow('run-benchmark', { runId: `baseline-${cycleNumber}`, filter: '', threshold: 0.8 });
   history.initialBaseline = baseline && baseline.runId;
   currentResults = baseline;
   history.bestOverallAvg = baseline && baseline.results
@@ -216,7 +216,6 @@ if (!hadBaseline) {
 }
 
 log(`Dev loop starting: cycle ${cycleNumber}, mode=${MODE}, max=${MAX_CYCLES}`);
-const cycleStart = Date.now();
 
 // ══════════════════════════════════════════════════════════════════════════
 //  MAIN LOOP
@@ -338,7 +337,7 @@ while (!done && !stalled && cycleNumber <= MAX_CYCLES) {
   log(`Running benchmark (filter: ${filter || 'full'})...`);
 
   const afterResults = await workflow('run-benchmark', {
-    runId: `cycle-${cycleNumber}-${Date.now()}`,
+    runId: `cycle-${cycleNumber}-v1`,
     filter,
     threshold: 0.8,
   });
@@ -509,7 +508,6 @@ return {
   productionReady: done || false,
   stalled: stalled || false,
   startTime: history.startTime,
-  durationMs: Date.now() - cycleStart,
   currentState: currentResults && currentResults.results ? {
     passRate: finalPassRate,
     avgOverall: parseFloat(finalAvgOverall),
