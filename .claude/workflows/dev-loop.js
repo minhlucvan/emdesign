@@ -204,7 +204,7 @@ const hadBaseline = history.cycles.length > 0;
 
 if (!hadBaseline) {
   log('No baseline found. Running initial benchmark...');
-  const baseline = await workflow('run-benchmark', { runId: `baseline-${cycleNumber}`, filter: '', threshold: 0.8 });
+  const baseline = await workflow({ scriptPath: 'benchmarks/run-benchmark.js' }, { runId: `baseline-${cycleNumber}`, filter: '', threshold: 0.8 });
   history.initialBaseline = baseline && baseline.runId;
   currentResults = baseline;
   history.bestOverallAvg = baseline && baseline.results
@@ -336,7 +336,7 @@ while (!done && !stalled && cycleNumber <= MAX_CYCLES) {
   const filter = determineFilter(cycleNumber, diagnosis);
   log(`Running benchmark (filter: ${filter || 'full'})...`);
 
-  const afterResults = await workflow('run-benchmark', {
+  const afterResults = await workflow({ scriptPath: 'benchmarks/run-benchmark.js' }, {
     runId: `cycle-${cycleNumber}-v1`,
     filter,
     threshold: 0.8,
