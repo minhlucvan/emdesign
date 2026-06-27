@@ -200,12 +200,12 @@ function SessionItem({ session, onClick }: { session: SessionSummary; onClick: (
   const originBadge = s.origin === 'comment' ? '💭' : s.origin === 'chat' ? '💬' : null;
   return (
     <button onClick={onClick}
-      style={{ display: 'flex', alignItems: 'center', width: '100%', textAlign: 'left', padding: '5px 6px 4px 8px', border: 'none', borderRadius: 4, background: 'transparent', color: 'inherit', cursor: 'pointer', gap: 6, fontSize: 13, lineHeight: '20px' }}>
-      {originBadge && <span style={{ flexShrink: 0, fontSize: 12, opacity: 0.6 }}>{originBadge}</span>}
+      style={{ display: 'flex', alignItems: 'center', width: '100%', textAlign: 'left', padding: '5px 6px 4px 8px', border: 'none', borderRadius: 4, background: 'transparent', color: 'inherit', cursor: 'pointer', gap: 6, fontSize: 14, fontWeight: 400, minHeight: 28, lineHeight: '20px' }}>
+      {originBadge && <span style={{ flexShrink: 0, fontSize: 13, opacity: 0.6 }}>{originBadge}</span>}
       <div style={{ flex: 1, overflow: 'hidden' }}>
-        <div style={{ fontSize: 13, fontWeight: 400, color: css('--foreground'), overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: '20px' }}>{session.display}</div>
+        <div style={{ fontSize: 14, fontWeight: 400, color: css('--foreground'), overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: '20px' }}>{session.display}</div>
       </div>
-      <span style={{ fontSize: 10, color: css('--muted-foreground'), opacity: 0.5, whiteSpace: 'nowrap', flexShrink: 0 }}>{formatTime(session.timestamp)}</span>
+      <span style={{ fontSize: 11, color: css('--muted-foreground'), opacity: 0.5, whiteSpace: 'nowrap', flexShrink: 0 }}>{formatTime(session.timestamp)}</span>
     </button>
   );
 }
@@ -664,9 +664,9 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
         <>
           {/* ── Search + New button row ── */}
           <div style={{ display: 'flex', gap: 6, padding: '6px 8px', alignItems: 'center' }}>
-            <div style={{ flex: 1, position: 'relative' }}>
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', color: css('--muted-foreground'), pointerEvents: 'none' }}><path fill-rule="evenodd" clip-rule="evenodd" d="M9.544 10.206a5.5 5.5 0 11.662-.662.5.5 0 01.148.102l3 3a.5.5 0 01-.708.708l-3-3a.5.5 0 01-.102-.148zM10.5 6a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" fill="currentColor"/></svg>
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Find conversation..." style={{ ...S.input, padding: '5px 8px 5px 28px', fontSize: 13 }} />
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 4, padding: '2px', borderRadius: 6, boxShadow: `0 0 0 1px ${css('--input')} inset`, background: css('--background') }}>
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0, color: css('--muted-foreground'), marginLeft: 4 }}><path fill-rule="evenodd" clip-rule="evenodd" d="M9.544 10.206a5.5 5.5 0 11.662-.662.5.5 0 01.148.102l3 3a.5.5 0 01-.708.708l-3-3a.5.5 0 01-.102-.148zM10.5 6a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" fill="currentColor"/></svg>
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Find conversation..." style={{ flex: 1, border: 'none', background: 'transparent', color: css('--foreground'), fontSize: 13, fontFamily: `"Nunito Sans", -apple-system, ".SFNSText-Regular", "San Francisco", "system-ui", "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif`, outline: 'none', padding: 0, lineHeight: '28px' }} />
             </div>
             <button onClick={() => {
               const scope = filterTab === 'story' && viewContext ? `story:${viewContext.storyId}` : 'global';
@@ -674,13 +674,13 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
             }}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3,
-                padding: '5px 12px', borderRadius: 4,
-                fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                padding: '0 12px', borderRadius: 4, height: 28, minHeight: 28,
+                fontSize: 14, fontWeight: 600, cursor: 'pointer',
                 border: `1px solid ${css('--primary')}`,
                 background: css('--primary'), color: css('--primary-foreground'),
-                whiteSpace: 'nowrap', flexShrink: 0, lineHeight: '20px',
+                whiteSpace: 'nowrap', flexShrink: 0,
               }}>
-              <span style={{ fontSize: 14, lineHeight: 1 }}>+</span> New
+              <span style={{ fontSize: 16, lineHeight: 1 }}>+</span> New
             </button>
           </div>
 
