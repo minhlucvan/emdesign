@@ -28,7 +28,6 @@ const config: StorybookConfig = {
     const fs = await import('node:fs');
     const { fileURLToPath } = await import('node:url');
     const here = path.dirname(fileURLToPath(import.meta.url));
-    const root = path.resolve(here, '../../..');
     // Resolve `@ds` to the ACTIVE design system (written by `apply_design_system` → .emdesign/active-ds).
     const activeFile = path.resolve(here, '../.emdesign/active-ds');
     const active = fs.existsSync(activeFile) ? fs.readFileSync(activeFile, 'utf8').trim() : 'atelier';
@@ -37,11 +36,15 @@ const config: StorybookConfig = {
       ...(vite.resolve.alias ?? {}),
       '@ds': path.resolve(here, `../../../design-systems/${active}/code`),
     };
-    // Allow Vite to serve files from the monorepo root (packages/, design-systems/, etc.)
-    // so dynamically-imported addon modules (e.g. charters/preview) don't fail on @fs paths.
+    // The addon and dsr packages are npm workspace symlinks. Allow Vite to serve
+    // their real paths (packages/*/) so sub-path exports like charters/preview
+    // don't fail on @fs restrictions.
     vite.server = vite.server ?? {};
     vite.server.fs = vite.server.fs ?? {};
-    vite.server.fs.allow = [...(vite.server.fs.allow ?? []), root];
+    vite.server.fs.allow = [
+      ...(vite.server.fs.allow ?? []),
+      path.resolve(here, '../../..'), // monorepo root
+    ];
     return vite;
   },
 };

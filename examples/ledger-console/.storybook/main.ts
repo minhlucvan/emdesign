@@ -23,6 +23,13 @@ const config: StorybookConfig = {
       // `@ds` → the ACTIVE design system's primitives (set by `emdesign use <id>` → .emdesign/active-ds).
       '@ds': path.resolve(here, `../design-systems/${activeDs}/code`),
     };
+    // Allow Vite to serve monorepo workspace packages through their real paths.
+    vite.server = vite.server ?? {};
+    vite.server.fs = vite.server.fs ?? {};
+    vite.server.fs.allow = [
+      ...(vite.server.fs.allow ?? []),
+      path.resolve(here, '../../../'), // monorepo root
+    ];
     return vite;
   },
 };

@@ -6,7 +6,7 @@
   "exports": {
     "./manager": "./src/manager.tsx",
     "./preview": "./src/preview.tsx",
-    "./charters/preview": "./src/charters/preview.ts",
+    "./charters/preview": "./src/charters/preview.tsx",
     "./charters/channel": "./src/charters/channel.ts",
     "./preset": "./src/preset.js",
     "./package.json": "./package.json"
