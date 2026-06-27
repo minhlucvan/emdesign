@@ -185,7 +185,6 @@ function processMessages(rawMessages: any[]): Message[] {
 
 const rootStyle: React.CSSProperties = { display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', color: css('--foreground'), padding: '0 8px' };
 const S = {
-  border: { borderBottom: `1px solid ${css('--border')}` },
   muted: { color: css('--muted-foreground') },
   input: {
     width: '100%', padding: '5px 8px', borderRadius: 'var(--radius)', fontSize: 11,
@@ -194,7 +193,7 @@ const S = {
   },
   header: {
     display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px',
-    borderBottom: `1px solid ${css('--border')}`, fontSize: 10, fontWeight: 700,
+    fontSize: 10, fontWeight: 700,
     textTransform: 'uppercase' as const, letterSpacing: '0.05em', color: css('--muted-foreground'), flexShrink: 0 as const,
   },
 };
@@ -205,7 +204,7 @@ function SessionItem({ session, onClick }: { session: SessionSummary; onClick: (
   const originBadge = s.origin === 'comment' ? '💭' : s.origin === 'chat' ? '💬' : null;
   return (
     <button onClick={onClick}
-      style={{ display: 'flex', alignItems: 'center', width: '100%', textAlign: 'left', padding: '8px 12px', border: 'none', borderBottom: `1px solid ${css('--border')}`, background: 'transparent', color: 'inherit', cursor: 'pointer', gap: 6 }}>
+      style={{ display: 'flex', alignItems: 'center', width: '100%', textAlign: 'left', padding: '8px 12px', border: 'none', background: 'transparent', color: 'inherit', cursor: 'pointer', gap: 6 }}>
       {originBadge && <span style={{ flexShrink: 0, fontSize: 11, lineHeight: '18px', opacity: 0.7 }}>{originBadge}</span>}
       <div style={{ flex: 1, overflow: 'hidden' }}>
         <div style={{ fontSize: 12, fontWeight: 500, color: css('--foreground'), overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.4 }}>{session.display}</div>
@@ -592,32 +591,26 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
     <div className="emdesign-chat-root" style={rootStyle}>
 
       {/* ── Header ── */}
-      <div style={S.header}>
-        {activeSession ? (
-          <>
-            <button onClick={() => setActiveSessionId(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 12, ...S.muted }}>←</button>
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, textTransform: 'none', fontWeight: 400 }}>{activeSession.display}</span>
-          </>
-        ) : pendingNewScope ? (
-          <>
-            <button onClick={() => { setPendingNewScope(null); setMessages([]); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 12, ...S.muted }}>←</button>
-            <span style={{ flex: 1, textTransform: 'none', fontWeight: 400, fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {pendingNewScope.scope === 'global' ? '💬 New Project Chat' : `📖 New Story Chat${viewContext ? `: ${viewContext.component}` : ''}`}
-            </span>
-          </>
-        ) : (
-          <span style={{ flex: 1 }}>Sessions</span>
-        )}
-        {onClose && (
-          <button onClick={onClose} title="Close chat" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 14, ...S.muted, marginLeft: 'auto' }}>✕</button>
-        )}
-      </div>
+      {activeSession && (
+        <div style={S.header}>
+          <button onClick={() => setActiveSessionId(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 12, ...S.muted }}>←</button>
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, textTransform: 'none', fontWeight: 400 }}>{activeSession.display}</span>
+        </div>
+      )}
+      {pendingNewScope && (
+        <div style={S.header}>
+          <button onClick={() => { setPendingNewScope(null); setMessages([]); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 12, ...S.muted }}>←</button>
+          <span style={{ flex: 1, textTransform: 'none', fontWeight: 400, fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {pendingNewScope.scope === 'global' ? '💬 New Project Chat' : `📖 New Story Chat${viewContext ? `: ${viewContext.component}` : ''}`}
+          </span>
+        </div>
+      )}
 
       {/* ── Session list ── */}
       {!activeSession && !pendingNewScope ? (
         <>
           {/* ── Tab filters ── */}
-          <div style={{ display: 'flex', gap: 0, borderBottom: `1px solid ${css('--border')}` }}>
+          <div style={{ display: 'flex', gap: 0 }}>
             {(['story', 'project'] as const).map(tab => (
               <button key={tab} onClick={() => setFilterTab(tab)}
                 style={{
@@ -633,12 +626,12 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
             ))}
           </div>
 
-          <div style={{ padding: '4px 8px', ...S.border }}>
+          <div style={{ padding: '4px 8px' }}>
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Filter sessions..." style={S.input} />
           </div>
 
           {/* ── New Conversation button ── */}
-          <div style={{ padding: '2px 8px 6px', ...S.border }}>
+          <div style={{ padding: '2px 8px 6px' }}>
             <button onClick={() => {
               const scope = filterTab === 'story' && viewContext ? `story:${viewContext.storyId}` : 'global';
               setPendingNewScope({ scope, origin: 'chat' });
