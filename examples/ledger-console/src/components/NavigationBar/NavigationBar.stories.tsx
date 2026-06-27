@@ -19,9 +19,9 @@ const componentCharters: StoryCharter[] = [
     description: 'The CTA button exists and has a label',
     severity: 'P1',
     target: 'CTA button',
-    async run({ getByRole }) {
-      const btn = await getByRole('button');
-      if (!btn) throw new Error('No button found in NavigationBar');
+    run({ container }) {
+      const btn = container.querySelector('button');
+      if (!btn) throw new Error('No <button> element found in NavigationBar');
       if (!btn.textContent?.trim()) throw new Error('CTA button has no text');
     },
   },
