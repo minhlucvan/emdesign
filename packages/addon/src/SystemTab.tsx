@@ -137,7 +137,6 @@ export function SystemTab() {
 const SERVICE_LABELS: Record<ServiceType, string> = {
   storybook: 'Storybook',
   'http-bridge': 'HTTP Bridge',
-  'mcp-server': 'MCP Server',
   backend: 'Backend',
 };
 

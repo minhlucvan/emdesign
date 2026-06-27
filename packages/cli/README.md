@@ -29,4 +29,4 @@ emdesign graph build <id>   # Rebuild the knowledge graph for a design system
 
 - `@emdesign/backend` — the engine library the CLI wraps
 - `@emdesign/workspace` — init/attach installer
-- `@emdesign/mcp-server` — MCP server wrapper
+

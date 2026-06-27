@@ -7,7 +7,7 @@ import type { AgentHandle } from './AgentRunner.js';
 
 // ── Service Types ──────────────────────────────────────────────────
 
-export type ServiceType = 'storybook' | 'http-bridge' | 'mcp-server' | 'backend';
+export type ServiceType = 'storybook' | 'http-bridge' | 'backend';
 export type ServiceStatus = 'stopped' | 'starting' | 'running' | 'stopping' | 'error' | 'crashed';
 
 export interface ServiceInfo {

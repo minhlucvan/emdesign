@@ -9,14 +9,12 @@ import type { ServiceInfo, ServiceType, ServiceStatus } from '../constants';
 const SERVICE_LABELS: Record<ServiceType, string> = {
   'storybook': 'Storybook',
   'http-bridge': 'HTTP Bridge',
-  'mcp-server': 'MCP Server',
   'backend': 'Backend',
 };
 
 const SERVICE_DESCRIPTIONS: Record<ServiceType, string> = {
   'storybook': 'Component preview server (port 6006)',
   'http-bridge': 'emdesign API server (port 4321)',
-  'mcp-server': 'MCP tool surface for Claude agent',
   'backend': 'All services',
 };
 
@@ -178,7 +176,7 @@ export function ServicesPanel() {
     }
   };
 
-  const serviceTypes: ServiceType[] = ['storybook', 'http-bridge', 'mcp-server', 'backend'];
+  const serviceTypes: ServiceType[] = ['storybook', 'http-bridge', 'backend'];
 
   return (
     <Page>

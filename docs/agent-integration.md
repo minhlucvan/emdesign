@@ -95,24 +95,6 @@ Add to `.cursor/mcp.json`:
 
 ## VS Code (via GitHub Copilot)
 
-Add to `.vscode/mcp.json`:
-
-```json
-{
-  "servers": {
-    "emdesign": {
-      "type": "http",
-      "url": "http://localhost:4321/mcp"
-    },
-    "storybook": {
-      "type": "http",
-      "url": "http://localhost:6006/mcp"
-    }
-  }
-}
-```
-
----
 
 ## Using Python MCP SDK
 
@@ -145,7 +127,6 @@ transport = HttpClientTransport("http://localhost:4321/mcp")
 ## How the Harness Writes MCP Config
 
 When emdesign spawns an agent (via `emdesign up` or the session orchestrator),
-it writes `.mcp.json` to the project root with both server configurations.
 The agent auto-discovers all MCP tools on startup.
 
 ---

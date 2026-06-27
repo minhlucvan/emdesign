@@ -30,7 +30,7 @@
 ## The loop (Phase 0)
 
 1. **You** type a change request in the Storybook **addon panel** → `POST /api/change-request` → queued in the shared `Store` (`.emdesign/state.json`).
-2. The **agent** (Claude Code, connected to the backend's MCP server via the `.mcp.json` the harness writes) calls `poll_change_request`, then `get_design_context` (DESIGN.md + tokens + primitives + rules).
+2. The **agent** (Claude Code, via CLI subprocess (`emdesign <cmd> --json`)) calls `poll_change_request`, then `get_design_context` (DESIGN.md + tokens + primitives + rules).
 3. The agent writes the component via `create_component`/`edit_component` → backend writes `apps/workspace-react/src/generated/<Name>.tsx` + story and runs the **consistency lint**.
 4. Storybook **hot-reloads** the story. The agent (or the panel) calls `run_visual_test` → screenshot diff vs baseline.
 5. The **scoreboard gate** (`composite ≥ threshold && mustFix === 0`) decides done; otherwise the P0-first lint feedback is fed back and the agent revises (`edit_component`).

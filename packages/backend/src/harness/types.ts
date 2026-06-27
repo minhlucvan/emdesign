@@ -32,6 +32,4 @@ export interface MinimalAgentDef {
   /** Map of help-output flag substring → capability bit name. */
   capabilityFlags?: Record<string, string>;
   resumesSessionViaCli?: boolean;
-  /** How user/own MCP servers are exposed to the agent. */
-  mcpConfigStrategy?: 'claude-mcp-json';
 }

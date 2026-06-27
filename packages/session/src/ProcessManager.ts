@@ -24,7 +24,7 @@ export class ProcessManager {
     this.store = store;
 
     // Initialize all services as stopped
-    for (const type of ['storybook', 'http-bridge', 'mcp-server', 'backend'] as ServiceType[]) {
+    for (const type of ['storybook', 'http-bridge', 'backend'] as ServiceType[]) {
       this.services.set(type, {
         process: null,
         info: { type, status: 'stopped', restartCount: 0 },
@@ -51,8 +51,6 @@ export class ProcessManager {
           return await this.startStorybook();
         case 'http-bridge':
           return await this.startHttpBridge();
-        case 'mcp-server':
-          return await this.startMcpServer();
         case 'backend':
           return await this.startBackend();
       }
@@ -115,31 +113,10 @@ export class ProcessManager {
     return this.services.get('http-bridge')!.info;
   }
 
-  private async startMcpServer(): Promise<ServiceInfo> {
-    // Spawn MCP server as a child process
-    const child = spawn('npx', ['tsx', 'packages/cli/src/cli.ts', 'mcp'], {
-      cwd: this.paths.root,
-      stdio: ['pipe', 'pipe', 'pipe'],
-      env: { ...process.env },
-    });
-
-    child.on('exit', (code) => {
-      if (this.services.get('mcp-server')?.info.status === 'running') {
-        this.setStatus('mcp-server', 'crashed', {});
-      }
-    });
-
-    const pid = child.pid ?? undefined;
-    this.setStatus('mcp-server', 'running', { pid });
-    this.services.get('mcp-server')!.process = child;
-    return this.services.get('mcp-server')!.info;
-  }
-
   private async startBackend(): Promise<ServiceInfo> {
     // Start all services
     await Promise.all([
       this.start('http-bridge'),
-      this.start('mcp-server'),
       this.start('storybook'),
     ]);
     this.setStatus('backend', 'running');
@@ -212,9 +189,6 @@ export class ProcessManager {
           // Process-based check
           return { ok: entry.process !== null && !entry.process.killed, at };
         }
-      }
-      case 'mcp-server': {
-        return { ok: entry.process !== null && !entry.process.killed, at };
       }
       default:
         return { ok: entry.process !== null && !entry.process.killed, at };

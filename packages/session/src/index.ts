@@ -57,5 +57,4 @@ export type { PlatformOrchestrator } from './types.js';
 export type { AgentHandle, AgentRunnerOptions } from './AgentRunner.js';
 export type { ServiceType, ServiceStatus, ServiceInfo, PlatformState } from './types.js';
 export { createSessionRouter } from './api/httpRouter.js';
-export { registerSessionMcpTools } from './api/mcpTools.js';
 export { attachWebSocket } from './WebSocketServer.js';

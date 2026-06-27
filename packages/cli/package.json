@@ -16,9 +16,10 @@
   },
   "dependencies": {
     "@emdesign/backend": "*",
-    "@emdesign/mcp-server": "*",
-    "@emdesign/workspace": "*",
-    "@modelcontextprotocol/sdk": "^1.0.0"
+    "@emdesign/graph": "*",
+    "@emdesign/vision-critic": "*",
+    "@emdesign/plugin-react-doctor": "*",
+    "@emdesign/workspace": "*"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",

@@ -16,17 +16,11 @@ import type { MinimalAgentDef } from '@emdesign/backend';
 
 const pexecFile = promisify(execFile);
 
-export interface McpServerConfig {
-  command: string;
-  args?: string[];
-  env?: Record<string, string>;
-}
 
 export interface AgentRunnerOptions {
   def: MinimalAgentDef;
   cwd: string;
   prompt: string;
-  mcpServers?: Record<string, McpServerConfig>;
   model?: string;
   newSessionId?: string;
   resumeSessionId?: string;
@@ -94,11 +88,6 @@ export class AgentRunner {
       } catch { /* probe failed */ }
     }
 
-    // Write .mcp.json if needed
-    if (def.mcpConfigStrategy === 'claude-mcp-json' && opts.mcpServers) {
-      const mcpFile = path.join(opts.cwd, '.mcp.json');
-      await fs.writeFile(mcpFile, JSON.stringify({ mcpServers: opts.mcpServers }, null, 2));
-    }
 
     const args = def.buildArgs({
       model: opts.model,

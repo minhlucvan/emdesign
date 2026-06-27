@@ -25,11 +25,9 @@ Open Storybook, pick a story, open the **emdesign** panel. You'll see the active
 and the seed `Generated/PricingTiers` story.
 
 ## Drive the loop with an agent
-Point your agent at the backend's MCP server. The backend writes `.mcp.json` automatically when it spawns
+Use the CLI directly. The backend spawns agents via `emdesign <cmd> --json`
 an agent; to connect an agent you run yourself, add:
 ```jsonc
-// .mcp.json
-{ "mcpServers": { "emdesign": { "command": "npm", "args": ["run", "backend", "--", "mcp"] } } }
 ```
 Then ask the agent: *"use the emdesign tools to build a pricing section with three tiers, highlight the
 middle one."* It will call `get_design_context` → `create_component` → `lint_consistency` →

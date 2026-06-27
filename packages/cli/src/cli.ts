@@ -1,125 +1,90 @@
 #!/usr/bin/env node
-import fs from 'node:fs';
-import path from 'node:path';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import type { RepoPaths, Store } from '@emdesign/backend';
 import {
   resolveRepoPaths,
-  type RepoPaths,
-  Store,
+  Store as StoreClass,
   createHttpBridge,
   startHttpBridge,
-  resolveDesignSystem,
-  composePrompt,
-  countMustFix,
-  renderFindingsForAgent,
-  runVisualTest,
-  renderSnapshot,
-  captureComponent,
-  scoreComponent,
-  buildAndSave,
-  effectiveAdapter,
-  availablePlugins,
-  createDesignSystem,
-  listDesignSystems,
-  listBases,
-  applyDesignSystem,
-  runtimeFor,
-  normalizeDsRef,
 } from '@emdesign/backend';
-import { createMcpServer, createMcpHttpRouter } from '@emdesign/mcp-server';
-import { standardCritique } from '@emdesign/vision-critic';
+import { formatError } from './lib/format.js';
+import { cmdDesign } from './commands/design.js';
+import { cmdGenerate } from './commands/generate.js';
+import { cmdDoctor } from './commands/doctor.js';
+import { cmdVision } from './commands/vision.js';
+import { cmdCapture, cmdCaptureBaseline } from './commands/capture.js';
+import { cmdDiscover, cmdDoc } from './commands/discover.js';
+import { cmdDs } from './commands/ds.js';
+import { cmdGraph } from './commands/graph.js';
+import { cmdInit, cmdAttach, cmdUpdate } from './commands/init.js';
+import { cmdExplore } from './commands/explore.js';
 
 const PORT = Number(process.env.EMDESIGN_PORT ?? 4321);
-const BASE = process.env.EMDESIGN_BACKEND_URL ?? `http://localhost:${PORT}`;
 
 /**
- * emdesign CLI — the client the agent (and workspace commands/gates) invoke.
- *
- *   serve | mcp | use <id> | graph build <id>          (server / one-shot)
- *   init <framework> [dir] | attach [dir]              (opt-in workspace install)
- *   design-context [component] [instruction]           (compose the agent prompt)
- *   lint <component>            exit 1 if any P0 (gate)
- *   visual-test <component>     exit 1 on 'changed' (gate)
- *   score '<json>'              { scores, mustFix, ... } -> gate decision
- *   frameworks | capture <component>
- *
- * Stateful commands prefer a RUNNING SERVER (HTTP) when one is up; otherwise they embed the
- * @emdesign/backend engine for a stateless one-shot.
+ * Extract the next positional arg (doesn't start with --) from an array.
  */
-async function serverUp(): Promise<boolean> {
-  try {
-    const r = await fetch(`${BASE}/api/health`, { signal: AbortSignal.timeout(600) });
-    return r.ok;
-  } catch {
-    return false;
+function positional(argv: string[], offset = 0): string | undefined {
+  let idx = 0;
+  for (const a of argv) {
+    if (a.startsWith('--')) continue;
+    if (idx++ === offset) return a;
   }
-}
-
-async function post(route: string, body: unknown): Promise<any> {
-  const r = await fetch(`${BASE}${route}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  if (!r.ok) throw new Error(`${route} ${r.status}: ${await r.text()}`);
-  return r.json();
-}
-
-function out(v: unknown): void {
-  process.stdout.write(typeof v === 'string' ? v + '\n' : JSON.stringify(v, null, 2) + '\n');
-}
-
-function activeDs(store: Store): string {
-  return store.get().activeDesignSystem ?? 'atelier';
-}
-
-async function lint(paths: RepoPaths, store: Store, component: string) {
-  if (await serverUp()) return post('/api/lint', { component });
-  const ds = resolveDesignSystem(paths, activeDs(store));
-  const ext = effectiveAdapter(paths).fileExt;
-  const source = fs.readFileSync(path.join(paths.generatedDir, `${component}${ext}`), 'utf8');
-  const findings = effectiveAdapter(paths).lint(source, {
-    declaredTokens: ds.declaredTokens,
-    exemptions: ds.exemptions,
-    bindsDisplayFace: ds.bindsDisplayFace,
-  });
-  return { component, mustFix: countMustFix(findings), findings };
+  return undefined;
 }
 
 async function main() {
   const argv = process.argv.slice(2);
-  const [cmd = 'serve', a1, a2, a3] = argv;
+  const [cmd = 'help', ...rest] = argv;
   const paths = resolveRepoPaths(process.cwd());
-  const store = new Store(paths);
+  const store = new StoreClass(paths);
+
+  if (!store.get().activeDesignSystem) {
+    store.update({ activeDesignSystem: 'atelier' });
+  }
+
+  const json = rest.includes('--json');
+  const gate = rest.includes('--gate');
 
   switch (cmd) {
-    case 'mcp': {
-      (await createMcpServer(store, paths)).connect(new StdioServerTransport());
-      console.error('[emdesign] MCP server ready on stdio.');
+    // ── Workspace / Project ──────────────────────────────────────────────
+    case 'init': {
+      const framework = rest[0];
+      const dirIdx = rest.indexOf('--dir');
+      const dir = dirIdx >= 0 ? rest[dirIdx + 1] : undefined;
+      await cmdInit({ framework, dir });
       break;
     }
+
+    case 'attach': {
+      const dir = rest[0] && !rest[0].startsWith('--') ? rest[0] : undefined;
+      await cmdAttach({ dir });
+      break;
+    }
+
+    case 'update': {
+      const dir = rest[0] && !rest[0].startsWith('--') ? rest[0] : undefined;
+      await cmdUpdate({
+        dir,
+        force: rest.includes('--force'),
+        prune: rest.includes('--prune'),
+        dryRun: rest.includes('--dry-run'),
+        storybook: rest.includes('--storybook'),
+      });
+      break;
+    }
+
+    // ── Server ──────────────────────────────────────────────────────────
     case 'serve': {
-      if (!store.get().activeDesignSystem) store.update({ activeDesignSystem: 'atelier' });
-      // Create platform orchestrator and mount session/service routes if available
       let orch: any;
       try {
         const { PlatformManager } = await import('@emdesign/session');
         orch = new PlatformManager(paths);
-      } catch { /* session package not available — proceed without orchestrator */ }
+      } catch { /* session not available */ }
 
       const app = await createHttpBridge(store, paths, orch);
-      // Mount MCP over HTTP so any MCP-capable agent can connect via http://localhost:4321/mcp
-      try {
-        const mcpRouter = await createMcpHttpRouter({ store, paths });
-        app.use(mcpRouter);
-        console.error(`[emdesign] MCP HTTP endpoint at http://localhost:${PORT}/mcp`);
-      } catch (e) {
-        console.error('[emdesign] Could not mount MCP HTTP transport:', e);
-      }
       const server = app.listen(PORT, () => {
         console.error(`[emdesign] Server running on http://localhost:${PORT}`);
       });
-      // Attach WebSocket and health checks if orchestrator available
       if (orch) {
         try {
           const { attachWebSocket } = await import('@emdesign/session');
@@ -129,273 +94,247 @@ async function main() {
       }
       break;
     }
-    case 'use': {
-      if (!a1) throw new Error('usage: emdesign use <design-system-id>');
-      resolveDesignSystem(paths, a1);
-      store.update({ activeDesignSystem: a1 });
-      console.error(`[emdesign] active design system → ${a1}`);
-      break;
-    }
-    case 'graph': {
-      if (a1 !== 'build') throw new Error('usage: emdesign graph build <id>');
-      const g = buildAndSave(paths, a2 ?? activeDs(store));
-      console.error(`[emdesign] graph: ${JSON.stringify(g.stats())}`);
-      break;
-    }
-    case 'ds': {
-      // emdesign ds create <id> [mode] [from] | use <id> | validate <id> | bases | list
-      switch (a1) {
-        case 'create': {
-          if (!a2) throw new Error('usage: emdesign ds create <id> [blank|brief|import|extract] [from]');
-          out(createDesignSystem(paths, { id: a2, mode: (a3 as any) ?? 'blank', from: argv[4] }));
-          break;
-        }
-        case 'bases': {
-          out(listBases(paths));
-          break;
-        }
-        case 'use': {
-          if (!a2) throw new Error('usage: emdesign ds use <id>');
-          const r = applyDesignSystem(paths, a2);
-          store.update({ activeDesignSystem: a2 });
-          out(r);
-          break;
-        }
-        case 'validate': {
-          if (!a2) throw new Error('usage: emdesign ds validate <id|open-design/base>');
-          const r = runtimeFor(paths).validate(normalizeDsRef(a2));
-          out(r);
-          if (!r.ok) process.exit(1); // gate
-          break;
-        }
-        case 'conflicts': {
-          if (!a2) throw new Error('usage: emdesign ds conflicts <id>');
-          out(runtimeFor(paths).conflicts(a2));
-          break;
-        }
-        case 'doctor': {
-          if (!a2) throw new Error('usage: emdesign ds doctor <id> [--gate]');
-          const { gradeDesignSystem, renderGrade } = await import('@emdesign/backend');
-          const r = await gradeDesignSystem(paths, a2);
-          out(renderGrade(r));
-          if (argv.includes('--gate') && !r.matchesGrade) process.exit(1); // gate: exit code = verdict
-          break;
-        }
-        case 'history': {
-          if (!a2) throw new Error('usage: emdesign ds history <id> [--snapshot]');
-          const rt = runtimeFor(paths);
-          if (a3 === '--snapshot') rt.snapshot(a2);
-          out(rt.history(a2));
-          break;
-        }
-        case 'list':
-        default:
-          out(listDesignSystems(paths));
-      }
-      break;
-    }
-    case 'frameworks': {
-      const { availableFrameworks } = await import('@emdesign/backend');
-      out(availableFrameworks());
-      break;
-    }
-    case 'plugins': {
-      out(availablePlugins());
-      break;
-    }
-    case 'init': {
-      if (!a1) throw new Error('usage: emdesign init <framework> [dir]');
-      const { init } = await import('@emdesign/workspace');
-      const r = init(a1, path.resolve(a2 ?? '.'));
-      out({ framework: r.framework, filesWritten: r.wrote.length, notes: r.notes });
-      break;
-    }
-    case 'attach': {
-      const { attach } = await import('@emdesign/workspace');
-      const r = attach(path.resolve(a1 ?? '.'));
-      out({ framework: r.framework, filesWritten: r.wrote.length, notes: r.notes });
-      break;
-    }
-    case 'update': {
-      const { update } = await import('@emdesign/workspace');
-      const dirArg = a1 && !a1.startsWith('--') ? a1 : undefined;
-      const flags = new Set(argv.filter(a => a.startsWith('--')));
-      const result = update({
-        targetDir: dirArg ? path.resolve(dirArg) : undefined,
-        force: flags.has('--force'),
-        prune: flags.has('--prune'),
-        dryRun: flags.has('--dry-run'),
-        checkStorybook: flags.has('--storybook'),
-      });
-      if (result.added.length)   out({ added: result.added });
-      if (result.updated.length) out({ updated: result.updated });
-      for (const s of result.skipped) out({ skipped: s });
-      if (result.removed.length) out({ removed: result.removed });
-      for (const n of result.notes) out({ note: n });
-      if (!result.added.length && !result.updated.length && !result.removed.length && !result.skipped.length)
-        out({ ok: 'Workspace is up to date with the latest emdesign templates.' });
-      break;
-    }
-    case 'design-context': {
-      const ds = resolveDesignSystem(paths, activeDs(store));
-      const codegenInstructions = effectiveAdapter(paths).codegenInstructions(ds);
-      out(composePrompt({ ds, componentName: a1 ?? 'Component', instruction: a2 ?? '(describe the component)', codegenInstructions }));
-      break;
-    }
-    case 'lint': {
-      if (!a1) throw new Error('usage: emdesign lint <component>');
-      const res = await lint(paths, store, a1);
-      out(renderFindingsForAgent(res.findings));
-      if (res.mustFix > 0) process.exit(1); // gate: exit code = verdict
-      break;
-    }
-    case 'visual-test': {
-      if (!a1) throw new Error('usage: emdesign visual-test <component>');
-      const diff = (await serverUp()) ? (await post('/api/visual-test', { component: a1 })).lastDiff : await runVisualTest(paths, a1);
-      out(diff);
-      if (diff?.status === 'changed') process.exit(1); // gate
-      break;
-    }
-    case 'score': {
-      const input = JSON.parse(a1 ?? '{}');
-      const res = (await serverUp()) ? await post('/api/score', input) : scoreComponent(paths, input);
-      out(res);
-      if (res.decision !== 'ship') process.exit(1); // gate
-      break;
-    }
-    case 'capture': {
-      if (!a1) throw new Error('usage: emdesign capture <component>');
-      const r = (await serverUp()) ? await post('/api/capture', { name: a1 }) : { path: await captureComponent(paths, a1) };
-      out(r);
-      break;
-    }
-    case 'render-lint': {
-      if (!a1) throw new Error('usage: emdesign render-lint <component> [--themes light,dark]');
-      const rlThemesArg = argv.includes('--themes') ? argv[argv.indexOf('--themes') + 1]?.split(',').filter((t): t is 'light' | 'dark' => t === 'light' || t === 'dark') : undefined;
-      const rlThemes: ('light' | 'dark')[] = rlThemesArg?.length ? rlThemesArg : ['light', 'dark'];
+
+    case 'up': {
+      let orch: any;
       try {
-        const snapshots = await renderSnapshot(paths, a1, { themes: rlThemes });
-        out({ component: a1, snapshots: snapshots.length, themes: snapshots.map((s) => s.theme), nodes: snapshots[0]?.nodes.length ?? 0 });
+        const { PlatformManager, attachWebSocket } = await import('@emdesign/session');
+        orch = new PlatformManager(paths);
+        const server = await startHttpBridge(store, paths, PORT, orch);
+        try { attachWebSocket(server as any, orch.bus); } catch { /* ws not available */ }
+        orch.startService('storybook').catch(() => {});
+        orch.services.startHealthChecks();
+        console.error('[emdesign] Platform running. Ctrl+C to stop.');
       } catch (e) {
-        console.error(`[emdesign] render-lint failed for "${a1}":`, (e as Error).message);
+        console.error('[emdesign] up failed:', (e as Error).message);
         process.exit(1);
       }
       break;
     }
-    case 'vision-critique': {
-      if (!a1) throw new Error('usage: emdesign vision-critique <component> [--provider claude|gemini|minimax] [--mode standard|regression|reference]');
-      const vcProvider = argv.includes('--provider') ? argv[argv.indexOf('--provider') + 1] : undefined;
-      const vcMode = argv.includes('--mode') ? argv[argv.indexOf('--mode') + 1] : 'standard';
-      const result = (await serverUp())
-        ? await post('/api/vision-critique', { component: a1, provider: vcProvider, mode: vcMode })
-        : await standardCritique(
-            { root: paths.root, screenshotsDir: paths.screenshotsDir, designSystemsDir: paths.designSystemsDir, activeDsId: activeDs(store) },
-            { component: a1, provider: vcProvider, mode: vcMode as any },
-          );
-      out(result);
-      break;
-    }
-    case 'vision-compare': {
-      if (!a1 || !a2) throw new Error('usage: emdesign vision-compare <component> <referenceImagePath> [--provider claude|gemini|minimax]');
-      const cmpProvider = argv.includes('--provider') ? argv[argv.indexOf('--provider') + 1] : undefined;
-      const cmpResult = (await serverUp())
-        ? await post('/api/vision-compare', { component: a1, referenceImagePath: a2, provider: cmpProvider })
-        : await standardCritique(
-            { root: paths.root, screenshotsDir: paths.screenshotsDir, designSystemsDir: paths.designSystemsDir, activeDsId: activeDs(store) },
-            { component: a1, mode: 'reference', provider: cmpProvider, referenceImagePath: a2 },
-          );
-      out(cmpResult);
-      break;
-    }
-    case 'session': {
-      const { PlatformManager } = await import('@emdesign/session');
-      const orch = new PlatformManager(paths);
-      switch (a1) {
-        case 'list':
-          out(orch.listSessions());
-          break;
-        case 'create': {
-          if (!a2) throw new Error('usage: emdesign session create <type> [--instruction "..."]');
-          const session = await orch.createSession({
-            type: a2 as any,
-            workflow: a2,
-            args: { instruction: argv.includes('--instruction') ? argv[argv.indexOf('--instruction') + 1] : undefined },
-            instruction: argv.includes('--instruction') ? argv[argv.indexOf('--instruction') + 1] : undefined,
-          });
-          out(session);
-          break;
-        }
-        case 'cancel':
-          if (!a2) throw new Error('usage: emdesign session cancel <id>');
-          await orch.cancelSession(a2);
-          out({ ok: true });
-          break;
-        case 'claude':
-          out(await orch.getClaudeSessions());
-          break;
-        default:
-          throw new Error('usage: emdesign session list|create|cancel|claude');
-      }
-      break;
-    }
-    case 'service': {
-      const { PlatformManager } = await import('@emdesign/session');
-      const orch = new PlatformManager(paths);
-      switch (a1) {
-        case 'start':
-          if (!a2) throw new Error('usage: emdesign service start <type>');
-          out(await orch.startService(a2 as any));
-          break;
-        case 'stop':
-          if (!a2) throw new Error('usage: emdesign service stop <type>');
-          await orch.stopService(a2 as any);
-          out({ ok: true });
-          break;
-        case 'restart':
-          if (!a2) throw new Error('usage: emdesign service restart <type>');
-          out(await orch.restartService(a2 as any));
-          break;
-        case 'status':
-          out(orch.listServices());
-          break;
-        default:
-          throw new Error('usage: emdesign service start|stop|restart|status');
-      }
-      break;
-    }
-    case 'up': {
-      // Single-command: start everything
-      const { PlatformManager, attachWebSocket, createSessionRouter } = await import('@emdesign/session');
-      const orch = new PlatformManager(paths);
-      if (!store.get().activeDesignSystem) store.update({ activeDesignSystem: 'atelier' });
 
-      // Start HTTP bridge with orchestrator
-      const server = await startHttpBridge(store, paths, PORT, orch);
-
-      // Attach WebSocket
-      try { attachWebSocket(server as any, orch.bus); } catch { /* ws not available */ }
-
-      // Start MCP server
+    case 'health': {
       try {
-        const { createMcpServer } = await import('@emdesign/mcp-server');
-        const { StdioServerTransport } = await import('@modelcontextprotocol/sdk/server/stdio.js');
-        (await createMcpServer(store, paths, orch)).connect(new StdioServerTransport());
-      } catch (e) {
-        console.error('[emdesign] Failed to start MCP server:', e);
+        const r = await fetch(`http://localhost:${PORT}/api/health`, { signal: AbortSignal.timeout(1000) });
+        const data = await r.json();
+        if (json) process.stdout.write(JSON.stringify(data, null, 2) + '\n');
+        else console.error(`[emdesign] Server: ${data.ok ? 'ok' : 'unhealthy'}`);
+      } catch {
+        if (json) { formatError('Server not reachable'); process.exit(1); }
+        else { console.error('[emdesign] Server not reachable'); process.exit(1); }
       }
-
-
-      // Start Storybook
-      orch.startService('storybook').catch(() => {});
-
-      // Start health checks
-      orch.services.startHealthChecks();
-
-      console.error('[emdesign] Platform running. Ctrl+C to stop.');
       break;
     }
-    default:
-      throw new Error(`unknown command: ${cmd}`);
+
+    // ── Design system ────────────────────────────────────────────────────
+    case 'use': {
+      const id = positional(rest);
+      if (!id) { formatError('usage: emdesign use <design-system-id>'); process.exit(1); }
+      const { resolveDesignSystem, applyDesignSystem } = await import('@emdesign/backend');
+      resolveDesignSystem(paths, id);
+      const r = applyDesignSystem(paths, id);
+      store.update({ activeDesignSystem: id });
+      if (json) process.stdout.write(JSON.stringify(r, null, 2) + '\n');
+      else console.error(`[emdesign] active design system → ${id}`);
+      break;
+    }
+
+    case 'ds': {
+      const [subcommand = 'list', ...dsArgs] = rest;
+      await cmdDs({ subcommand, args: dsArgs, argv: rest, json, gate }, paths, store);
+      break;
+    }
+
+    // ── Component lifecycle ─────────────────────────────────────────────
+    case 'design':
+    case 'design-context': {
+      const comp = positional(rest);
+      const instruction = positional(rest, 1);
+      await cmdDesign({ component: comp, instruction, json }, paths, store);
+      break;
+    }
+
+    case 'generate': {
+      const name = positional(rest);
+      if (!name) { formatError('usage: emdesign generate <name> [--mode create|edit] [--stdin]'); process.exit(1); }
+      const mode = rest.includes('--mode') ? (rest[rest.indexOf('--mode') + 1] as 'create' | 'edit') : 'create';
+      const source = rest.includes('--source') ? rest[rest.indexOf('--source') + 1] : undefined;
+      const story = rest.includes('--story') ? rest[rest.indexOf('--story') + 1] : undefined;
+      await cmdGenerate({
+        name, mode, source, story,
+        stdin: rest.includes('--stdin'),
+        stdinStory: rest.includes('--stdin-story'),
+        json,
+      }, paths, store);
+      break;
+    }
+
+    // ── Doctor: `doctor <kind> <component>` — kind is optional (default: all) ──
+    case 'doctor':
+    case 'lint':
+    case 'visual-test':
+    case 'score':
+    case 'spatial-audit':
+    case 'render-lint':
+    case 'spatial': {
+      // Parse: first positional could be a kind (lint/visual/etc) or a component name.
+      // The doctor check-kinds are: lint, visual, snapshot, spatial, charters, react.
+      const KINDS = new Set(['lint', 'visual', 'snapshot', 'spatial', 'charters', 'react']);
+      const first = positional(rest) ?? '';
+      const second = positional(rest, 1);
+
+      let kind: string;
+      let component: string | undefined;
+
+      if (KINDS.has(first)) {
+        kind = first;
+        component = second;
+      } else {
+        // Legacy aliases set the kind implicitly
+        kind = cmd === 'lint' ? 'lint'
+          : cmd === 'visual-test' ? 'visual'
+          : cmd === 'score' ? 'all'
+          : cmd === 'spatial-audit' || cmd === 'spatial' || cmd === 'render-lint' ? 'spatial'
+          : 'all';
+        component = first || (cmd === 'score' ? (rest.includes('--component') ? rest[rest.indexOf('--component') + 1] : undefined) : undefined);
+      }
+
+      if (!component) {
+        formatError(`usage: emdesign doctor [kind] <component> [--gate] [--json]\n  kinds: lint, visual, snapshot, spatial, charters, react`);
+        process.exit(1);
+      }
+
+      const story = rest.includes('--story') ? rest[rest.indexOf('--story') + 1] : undefined;
+      const theme = rest.includes('--theme') ? rest[rest.indexOf('--theme') + 1] as 'light' | 'dark' : undefined;
+      await cmdDoctor({
+        component,
+        kind,
+        story,
+        theme,
+        detail: rest.includes('--detail'),
+        evidence: rest.includes('--evidence') ? rest[rest.indexOf('--evidence') + 1] : undefined,
+        gate,
+        json,
+      }, paths, store);
+      break;
+    }
+
+    // ── Vision ───────────────────────────────────────────────────────────
+    case 'vision':
+    case 'vision-critique': {
+      const component = positional(rest);
+      if (!component) { formatError('usage: emdesign vision <component> [--mode] [--provider]'); process.exit(1); }
+      const mode = rest.includes('--mode') ? rest[rest.indexOf('--mode') + 1] as 'standard' | 'compare' : 'standard';
+      const provider = rest.includes('--provider') ? rest[rest.indexOf('--provider') + 1] as 'claude' | 'gemini' | 'minimax' : undefined;
+      const reference = rest.includes('--reference') ? rest[rest.indexOf('--reference') + 1] : undefined;
+      await cmdVision({ component, mode, provider, reference, json }, paths, store);
+      break;
+    }
+
+    // ── Capture ──────────────────────────────────────────────────────────
+    case 'capture': {
+      const name = positional(rest);
+      if (!name) { formatError('usage: emdesign capture <component> [--baseline]'); process.exit(1); }
+      if (rest.includes('--baseline')) {
+        await cmdCapture({ component: name, baseline: true, json }, paths);
+      } else {
+        await cmdCapture({ component: name, json }, paths);
+      }
+      break;
+    }
+
+    case 'capture-baseline': {
+      const name = positional(rest);
+      if (!name) { formatError('usage: emdesign capture-baseline <component>'); process.exit(1); }
+      await cmdCaptureBaseline({ component: name, json }, paths);
+      break;
+    }
+
+    // ── Browse ───────────────────────────────────────────────────────────
+    case 'discover': {
+      const kind = rest.includes('--kind') ? rest[rest.indexOf('--kind') + 1] : 'all';
+      const filter = rest.includes('--filter') ? rest[rest.indexOf('--filter') + 1] : undefined;
+      await cmdDiscover({ kind, filter, json }, paths, store);
+      break;
+    }
+
+    case 'doc': {
+      const target = positional(rest);
+      if (!target) { formatError('usage: emdesign doc <target>'); process.exit(1); }
+      await cmdDoc({ target, json }, paths, store);
+      break;
+    }
+
+    // ── Knowledge graph ──────────────────────────────────────────────────
+    case 'graph': {
+      const [subcommand = 'build', ...graphArgs] = rest;
+      await cmdGraph({ subcommand, args: graphArgs, argv: rest, json }, paths, store);
+      break;
+    }
+
+    // ── Explore ──────────────────────────────────────────────────────────
+    case 'explore': {
+      const topic = positional(rest);
+      const name = positional(rest, 1);
+      const ds = rest.includes('--ds') ? rest[rest.indexOf('--ds') + 1] : undefined;
+      await cmdExplore({ topic, name, ds, json }, paths, store);
+      break;
+    }
+
+    // ── Help ─────────────────────────────────────────────────────────────
+    case 'help':
+    default: {
+      process.stdout.write(`
+emdesign — design-engineering CLI
+
+Usage:
+  emdesign <command> [args] [--json] [--gate]
+
+Project:
+  init <framework> [--dir .]          Scaffold a new workspace
+  attach [--dir .]                    Attach to existing project
+  update [--dir .]                    Update workspace templates
+  serve [--port 4321]                 Start HTTP bridge
+  up                                  Start everything
+  health                              Ping the HTTP server
+
+Design system:
+  use <id>                            Switch active system
+  ds list|create|use|validate|grade|scaffold|conflicts|history|bases|base-detail
+
+Component:
+  design [comp] [instr]               Design context prompt
+  generate <name> [--mode] [--stdin]  Create or edit a component
+  doctor [kind] <comp> [--gate]       ALL verification (kinds: lint,visual,snapshot,spatial,charters,react)
+  vision <comp> [--mode] [--provider] Vision critique
+  capture <comp> [--baseline]         Promote to reusable
+
+Browse:
+  discover [--kind] [--filter]        List components, stories, systems
+  doc <target>                        Component/story documentation
+
+Knowledge graph:
+  graph build|context|impact|query|guidance|where-to-fix
+
+Explore workspace:
+  explore [topic]                     Overview, ds, tokens, primitives, components, hierarchy, rules, charters, sections, stats
+
+Doctor kinds (use as subcommands):
+  doctor lint <comp>     — lint only (fastest)
+  doctor visual <comp>   — visual diff only
+  doctor spatial <comp>  — geometry audit
+  doctor charters <comp> — story charter evaluation
+  doctor react <comp>    — react-doctor scan
+
+Legacy aliases (still work):
+  lint, visual-test, score, vision-critique, design-context, spatial-audit
+
+Options:
+  --json    Structured JSON output on stdout
+  --gate    Exit code = verdict (0 = pass, 1 = fail)
+
+`);
+      break;
+    }
   }
 }
 

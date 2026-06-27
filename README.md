@@ -64,12 +64,12 @@ No Figma handoff. No design-system drift. No one-off AI-slop components.
 ```bash
 npm install && npx playwright install chromium   # one-time
 npm run studio    # → http://localhost:6006       (Storybook + emdesign panel)
-npm run backend   # → http://localhost:4321       (HTTP bridge + MCP for agent)
+npm run backend   # → http://localhost:4321       (HTTP bridge for addon panel)
 ```
 
-**Then in Claude Code (or any MCP agent):**
+**Then in Claude Code:**
 
-Connect your agent to the backend via `.mcp.json`, and ask:
+The agent invokes the CLI directly (`emdesign <command> --json`) — no running server needed for most operations. Ask:
 
 > *"Build a pricing section with three tiers, highlight the middle one."*
 
@@ -115,13 +115,12 @@ design-systems/   atelier/ DESIGN.md (9 sections) + tokens.css + code/ primitive
 skills/           web-section/ + _vendor/open-design/ (159 vendored skills, Apache-2.0)
 scripts/gates/    lint.sh · visual.sh · build.sh (exit code = verdict)
 packages/
-  cli/            CLI (`emdesign`): agent + gates invoke this
-  backend/        Headless engine: MCP · lint · visual test · critique gate · capture
+  cli/            CLI (`emdesign`): the single agent interface (`--json` output)
+  backend/        Headless engine: lint · visual test · critique gate · capture
   graph/          Knowledge graph: where-to-fix · impact · consistency brief
   addon/          Storybook panel: chat · scores · capture · diff
   dsr/            Design-system runtime: aggregates · rule engine · validation
   doctor/         Production-readiness linting: X/Y rules passed
-  mcp-server/     MCP tool surface for agents
   vision-critic/  LLM vision critique (Claude, Gemini, Minimax)
   plugin-api/     Plugin contract interface
   plugin-core/    Universal always-on rules
@@ -172,7 +171,7 @@ See [`docs/data-model.md`](docs/data-model.md) for the full node/edge specificat
 
 | Phase | What's built | Next |
 |---|---|---|
-| 0 (MVP) | MCP tools, consistency lint, visual test, critique gate, capture, addon panel, Atelier DS | → |
+| 0 (MVP) | CLI agent interface + consistency lint + visual test + critique gate + capture + addon panel + Atelier DS | → |
 | 1 | ☑ Knowledge graph | Agent self-correction loop, click-to-edit, Storybook graph viewer |
 | 2 | — | Bulk design-system importer, baseline management, multi-framework CI |
 

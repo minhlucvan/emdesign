@@ -186,7 +186,7 @@ export type GraphStats = { id: string; stats: Record<string, number> };
 
 export type SessionStatus = 'created' | 'running' | 'paused' | 'completed' | 'failed' | 'cancelled';
 export type ServiceStatus = 'stopped' | 'starting' | 'running' | 'stopping' | 'error' | 'crashed';
-export type ServiceType = 'storybook' | 'http-bridge' | 'mcp-server' | 'backend';
+export type ServiceType = 'storybook' | 'http-bridge' | 'backend';
 
 export interface SessionSummary {
   id: string;

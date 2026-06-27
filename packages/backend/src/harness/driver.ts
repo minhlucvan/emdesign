@@ -1,18 +1,10 @@
 import { spawn, execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { promises as fsp } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import type { MinimalAgentDef } from './types.js';
 
 const pexecFile = promisify(execFile);
-
-export interface McpServerConfig {
-  command?: string;
-  args?: string[];
-  url?: string;
-  env?: Record<string, string>;
-}
 
 export interface RunAgentInput {
   def: MinimalAgentDef;
@@ -23,8 +15,6 @@ export interface RunAgentInput {
   resumeSessionId?: string | null;
   newSessionId?: string;
   allowedDirs?: string[];
-  /** MCP servers written to `.mcp.json` so the agent can call emdesign's tools. */
-  mcpServers?: Record<string, McpServerConfig>;
   signal?: AbortSignal;
 }
 
@@ -81,26 +71,6 @@ export async function probeCapabilities(def: MinimalAgentDef, binPath: string): 
   return caps;
 }
 
-/** Write `.mcp.json` into cwd so a `claude-mcp-json` agent auto-loads emdesign's tools. */
-export async function writeMcpJson(cwd: string, servers: Record<string, McpServerConfig>): Promise<void> {
-  const config: { mcpServers: Record<string, unknown> } = { mcpServers: {} };
-  for (const [name, srv] of Object.entries(servers)) {
-    if (srv.url) {
-      // HTTP MCP server
-      config.mcpServers[name] = { url: srv.url };
-    } else {
-      // Stdio MCP server (command/args)
-      config.mcpServers[name] = {
-        command: srv.command,
-        ...(srv.args?.length ? { args: srv.args } : {}),
-        ...(srv.env ? { env: srv.env } : {}),
-      };
-    }
-  }
-  const file = path.join(cwd, '.mcp.json');
-  await fsp.writeFile(file, JSON.stringify(config, null, 2));
-}
-
 /**
  * Spawn the agent, stream the prompt in via stdin (stream-json user message), and parse
  * the stdout stream-json events. Resolves when the agent emits its terminal `result` event.
@@ -111,10 +81,6 @@ export async function runAgent(input: RunAgentInput): Promise<RunAgentResult> {
   if (!binPath) throw new Error(`Agent '${def.id}' not found on PATH (${[def.bin, ...(def.fallbackBins ?? [])].join(', ')}).`);
 
   const capabilities = await probeCapabilities(def, binPath);
-
-  if (def.mcpConfigStrategy === 'claude-mcp-json' && input.mcpServers) {
-    await writeMcpJson(input.cwd, input.mcpServers);
-  }
 
   const args = def.buildArgs({
     model: input.model,
