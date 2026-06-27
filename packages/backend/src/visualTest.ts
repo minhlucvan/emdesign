@@ -86,9 +86,10 @@ export async function runVisualTest(paths: RepoPaths, component: string): Promis
   const actualPath = path.join(paths.screenshotsDir, `${component}.actual.png`);
   const diffPath = path.join(paths.screenshotsDir, `${component}.diff.png`);
 
+  const VIEWPORT = { width: 1280, height: 720, deviceScaleFactor: 2 };
   const browser = await chromium.launch();
   try {
-    const page = await browser.newPage({ deviceScaleFactor: 2 });
+    const page = await browser.newPage(VIEWPORT);
     await page.goto(url, { waitUntil: 'networkidle' });
     await page.waitForSelector('#storybook-root', { timeout: 10_000 });
     await page.locator('#storybook-root').screenshot({ path: actualPath });
@@ -96,10 +97,12 @@ export async function runVisualTest(paths: RepoPaths, component: string): Promis
     await browser.close();
   }
 
+  const viewportInfo = { width: VIEWPORT.width, height: VIEWPORT.height, deviceScaleFactor: VIEWPORT.deviceScaleFactor };
+
   // First run → establish baseline.
   if (!fs.existsSync(baselinePath)) {
     fs.copyFileSync(actualPath, baselinePath);
-    return { status: 'new', baselinePng: screenshotUrl(baselinePath), actualPng: screenshotUrl(actualPath) };
+    return { status: 'new', baselinePng: screenshotUrl(baselinePath), actualPng: screenshotUrl(actualPath), viewport: viewportInfo };
   }
 
   const base = PNG.sync.read(fs.readFileSync(baselinePath));
@@ -110,6 +113,7 @@ export async function runVisualTest(paths: RepoPaths, component: string): Promis
       baselinePng: screenshotUrl(baselinePath),
       actualPng: screenshotUrl(actualPath),
       changedPixels: -1, // dimensions differ
+      viewport: viewportInfo,
     };
   }
 
@@ -125,6 +129,7 @@ export async function runVisualTest(paths: RepoPaths, component: string): Promis
     actualPng: screenshotUrl(actualPath),
     diffPng: screenshotUrl(diffPath),
     changedPixels: changed,
+    viewport: viewportInfo,
   };
 }
 

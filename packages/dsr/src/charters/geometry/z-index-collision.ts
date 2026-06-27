@@ -55,7 +55,15 @@ export const zIndexCollision: ElementCharter = {
     for (const el of ctx.matchedElements) {
       if (findings.length >= MAX_FINDINGS) break;
 
+      // Skip SVG children (icon paths overlap by design)
+      const t = el.node.tag?.toLowerCase() ?? '';
+      if (['svg', 'path', 'circle', 'line', 'rect'].includes(t)) continue;
+
       for (const sib of el.siblings) {
+        // Skip SVG children
+        const st = sib.node.tag?.toLowerCase() ?? '';
+        if (['svg', 'path', 'circle', 'line', 'rect'].includes(st)) continue;
+
         const key = [el.node.selector, sib.node.selector].sort().join(' ⨯ ');
         if (seen.has(key)) continue;
 

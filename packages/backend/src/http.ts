@@ -6,6 +6,7 @@ import type { RepoPaths } from './paths.js';
 import fs from 'node:fs';
 import { captureComponent } from './capture.js';
 import { runVisualTest } from './visualTest.js';
+import { renderSnapshot } from './renderProbe.js';
 import { PNG } from 'pngjs';
 import { scoreComponent } from './critique/score.js';
 import { standardCritique } from '@emdesign/vision-critic';
@@ -238,17 +239,33 @@ export async function createHttpBridge(store: Store, paths: RepoPaths, orch?: an
       designSystem.push({ id: 'ds-error', title: 'design-system', severity: 'P2', pass: false, message: (e as Error).message });
     }
 
+    // ── Auto-capture render snapshot if not provided ──────────────────────
+    let _render = render;
+    if (!_render && name) {
+      try {
+        const snaps = await renderSnapshot(paths, name, { story: 'default', themes: ['light'] });
+        if (snaps.length > 0) {
+          _render = {
+            root: snaps[0].root,
+            nodes: snaps[0].nodes,
+          };
+        }
+      } catch {
+        // non-fatal — render-dependent tiers simply won't have data
+      }
+    }
+
     // ── Framework-level geometry charters (always-on) ────────────────────────
     try {
-      if (render && render.nodes && render.nodes.length > 0) {
+      if (_render && _render.nodes && _render.nodes.length > 0) {
         const snap: RenderSnapshot = {
           component: name,
           storyId: String(req.body?.storyId ?? ''),
           url: '',
           theme: 'light',
           viewport: { width: 0, height: 0, deviceScaleFactor: 1 },
-          root: render.root ?? { x: 0, y: 0, width: 0, height: 0 },
-          nodes: render.nodes,
+          root: _render.root ?? { x: 0, y: 0, width: 0, height: 0 },
+          nodes: _render.nodes,
         };
         const fwReport = lintFrameworkCharters('framework', [snap]);
         for (const f of fwReport.findings) {
@@ -287,7 +304,7 @@ export async function createHttpBridge(store: Store, paths: RepoPaths, orch?: an
     // ── Tier 4: Rendered DOM rules (requires render snapshot) ──────────────
     const rendered: TierItem[] = [];
     try {
-      if (render && render.nodes && render.nodes.length > 0) {
+      if (_render && _render.nodes && _render.nodes.length > 0) {
         const adapter = effectiveAdapter(paths);
         const renderedRules = adapter.renderedDoctorRules();
         if (renderedRules.length > 0) {
@@ -298,8 +315,8 @@ export async function createHttpBridge(store: Store, paths: RepoPaths, orch?: an
             url: '',
             theme: 'light',
             viewport: { width: 0, height: 0, deviceScaleFactor: 1 },
-            root: render.root ?? { x: 0, y: 0, width: 0, height: 0 },
-            nodes: render.nodes,
+            root: _render.root ?? { x: 0, y: 0, width: 0, height: 0 },
+            nodes: _render.nodes,
           };
           const rctx: RenderedReviewContext = { ds, renders: [snap] };
           const rr = lintRendered(`${dsId}/rendered`, rctx, renderedRules);
@@ -315,7 +332,10 @@ export async function createHttpBridge(store: Store, paths: RepoPaths, orch?: an
       // non-fatal — rendered rules are advisory
     }
 
-    res.json({ component: name, dsId, tiers: { core, doctor, rendered, designSystem, component: [] } });
+    const renderViewport = _render && _render.nodes && _render.nodes.length > 0
+      ? { width: 1280, height: 720 }
+      : undefined;
+    res.json({ component: name, dsId, renderViewport, tiers: { core, doctor, rendered, designSystem, component: [] } });
   });
 
   // The authoritative gate (used by the CLI + the loop).

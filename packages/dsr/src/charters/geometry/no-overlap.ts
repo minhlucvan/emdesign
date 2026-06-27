@@ -132,8 +132,14 @@ export const noOverlap: ElementCharter = {
     for (const el of ctx.matchedElements) {
       if (findings.length >= MAX_FINDINGS) break;
       if (isStacked(el)) continue;
+      // Skip SVG children (icon paths designed to overlap)
+      const t = el.node.tag?.toLowerCase() ?? '';
+      if (['svg', 'path', 'circle', 'line', 'rect', 'polyline', 'polygon'].includes(t)) continue;
       for (const sib of el.siblings) {
         if (isStacked(sib)) continue;
+        // Skip SVG children
+        const st = sib.node.tag?.toLowerCase() ?? '';
+        if (['svg', 'path', 'circle', 'line', 'rect', 'polyline', 'polygon'].includes(st)) continue;
         const ov = overlapPx(el.node.box, sib.node.box);
         if (!ov) continue;
         addOverlapFinding(el, sib, ov, 'sibling', findings, seen);
@@ -151,9 +157,14 @@ export const noOverlap: ElementCharter = {
       if (findings.length >= MAX_FINDINGS) break;
       const a = flatList[i];
       if (isStacked(a)) continue;
+      // Skip SVG children in cross-tree too
+      const ta = a.node.tag?.toLowerCase() ?? '';
+      if (['svg', 'path', 'circle', 'line', 'rect'].includes(ta)) continue;
       for (let j = i + 1; j < flatList.length; j++) {
         const b = flatList[j];
         if (isStacked(b)) continue;
+        const tb = b.node.tag?.toLowerCase() ?? '';
+        if (['svg', 'path', 'circle', 'line', 'rect'].includes(tb)) continue;
         // Skip sibling pairs (already checked in pass 1) and parent-child
         if (isSiblingPair(a, b) || isAncestor(a, b)) continue;
 

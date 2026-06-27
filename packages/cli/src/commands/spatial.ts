@@ -10,6 +10,7 @@ export interface SpatialAuditArgs {
   theme?: 'light' | 'dark';
   json?: boolean;
   grid?: boolean;
+  viewport?: string;
 }
 
 /**
@@ -18,16 +19,18 @@ export interface SpatialAuditArgs {
  * Builds on the existing spatial.ts in the backend.
  */
 export async function cmdSpatialAudit(args: SpatialAuditArgs, paths: RepoPaths): Promise<void> {
-  const { component, story = 'default', theme = 'light', grid } = args;
+  const { component, story = 'default', theme = 'light', grid, viewport } = args;
   if (!component) {
-    formatError('usage: emdesign spatial audit <component> [--story <name>] [--theme light|dark] [--grid]');
+    formatError('usage: emdesign spatial audit <component> [--story <name>] [--theme light|dark] [--grid] [--viewport <WxH>]');
     process.exit(1);
   }
+
+  const vp = viewport ? parseViewport(viewport) : undefined;
 
   // Use the existing renderSnapshot to get DOM structure
   let snapshots;
   try {
-    snapshots = await renderSnapshot(paths, component, { story, themes: [theme] });
+    snapshots = await renderSnapshot(paths, component, { story, themes: [theme], viewportWidth: vp?.width, viewportHeight: vp?.height });
   } catch (e) {
     formatError(`Render failed: ${(e as Error).message}. Ensure Storybook is running.`);
     process.exit(1);
@@ -91,6 +94,7 @@ export async function cmdSpatialAudit(args: SpatialAuditArgs, paths: RepoPaths):
     formatJson(result);
   } else {
     process.stdout.write(`═══ Spatial Audit: ${component} ═══\n`);
+    process.stdout.write(`Viewport: ${result.viewport.width}x${result.viewport.height}\n`);
     process.stdout.write(`Nodes: ${nodes.length}\n`);
     process.stdout.write(`Overlaps: ${overlaps.length}${overlaps.length > 0 ? ` (${overlaps.slice(0, 5).map(o => `${o.a}/${o.b}:${o.overlapPx}px`).join(', ')})` : ''}\n`);
     if (gridInfo) {
@@ -98,4 +102,11 @@ export async function cmdSpatialAudit(args: SpatialAuditArgs, paths: RepoPaths):
     }
     process.stdout.write(`═══════════════════════════════════\n`);
   }
+}
+
+/** Parse "WxH" viewport string into {width, height}. */
+function parseViewport(s: string): { width: number; height: number } {
+  const m = s.match(/^(\d+)x(\d+)$/);
+  if (!m) { formatError(`Invalid viewport "${s}". Use WxH format (e.g. 375x812).`); process.exit(1); }
+  return { width: parseInt(m[1], 10), height: parseInt(m[2], 10) };
 }

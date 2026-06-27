@@ -281,10 +281,19 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
           if (!reader) throw new Error('No response body');
           const decoder = new TextDecoder();
           let buffer = '', assistantText = '';
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            buffer += decoder.decode(value, { stream: true });
+          let streamDone = false;
+          let idleTimer: ReturnType<typeof setTimeout> | null = null;
+          while (!streamDone) {
+            const result = await Promise.race([
+              reader.read().then(r => ({ ...r, timedOut: false })),
+              new Promise<{ done: false; value: undefined; timedOut: true }>(resolve => {
+                idleTimer = setTimeout(() => resolve({ done: false, value: undefined, timedOut: true }), 15000);
+              }),
+            ]);
+            if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
+            if (result.timedOut) { streamDone = true; setStreaming(false); break; }
+            if (result.done) break;
+            buffer += decoder.decode(result.value, { stream: true });
             const lines = buffer.split('\n');
             buffer = lines.pop() || '';
             for (const line of lines) {
@@ -292,6 +301,7 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
               try {
                 const data = JSON.parse(line.slice(6));
                 if (data.type === 'text') { assistantText += data.text; setMessages(prev => prev.map(m => m.id === asstId ? { ...m, content: assistantText } : m)); }
+                else if (data.type === 'done') { streamDone = true; setStreaming(false); break; }
               } catch { /* skip */ }
             }
           }

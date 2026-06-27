@@ -229,6 +229,7 @@ function countPassed(findings: Finding[]): number {
 export function ChartersTab() {
   const [channelResult, setChannelResult] = useState<ChannelResult | null>(null);
   const [apiTiers, setApiTiers] = useState<Record<string, Finding[]> | null>(null);
+  const [renderViewport, setRenderViewport] = useState<{ width: number; height: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [backendOk, setBackendOk] = useState<boolean | null>(null);
@@ -281,6 +282,7 @@ export function ChartersTab() {
       .then((res) => {
         if (!cancelled) {
           setApiTiers(res.tiers as Record<string, Finding[]>);
+          if (res.renderViewport) setRenderViewport(res.renderViewport);
           setBackendOk(true); // Backend is reachable — clear any stale error
           setError(null);
           setLoading(false);
@@ -406,6 +408,11 @@ export function ChartersTab() {
                 >
                   <Chevron $open={!isCollapsed}>▶</Chevron>
                   {sec.icon} {sec.label}
+                  {sec.key === 'rendered' && renderViewport && (
+                    <Muted style={{ fontSize: 10 }}>
+                      @{renderViewport.width}×{renderViewport.height}
+                    </Muted>
+                  )}
                   <SectionStats>
                     {findings.length > 0 && (
                       <>

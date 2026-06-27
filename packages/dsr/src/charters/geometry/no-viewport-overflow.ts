@@ -74,6 +74,25 @@ export const noViewportOverflow: ElementCharter = {
       for (const el of ctx.matchedElements) {
         if (findings.length >= MAX_FINDINGS) break;
 
+        // Skip elements inside overflow:auto/scroll containers — designed to scroll
+        let hasScrollParent = false;
+        const overStyle = el.node.styles.overflow;
+        if (overStyle === 'auto' || overStyle === 'scroll') hasScrollParent = true;
+        else {
+          let p = el.parent;
+          while (p) {
+            const po = p.node.styles.overflow;
+            if (po === 'auto' || po === 'scroll') { hasScrollParent = true; break; }
+            p = p.parent;
+          }
+        }
+        if (hasScrollParent) continue;
+        // Skip SVG children (icon paths designed to overlap)
+        const t = el.node.tag?.toLowerCase() ?? '';
+        if (['svg', 'path', 'circle', 'line'].includes(t)) continue;
+        // Skip table internals (cells touch by HTML spec)
+        if (['td', 'th', 'tr', 'thead', 'tbody', 'table'].includes(t)) continue;
+
         const overflow = measureViewportOverflow(el.node.box, root);
         if (overflow.length === 0) continue;
 

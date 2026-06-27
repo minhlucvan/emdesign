@@ -60,6 +60,8 @@ export interface DiffResult {
   actualPng?: string;
   diffPng?: string;
   changedPixels?: number;
+  /** Viewport dimensions at which the screenshot was taken. */
+  viewport?: { width: number; height: number; deviceScaleFactor: number };
 }
 
 /**

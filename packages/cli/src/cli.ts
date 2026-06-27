@@ -289,6 +289,19 @@ complete -F _emdesign_completions emdesign
     case 'spatial-audit':
     case 'render-lint':
     case 'spatial': {
+      // Route to spatial audit command if subcommand is audit/grid
+      const spatialSub = rest[0];
+      if (spatialSub === 'audit' || spatialSub === 'grid') {
+        const [, ...spatialRest] = rest;
+        const component = positional(spatialRest);
+        if (!component) { formatError('usage: emdesign spatial audit|grid <component> [--grid] [--story <name>] [--viewport <WxH>]'); process.exit(1); }
+        const story = spatialRest.includes('--story') ? spatialRest[spatialRest.indexOf('--story') + 1] : undefined;
+        const theme = spatialRest.includes('--theme') ? spatialRest[spatialRest.indexOf('--theme') + 1] as 'light' | 'dark' : undefined;
+        const viewport = spatialRest.includes('--viewport') ? spatialRest[spatialRest.indexOf('--viewport') + 1] : undefined;
+        await cmdSpatialAudit({ component, story, theme, grid: spatialSub === 'grid', viewport, json }, paths);
+        break;
+      }
+
       // Parse: first positional could be a kind (lint/visual/etc) or a component name.
       // The doctor check-kinds are: lint, visual, snapshot, spatial, charters, react.
       const KINDS = new Set(['lint', 'visual', 'snapshot', 'spatial', 'charters', 'react']);
@@ -423,31 +436,16 @@ complete -F _emdesign_completions emdesign
       break;
     }
 
-    // ── Spatial Audit ──────────────────────────────────────────────────
-    case 'spatial': {
-      const [sub, ...spatialRest] = rest;
-      if (sub === 'audit' || sub === 'grid') {
-        const component = positional(spatialRest);
-        if (!component) { formatError('usage: emdesign spatial audit|grid <component> [--grid] [--story <name>]'); process.exit(1); }
-        const story = spatialRest.includes('--story') ? spatialRest[spatialRest.indexOf('--story') + 1] : undefined;
-        const theme = spatialRest.includes('--theme') ? spatialRest[spatialRest.indexOf('--theme') + 1] as 'light' | 'dark' : undefined;
-        await cmdSpatialAudit({ component, story, theme, grid: sub === 'grid', json }, paths);
-      } else {
-        formatError('usage: emdesign spatial audit|grid <component>');
-        process.exit(1);
-      }
-      break;
-    }
-
     // ── Render Analyze ──────────────────────────────────────────────────
     case 'render': {
       const [renderSub, ...renderRest] = rest;
       if (renderSub === 'analyze' || renderSub === 'snapshot') {
         const component = positional(renderRest);
-        if (!component) { formatError('usage: emdesign render analyze|snapshot <component> [--story <name>] [--theme light|dark]'); process.exit(1); }
+        if (!component) { formatError('usage: emdesign render analyze|snapshot <component> [--story <name>] [--theme light|dark] [--viewport <WxH>]'); process.exit(1); }
         const story = renderRest.includes('--story') ? renderRest[renderRest.indexOf('--story') + 1] : undefined;
         const theme = renderRest.includes('--theme') ? renderRest[renderRest.indexOf('--theme') + 1] as 'light' | 'dark' : undefined;
-        await cmdRenderAnalyze({ component, story, theme, json }, paths);
+        const viewport = renderRest.includes('--viewport') ? renderRest[renderRest.indexOf('--viewport') + 1] : undefined;
+        await cmdRenderAnalyze({ component, story, theme, viewport, json }, paths);
       } else {
         formatError('usage: emdesign render analyze|snapshot <component>');
         process.exit(1);
@@ -460,10 +458,11 @@ complete -F _emdesign_completions emdesign
       const [compSub, ...compRest] = rest;
       const component = positional(compRest);
       if (compSub === 'a11y') {
-        if (!component) { formatError('usage: emdesign component a11y <component>'); process.exit(1); }
+        if (!component) { formatError('usage: emdesign component a11y <component> [--story <name>] [--theme light|dark] [--viewport <WxH>]'); process.exit(1); }
         const story = compRest.includes('--story') ? compRest[compRest.indexOf('--story') + 1] : undefined;
         const theme = compRest.includes('--theme') ? compRest[compRest.indexOf('--theme') + 1] as 'light' | 'dark' : undefined;
-        await cmdA11y({ component, story, theme, json }, paths);
+        const viewport = compRest.includes('--viewport') ? compRest[compRest.indexOf('--viewport') + 1] : undefined;
+        await cmdA11y({ component, story, theme, viewport, json }, paths);
       } else if (compSub === 'test') {
         if (!component) { formatError('usage: emdesign component test <component>'); process.exit(1); }
         await cmdComponentTest({ component, json }, paths);

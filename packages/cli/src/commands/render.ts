@@ -10,7 +10,8 @@ export interface RenderAnalyzeArgs {
   story?: string;
   theme?: 'light' | 'dark';
   json?: boolean;
-  out?: string; // optional file output
+  out?: string;
+  viewport?: string;
 }
 
 /**
@@ -18,19 +19,20 @@ export interface RenderAnalyzeArgs {
  * This is the "render analyze" command from V2 spec §3.1.
  */
 export async function cmdRenderAnalyze(args: RenderAnalyzeArgs, paths: RepoPaths): Promise<void> {
-  const { component, story = 'default', theme = 'light' } = args;
+  const { component, story = 'default', theme = 'light', viewport } = args;
   if (!component) {
-    formatError('usage: emdesign render analyze <component> [--story <name>] [--theme light|dark] [--out <file>]');
+    formatError('usage: emdesign render analyze <component> [--story <name>] [--theme light|dark] [--out <file>] [--viewport <WxH>]');
     process.exit(1);
   }
 
+  const vp = viewport ? parseViewport(viewport) : { width: 1280, height: 720 };
   const baseUrl = paths.storybookUrl || process.env.EMDESIGN_STORYBOOK_URL || 'http://localhost:6006';
   const storyId = (await resolveStoryId(component, story, baseUrl)) ?? toStoryId(component, story);
   const url = `${baseUrl}/iframe.html?id=${storyId}&viewMode=story`;
 
   const browser = await chromium.launch({ headless: true });
   try {
-    const page = await browser.newPage({ viewport: { width: 1280, height: 720 }, deviceScaleFactor: 2 });
+    const page = await browser.newPage({ viewport: { width: vp.width, height: vp.height }, deviceScaleFactor: 2 });
     await page.goto(url, { waitUntil: 'networkidle' });
     await page.waitForSelector('#storybook-root', { timeout: 15_000 });
     await page.waitForTimeout(500);
@@ -132,4 +134,11 @@ function countNodes(n: Record<string, unknown>): number {
     for (const child of n.children) c += countNodes(child as any);
   }
   return c;
+}
+
+/** Parse "WxH" viewport string into {width, height}. */
+function parseViewport(s: string): { width: number; height: number } {
+  const m = s.match(/^(\d+)x(\d+)$/);
+  if (!m) throw new Error(`Invalid viewport "${s}". Use WxH format (e.g. 375x812).`);
+  return { width: parseInt(m[1], 10), height: parseInt(m[2], 10) };
 }

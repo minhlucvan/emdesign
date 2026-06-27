@@ -97,6 +97,7 @@ export const api = {
   validateComponent: (name: string) => post('/api/charters', { component: name }) as Promise<{
     component: string;
     dsId: string;
+    renderViewport?: { width: number; height: number };
     tiers: Record<string, Array<{ id: string; title: string; severity: 'P0' | 'P1' | 'P2'; pass: boolean; message?: string; fix?: string; target?: string }>>;
   }>,
 

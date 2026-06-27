@@ -1249,6 +1249,16 @@
       }
     },
     {
+      "id": "skill/emdesign",
+      "label": "skill",
+      "props": {
+        "name": "emdesign",
+        "source": {
+          "file": "skills/emdesign/SKILL.md"
+        }
+      }
+    },
+    {
       "id": "skill/web-section",
       "label": "skill",
       "props": {

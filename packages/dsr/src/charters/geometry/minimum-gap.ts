@@ -88,11 +88,22 @@ export const minimumGap: ElementCharter = {
       if (isStacked(el)) continue;
       if (findings.length >= MAX_FINDINGS) break;
 
+      // Skip SVG children (icon paths, designed to be flush)
+      const t = el.node.tag?.toLowerCase() ?? '';
+      if (['svg', 'path', 'circle', 'line', 'rect'].includes(t)) continue;
+      // Skip table cells (touch by HTML spec)
+      if (['td', 'th', 'tr', 'thead', 'tbody', 'table'].includes(t)) continue;
+
       const parentGap = el.parent ? hasGap(el.parent.node.styles) : false;
 
       for (const sib of el.siblings) {
         if (isStacked(sib)) continue;
-
+        const st = sib.node.tag?.toLowerCase() ?? '';
+        if (['svg', 'path', 'circle', 'line', 'rect'].includes(st)) continue;
+        if (['td', 'th', 'tr', 'thead', 'tbody', 'table'].includes(st)) continue;
+        // Skip pairs with border separator (borders create visual separation)
+        const sibClass = sib.node.classes ?? '';
+        if (sibClass.includes('border-') || sibClass.includes('border')) continue;
         const key = [el.node.selector, sib.node.selector].sort().join(' ⨯ ');
         if (seen.has(key)) continue;
 

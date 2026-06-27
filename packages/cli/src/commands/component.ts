@@ -10,6 +10,7 @@ export interface A11yArgs {
   story?: string;
   theme?: 'light' | 'dark';
   json?: boolean;
+  viewport?: string;
 }
 
 /**
@@ -17,11 +18,13 @@ export interface A11yArgs {
  * Emdesign V2 §4 Phase 1: component a11y.
  */
 export async function cmdA11y(args: A11yArgs, paths: RepoPaths): Promise<void> {
-  const { component, story = 'default', theme = 'light' } = args;
+  const { component, story = 'default', theme = 'light', viewport } = args;
   if (!component) {
-    formatError('usage: component a11y <component> [--story <name>] [--theme light|dark]');
+    formatError('usage: component a11y <component> [--story <name>] [--theme light|dark] [--viewport <WxH>]');
     process.exit(1);
   }
+
+  const vp = viewport ? parseViewport(viewport) : { width: 1280, height: 720 };
 
   const baseUrl = paths.storybookUrl || process.env.EMDESIGN_STORYBOOK_URL || 'http://localhost:6006';
   const storyId = (await resolveStoryId(component, story, baseUrl)) ?? toStoryId(component, story);
@@ -29,7 +32,7 @@ export async function cmdA11y(args: A11yArgs, paths: RepoPaths): Promise<void> {
 
   const browser = await chromium.launch({ headless: true });
   try {
-    const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+    const page = await browser.newPage({ viewport: { width: vp.width, height: vp.height } });
     await page.goto(url, { waitUntil: 'networkidle' });
     await page.waitForSelector('#storybook-root', { timeout: 15_000 });
     if (theme === 'dark') {
@@ -175,4 +178,11 @@ export async function cmdComponentDiff(args: { component: string; json?: boolean
     process.stdout.write(`  Captured: ${result.captured.exists ? `${result.captured.size} bytes` : 'not found'}\n`);
     process.stdout.write(`  ${result.sameContent ? '✅ Identical' : '⚠️ Different content'}\n`);
   }
+}
+
+/** Parse "WxH" viewport string into {width, height}. */
+function parseViewport(s: string): { width: number; height: number } {
+  const m = s.match(/^(\d+)x(\d+)$/);
+  if (!m) throw new Error('Invalid viewport "' + s + '". Use WxH format (e.g. 375x812).');
+  return { width: parseInt(m[1], 10), height: parseInt(m[2], 10) };
 }
