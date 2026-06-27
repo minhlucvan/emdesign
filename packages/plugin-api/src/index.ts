@@ -11,9 +11,9 @@
  * This is a leaf package: it depends only on @emdesign/dsr (for the lint Rule type) and uses
  * structural views of the design system / paths so plugin packages never depend back on the engine.
  */
-import type { Rule, DesignReviewRule, RenderedReviewRule } from '@emdesign/dsr';
+import type { Rule, DesignReviewRule, RenderedReviewRule, RuleManifest } from '@emdesign/dsr';
 import type { GraphParser } from '@emdesign/graph';
-export type { Rule, DesignReviewRule, RenderedReviewRule, ReviewContext, ReviewFinding, RenderedReviewContext, RenderSnapshot, RenderNode } from '@emdesign/dsr';
+export type { Rule, DesignReviewRule, RenderedReviewRule, RuleManifest, ReviewContext, ReviewFinding, RenderedReviewContext, RenderSnapshot, RenderNode } from '@emdesign/dsr';
 export type { GraphParser, GraphParseCtx } from '@emdesign/graph';
 
 export type PluginKind = 'framework' | 'styling' | 'library';
@@ -83,4 +83,15 @@ export interface MedesignPlugin {
   doctorRules?(): DesignReviewRule[];
   /** Rendered-artifact lint rules that run against render-probe snapshots (DOM geometry/contrast). */
   renderedDoctorRules?(): RenderedReviewRule[];
+
+  /**
+   * **Unified rule manifests** — the ESLint-style hook.
+   *
+   * If a plugin implements this, the rule registry uses these manifests directly.
+   * If not, composeStack auto-wraps the old-style hooks (lintRules, doctorRules,
+   * renderedDoctorRules) into manifests automatically.
+   *
+   * This hook is OPTIONAL — backward compatible. Old hooks continue to work.
+   */
+  rules?(): RuleManifest[];
 }

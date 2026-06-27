@@ -50,7 +50,11 @@ addons.register(ADDON_ID, () => {
     render: ({ active }) => (active ? <DesignSystemTab /> : null),
   });
 
+<<<<<<< HEAD
   addons.add(CHARTERS_PANEL_ID, {
+=======
+  addons.add(CHARTERS_TAB_ID, {
+>>>>>>> feat/inital-spec-for-the-project
     type: types.PANEL,
     title: 'Charters',
     match: ({ viewMode }) => viewMode === 'story',

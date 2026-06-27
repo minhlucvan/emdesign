@@ -3,13 +3,36 @@
  *
  * Discovers and loads Element Charters from a design system's charters/ directory.
  * Supports dynamic import of pre-compiled .js files, with fallback to directory scan.
+ *
+ * Also provides loadFrameworkCharters() — the always-on, engine-shipped charters
+ * (geometry rules, spacing validation, etc.) that apply regardless of design system.
  */
 
 import { type ElementCharter } from './charter.js';
+import { FRAMEWORK_GEOMETRY_CHARTERS } from './geometry/index.js';
 
 export interface EcLoaderOptions {
   /** Absolute path to the charters/ directory, e.g. "/repo/design-systems/atelier/charters" */
   chartersDir: string;
+}
+
+/**
+ * Load the framework-level, always-on charters.
+ *
+ * These ship with the engine and validate spatial/geometry invariants across ALL
+ * design systems and components. They complement DS-level charters
+ * (loaded via loadElementCharters) by providing universal guarantees:
+ *
+ *  - geometry/no-overlap:          No elements incorrectly overlap (siblings + cross-tree)
+ *  - geometry/no-child-overflow:   No child element overflows its parent
+ *  - geometry/minimum-gap:         Adjacent siblings have breathing room (≥8px)
+ *  - geometry/z-index-collision:   Overlapping elements have explicit z-index
+ *  - geometry/no-viewport-overflow: No element extends beyond viewport bounds
+ *
+ * Returns a fresh array each call (immutable list of charter instances).
+ */
+export function loadFrameworkCharters(): ElementCharter[] {
+  return [...FRAMEWORK_GEOMETRY_CHARTERS];
 }
 
 /**
@@ -39,7 +62,9 @@ export async function loadElementCharters(
   if (indexExists) {
     try {
       const resolvedPath = fs.existsSync(indexPath) ? indexPath : indexTsPath;
-      const mod = await import(resolvedPath);
+      // Bust Node.js module cache with a timestamp so edits to .ts charters
+      // are picked up without a full restart during development.
+      const mod = await import(resolvedPath + `?t=${Date.now()}`);
       const charters = mod.default ?? [];
       if (Array.isArray(charters)) {
         return validateCharters(charters);

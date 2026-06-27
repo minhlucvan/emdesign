@@ -25,6 +25,29 @@ export type { Rule, RuleContext } from './rules/engine.js';
 export { componentLint, tokenReferenceLint } from './rules/lint.js';
 export type { ComponentLintOptions } from './rules/lint.js';
 
+// unified rule registry (ESLint-style rule management)
+export {
+  RuleRegistry,
+  createRuleRegistry,
+  wrapElementCharter,
+  computeGrade,
+  computeUnifiedScore,
+  BUILTIN_PRESETS,
+} from './rules/registry.js';
+export type {
+  RuleManifest,
+  RulePreset,
+  RulePresetName,
+  RuleSeverity,
+  RuleOverrideLevel,
+  RuleOverride,
+  RuleKind,
+  UnifiedFinding,
+  UnifiedResult,
+  RuleEvalContext,
+  RuleRegistryQuery,
+} from './rules/registry.js';
+
 // rendered-artifact rules (render-probe snapshots + deterministic geometry/contrast lint)
 export type {
   RenderNode,
@@ -45,7 +68,7 @@ export { DesignSystemRuntime, createRuntime } from './runtime.js';
 export type { RuntimeConfig, ValidationResult } from './runtime.js';
 
 // element charters
-export { loadElementCharters } from './charters/loader.js';
+export { loadElementCharters, loadFrameworkCharters } from './charters/loader.js';
 export { buildDomTree, querySelectorAll, queryByRelation } from './charters/matcher.js';
 export type {
   ElementCharter,
@@ -56,6 +79,14 @@ export type {
   EcDomNode,
   EcFinding,
 } from './charters/charter.js';
+
+// framework-level geometry charters (always-on, engine-shipped)
+export {
+  FRAMEWORK_GEOMETRY_CHARTERS,
+  noOverlap,
+  noChildOverflow,
+  minimumGap,
+} from './charters/geometry/index.js';
 
 // story charters
 export {

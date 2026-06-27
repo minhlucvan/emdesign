@@ -67,6 +67,50 @@
       }
     },
     {
+      "id": "atelier/charters/accent-usage.ts",
+      "label": "file",
+      "props": {
+        "path": "charters/accent-usage.ts",
+        "type": "asset",
+        "source": {
+          "file": "atelier/charters/accent-usage.ts"
+        }
+      }
+    },
+    {
+      "id": "atelier/charters/button-padding.ts",
+      "label": "file",
+      "props": {
+        "path": "charters/button-padding.ts",
+        "type": "asset",
+        "source": {
+          "file": "atelier/charters/button-padding.ts"
+        }
+      }
+    },
+    {
+      "id": "atelier/charters/heading-font.ts",
+      "label": "file",
+      "props": {
+        "path": "charters/heading-font.ts",
+        "type": "asset",
+        "source": {
+          "file": "atelier/charters/heading-font.ts"
+        }
+      }
+    },
+    {
+      "id": "atelier/charters/index.ts",
+      "label": "file",
+      "props": {
+        "path": "charters/index.ts",
+        "type": "asset",
+        "source": {
+          "file": "atelier/charters/index.ts"
+        }
+      }
+    },
+    {
       "id": "atelier/code/Badge.tsx",
       "label": "file",
       "props": {
@@ -889,6 +933,16 @@
       }
     },
     {
+      "id": "atelier/Button@danger",
+      "label": "variant",
+      "props": {
+        "name": "danger",
+        "source": {
+          "file": "atelier/code/Button.tsx"
+        }
+      }
+    },
+    {
       "id": "atelier/Button:hover",
       "label": "state",
       "props": {
@@ -1182,6 +1236,54 @@
           "sectionHint": "Color"
         }
       }
+    },
+    {
+      "id": "skill/web-section",
+      "label": "skill",
+      "props": {
+        "name": "web-section",
+        "mode": "component",
+        "scenario": "marketing",
+        "source": {
+          "file": "skills/web-section/SKILL.md"
+        }
+      }
+    },
+    {
+      "id": "charter/atelier/accent-usage",
+      "label": "charter",
+      "props": {
+        "name": "accent-usage",
+        "dsId": "atelier",
+        "file": "atelier/charters/accent-usage.ts",
+        "source": {
+          "file": "atelier/charters/accent-usage.ts"
+        }
+      }
+    },
+    {
+      "id": "charter/atelier/button-padding",
+      "label": "charter",
+      "props": {
+        "name": "button-padding",
+        "dsId": "atelier",
+        "file": "atelier/charters/button-padding.ts",
+        "source": {
+          "file": "atelier/charters/button-padding.ts"
+        }
+      }
+    },
+    {
+      "id": "charter/atelier/heading-font",
+      "label": "charter",
+      "props": {
+        "name": "heading-font",
+        "dsId": "atelier",
+        "file": "atelier/charters/heading-font.ts",
+        "source": {
+          "file": "atelier/charters/heading-font.ts"
+        }
+      }
     }
   ],
   "edges": [
@@ -1218,6 +1320,34 @@
       "label": "contains",
       "from": "atelier",
       "to": "atelier/tokens.css",
+      "props": {}
+    },
+    {
+      "id": "atelier|contains|atelier/charters/accent-usage.ts",
+      "label": "contains",
+      "from": "atelier",
+      "to": "atelier/charters/accent-usage.ts",
+      "props": {}
+    },
+    {
+      "id": "atelier|contains|atelier/charters/button-padding.ts",
+      "label": "contains",
+      "from": "atelier",
+      "to": "atelier/charters/button-padding.ts",
+      "props": {}
+    },
+    {
+      "id": "atelier|contains|atelier/charters/heading-font.ts",
+      "label": "contains",
+      "from": "atelier",
+      "to": "atelier/charters/heading-font.ts",
+      "props": {}
+    },
+    {
+      "id": "atelier|contains|atelier/charters/index.ts",
+      "label": "contains",
+      "from": "atelier",
+      "to": "atelier/charters/index.ts",
       "props": {}
     },
     {
@@ -2228,6 +2358,20 @@
       "props": {}
     },
     {
+      "id": "atelier/Button|hasVariant|atelier/Button@danger",
+      "label": "hasVariant",
+      "from": "atelier/Button",
+      "to": "atelier/Button@danger",
+      "props": {}
+    },
+    {
+      "id": "atelier/Button@danger|uses|atelier/--color-danger",
+      "label": "uses",
+      "from": "atelier/Button@danger",
+      "to": "atelier/--color-danger",
+      "props": {}
+    },
+    {
       "id": "atelier/Button|hasState|atelier/Button:hover",
       "label": "hasState",
       "from": "atelier/Button",
@@ -2281,6 +2425,13 @@
       "label": "uses",
       "from": "atelier/Button",
       "to": "atelier/--focus-ring",
+      "props": {}
+    },
+    {
+      "id": "atelier/Button|uses|atelier/--color-danger",
+      "label": "uses",
+      "from": "atelier/Button",
+      "to": "atelier/--color-danger",
       "props": {}
     },
     {
@@ -3114,6 +3265,48 @@
       "label": "governs",
       "from": "rule/accent-overuse",
       "to": "atelier/Stack",
+      "props": {}
+    },
+    {
+      "id": "atelier|contains|charter/atelier/accent-usage",
+      "label": "contains",
+      "from": "atelier",
+      "to": "charter/atelier/accent-usage",
+      "props": {}
+    },
+    {
+      "id": "atelier|hasCharter|charter/atelier/accent-usage",
+      "label": "hasCharter",
+      "from": "atelier",
+      "to": "charter/atelier/accent-usage",
+      "props": {}
+    },
+    {
+      "id": "atelier|contains|charter/atelier/button-padding",
+      "label": "contains",
+      "from": "atelier",
+      "to": "charter/atelier/button-padding",
+      "props": {}
+    },
+    {
+      "id": "atelier|hasCharter|charter/atelier/button-padding",
+      "label": "hasCharter",
+      "from": "atelier",
+      "to": "charter/atelier/button-padding",
+      "props": {}
+    },
+    {
+      "id": "atelier|contains|charter/atelier/heading-font",
+      "label": "contains",
+      "from": "atelier",
+      "to": "charter/atelier/heading-font",
+      "props": {}
+    },
+    {
+      "id": "atelier|hasCharter|charter/atelier/heading-font",
+      "label": "hasCharter",
+      "from": "atelier",
+      "to": "charter/atelier/heading-font",
       "props": {}
     }
   ]

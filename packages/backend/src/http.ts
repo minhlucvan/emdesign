@@ -15,9 +15,25 @@ import { effectiveAdapter } from './adapters/index.js';
 import { runtimeFor } from './runtime.js';
 import { applyDesignSystem, listBases, listBaseCategories, baseDetail, basePreviewHtml, customizeDesignSystem } from './scaffold.js';
 import { loadOrBuild } from './graph.js';
+import { RULES, RULES_BY_ID } from '@emdesign/graph';
+import { lintFrameworkCharters } from '@emdesign/doctor';
+import type { RenderSnapshot } from '@emdesign/dsr';
 import { evidenceDir } from './evidence.js';
 import { normalizeDsRef } from './paths.js';
 import type { IntentType, CommentTarget, CommentStored } from './state.js';
+
+/** Read a component's source from the generated dir, falling back to a captured component dir. */
+function readComponentSource(paths: RepoPaths, name: string): string | null {
+  if (!name) return null;
+  const candidates = [
+    path.join(paths.generatedDir, `${name}.tsx`),
+    path.join(paths.componentsDir, name, `${name}.tsx`),
+  ];
+  for (const p of candidates) {
+    try { if (fs.existsSync(p)) return fs.readFileSync(p, 'utf8'); } catch { /* ignore */ }
+  }
+  return null;
+}
 
 /**
  * HTTP bridge consumed by the Storybook addon panel. It reads/writes the same Store the
@@ -126,6 +142,126 @@ export async function createHttpBridge(store: Store, paths: RepoPaths, orch?: an
     } catch (e) {
       res.status(500).json({ error: (e as Error).message });
     }
+  });
+
+  // Unified "Charter contract" for a component, spanning three tiers:
+  //   core (engine lint + system invariants) · designSystem (Element Charters) · component (story charters).
+  // The addon's Charters panel posts the component name + a live DOM snapshot; story-charter
+  // results are merged in client-side (tier `component` is returned empty here).
+  app.post('/api/charters', async (req, res) => {
+    const name = String(req.body?.component ?? store.get().currentComponent ?? '').trim();
+    const dsId = store.get().activeDesignSystem ?? 'atelier';
+    const render = req.body?.render;
+
+    type TierItem = { id: string; title: string; severity: 'P0' | 'P1' | 'P2'; pass: boolean; message?: string; fix?: string; target?: string };
+    const core: TierItem[] = [];
+    const designSystem: TierItem[] = [];
+
+    // ── Tier 1: core engine rules ──────────────────────────────────────────
+    try {
+      const ds = resolveDesignSystem(paths, dsId);
+      // Component anti-slop + token lint (generated or captured source).
+      const source = readComponentSource(paths, name);
+      const findings = source
+        ? effectiveAdapter(paths).lint(source, {
+            declaredTokens: ds.declaredTokens,
+            exemptions: ds.exemptions,
+            bindsDisplayFace: ds.bindsDisplayFace,
+          })
+        : [];
+      const byId = new Map(findings.map((f) => [f.id, f]));
+      // The full rule catalog — every rule shown pass/fail (the "contract").
+      for (const rule of RULES) {
+        const hit = byId.get(rule.id);
+        core.push({
+          id: rule.id,
+          title: rule.id,
+          severity: rule.severity,
+          pass: !hit,
+          message: hit ? hit.message : rule.message,
+          fix: hit?.fix ?? rule.remediation.text,
+          target: hit?.snippet,
+        });
+      }
+      // Findings whose id isn't in the catalog (keep nothing hidden).
+      for (const f of findings) {
+        if (!RULES_BY_ID[f.id]) {
+          core.push({ id: f.id, title: f.id, severity: f.severity, pass: false, message: f.message, fix: f.fix, target: f.snippet });
+        }
+      }
+      // System invariants (token contract + structural) — failures only.
+      const sys = runtimeFor(paths).validate(dsId);
+      for (const d of sys.diagnostics) {
+        core.push({ id: d.ruleId, title: d.ruleId, severity: d.severity, pass: false, message: d.message, fix: d.fix, target: d.target });
+      }
+      if (!source) {
+        core.push({ id: 'source', title: 'component-source', severity: 'P2', pass: false, message: `No source found for "${name}" in generated/ or components/.` });
+      }
+    } catch (e) {
+      core.push({ id: 'core-error', title: 'core', severity: 'P2', pass: false, message: (e as Error).message });
+    }
+
+    // ── Tier 2: design-system Element Charters ─────────────────────────────
+    try {
+      const rt = runtimeFor(paths);
+      await rt.loadCharters(dsId);
+      const catalog = rt.listCharters(); // full set (name, severity, description, layer)
+      const { charters } = rt.evaluateCharters(dsId, render ? [render] : undefined);
+      // Group findings by charter name (ruleId === `ec/<name>/<finding.id>`).
+      const byCharter = new Map<string, typeof charters>();
+      for (const d of charters) {
+        const charterName = d.ruleId.split('/')[1] ?? d.ruleId;
+        const list = byCharter.get(charterName);
+        if (list) list.push(d);
+        else byCharter.set(charterName, [d]);
+      }
+      for (const c of catalog) {
+        const hits = byCharter.get(c.name) ?? [];
+        if (hits.length === 0) {
+          designSystem.push({ id: c.name, title: c.name, severity: c.severity as TierItem['severity'], pass: true, message: c.description });
+        } else {
+          for (const d of hits) {
+            designSystem.push({
+              id: d.ruleId,
+              title: c.name,
+              severity: d.severity,
+              pass: false,
+              message: d.message.replace(/^\[EC:[^\]]+\]\s*/, ''),
+              fix: d.fix,
+              target: d.target,
+            });
+          }
+        }
+      }
+    } catch (e) {
+      designSystem.push({ id: 'ds-error', title: 'design-system', severity: 'P2', pass: false, message: (e as Error).message });
+    }
+
+    // ── Framework-level geometry charters (always-on) ────────────────────────
+    try {
+      if (render && render.nodes && render.nodes.length > 0) {
+        const snap: RenderSnapshot = {
+          component: name,
+          storyId: String(req.body?.storyId ?? ''),
+          url: '',
+          theme: 'light',
+          viewport: { width: 0, height: 0, deviceScaleFactor: 1 },
+          root: render.root ?? { x: 0, y: 0, width: 0, height: 0 },
+          nodes: render.nodes,
+        };
+        const fwReport = lintFrameworkCharters('framework', [snap]);
+        for (const f of fwReport.findings) {
+          core.push({ id: f.ruleId, title: f.ruleId, severity: f.severity, pass: false, message: f.detail ?? f.title, fix: f.fix, target: f.target });
+        }
+        for (const f of fwReport.passes) {
+          core.push({ id: f.ruleId, title: f.ruleId, severity: 'P2' as const, pass: true, message: f.detail ?? f.title });
+        }
+      }
+    } catch {
+      // non-fatal — framework charters are advisory
+    }
+
+    res.json({ component: name, dsId, tiers: { core, designSystem, component: [] } });
   });
 
   // The authoritative gate (used by the CLI + the loop).
