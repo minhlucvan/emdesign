@@ -45,8 +45,6 @@ const chatCss = `
     flex: 1;
     display: flex;
     flex-direction: column;
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
     overflow: hidden;
   }
   /* Keep sidebar-header in its natural flow, add breathing room */
