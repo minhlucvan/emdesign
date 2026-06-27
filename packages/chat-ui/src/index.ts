@@ -1,5 +1,7 @@
 export { QuestionCard } from './question-card'
 export type { QuestionCardProps, Question, QuestionOption } from './question-card'
+export { PromptSuggestions } from './prompt-suggestions'
+export type { PromptSuggestion, PromptSuggestionsProps } from './prompt-suggestions'
 export { injectShadcnVars, css, shadcnVars } from './theme'
 export { Chat, ChatContainer, ChatMessages, ChatForm } from './chat'
 export type { ChatProps } from './chat'

@@ -3,8 +3,8 @@
  */
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { addons } from '@storybook/manager-api';
-import { injectShadcnVars, css, MessageList, useAutoScroll, QuestionCard } from '@emdesign/chat-ui';
-import type { Message, Question } from '@emdesign/chat-ui';
+import { injectShadcnVars, css, MessageList, useAutoScroll, QuestionCard, PromptSuggestions } from '@emdesign/chat-ui';
+import type { Message, Question, PromptSuggestion } from '@emdesign/chat-ui';
 import { api } from '../api';
 import { BACKEND_URL, CHAT_MODES } from '../constants';
 import { EVT_ELEMENT_SELECTED, EVT_VIEW_CONTEXT } from '../channel';
@@ -232,12 +232,13 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
   const [showNewPicker, setShowNewPicker] = useState(false);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
-  const [pendingNewScope, setPendingNewScope] = useState<{ scope: string; origin: string } | null>(null);
+  const [pendingNewScope, setPendingNewScope] = useState<{ scope: string; origin: string; intentType?: string } | null>(null);
   const skipConversationLoadRef = useRef(false);
   const autoSendRef = useRef<string | null>(null);
+  const autoIntentTypeRef = useRef<string | undefined>(undefined);
   const [selectedElement, setSelectedElement] = useState<ElementSelectedPayload | null>(null);
   const [viewContext, setViewContext] = useState<ViewContextPayload | null>(null);
-  const [filterTab, setFilterTab] = useState<'project' | 'story'>('story');
+  const [filterTab, setFilterTab] = useState<'project' | 'story' | 'design-system'>('story');
   const [pendingQuestion, setPendingQuestion] = useState<{
     questions: Question[];
     state: 'interactive' | 'pending' | 'answered' | 'expired';
@@ -383,7 +384,7 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
   // Split sessions into project (global) and story-scoped
   const projectSessions = useMemo(() => filtered.filter((s: any) => !s.scope || s.scope === 'global'), [filtered]);
   const storySessions = useMemo(() => filtered.filter((s: any) => s.scope && s.scope !== 'global'), [filtered]);
-  const displaySessions = filterTab === 'project' ? projectSessions : storySessions;
+  const displaySessions = filterTab === 'project' || filterTab === 'design-system' ? projectSessions : storySessions;
 
   const activeSession = activeSessionId ? allSessions.find(s => s.id === activeSessionId) : null;
 
@@ -430,6 +431,48 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
     }
     setCreating(false);
   }, [filterTab, viewContext]);
+
+  // ── Prompt suggestions per tab ──────────────────────────────────
+  const STORY_SUGGESTIONS: PromptSuggestion[] = [
+    { title: 'Polish this component', action: 'Polish this component to match the design system' },
+    { title: 'Add a new variant', action: 'Add a new variant/story for this component' },
+    { title: 'Fix accessibility issues', action: 'Fix accessibility issues in this component' },
+    { title: 'Review the design', action: 'Review the design of this component against the design system' },
+  ];
+  const PROJECT_SUGGESTIONS: PromptSuggestion[] = [
+    { title: 'Create a new component', action: 'Create a new React component following the design system' },
+    { title: 'Create a new page/view', action: 'Create a new page or view composing existing components' },
+    { title: 'Request a design change', action: 'Request a change to the design' },
+    { title: 'Update design tokens', action: 'Update the design system tokens' },
+  ];
+  const DS_SUGGESTIONS: PromptSuggestion[] = [
+    { title: 'Update color tokens', action: 'Update the color tokens in the design system' },
+    { title: 'Customize typography', action: 'Customize the typography scale in the design system' },
+    { title: 'Add new components', action: 'Add new components to the design system library' },
+    { title: 'Import a design system', action: 'Import a new design system from a base or reference' },
+  ];
+
+  const currentSuggestions = filterTab === 'story' ? STORY_SUGGESTIONS
+    : filterTab === 'project' ? PROJECT_SUGGESTIONS
+    : DS_SUGGESTIONS;
+
+  const handleSuggestionClick = useCallback(async (action: string) => {
+    if (sending) return;
+    const scope = filterTab === 'story' && viewContext ? `story:${viewContext.storyId}` : 'global';
+    // Create session directly
+    try {
+      const session = await api.createSession({ type: 'chat', scope, origin: 'chat' });
+      setSessions(prev => { const exists = prev.find(s => s.id === session.id); return exists ? prev : [session, ...prev]; });
+      setPendingNewScope(null);
+      skipConversationLoadRef.current = true;
+      setActiveSessionId(session.id);
+      // Set input text and trigger send
+      suggestionTriggeredRef.current = true;
+      setInput(action);
+    } catch (e) {
+      console.error('Failed to create session:', e);
+    }
+  }, [filterTab, viewContext, sending]);
 
   // Send message → stream response from Claude via SSE
   const handleSend = useCallback(async () => {
@@ -578,6 +621,20 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => setInput(e.target.value), []);
 
+  // When activeSessionId changes AND input was set by a suggestion, trigger send
+  const suggestionTriggeredRef = useRef(false);
+  useEffect(() => {
+    if (activeSessionId && input.trim() && suggestionTriggeredRef.current) {
+      suggestionTriggeredRef.current = false;
+      const t = setTimeout(() => {
+        // Find and submit the form
+        const form = document.querySelector('.emdesign-chat-root form') as HTMLFormElement | null;
+        if (form) form.requestSubmit();
+      }, 100);
+      return () => clearTimeout(t);
+    }
+  }, [activeSessionId, input]);
+
   // Auto-scroll for message area
   const { containerRef: msgRef, handleScroll: msgScroll } = useAutoScroll([messages, msgLoading, activeSessionId]);
 
@@ -611,7 +668,7 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
         <>
           {/* ── Tab filters ── */}
           <div style={{ display: 'flex', gap: 0 }}>
-            {(['story', 'project'] as const).map(tab => (
+            {(['story', 'project', 'design-system'] as const).map(tab => (
               <button key={tab} onClick={() => setFilterTab(tab)}
                 style={{
                   flex: 1, padding: '5px 0', fontSize: 10, fontWeight: filterTab === tab ? 600 : 400, cursor: 'pointer',
@@ -621,7 +678,9 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
                   color: filterTab === tab ? css('--foreground') : css('--muted-foreground'),
                   borderBottom: 'none',
                 }}>
-                {tab === 'story' ? `📖 Story${viewContext ? `: ${viewContext.component}` : ''}` : '💬 Project'}
+                {tab === 'story' ? `📖 Story${viewContext ? `: ${viewContext.component}` : ''}`
+                 : tab === 'project' ? '💬 Project'
+                 : '🎨 Design System'}
               </button>
             ))}
           </div>
@@ -642,7 +701,7 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
                 fontSize: 11, fontWeight: 600, cursor: 'pointer', border: `1px solid ${css('--primary')}`,
                 background: css('--primary'), color: css('--primary-foreground'),
               }}>
-              <span style={{ fontSize: 13, lineHeight: 1 }}>+</span> New {filterTab === 'story' ? 'Story' : 'Project'} Conversation
+              <span style={{ fontSize: 13, lineHeight: 1 }}>+</span> New {filterTab === 'story' ? 'Story' : filterTab === 'project' ? 'Project' : 'Design System'} Conversation
             </button>
           </div>
 
@@ -665,9 +724,18 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
             ) : messages.length === 0 && !pendingNewScope ? (
               <div style={{ padding: 20, textAlign: 'center', fontSize: 12, ...S.muted }}>No messages in this session</div>
             ) : messages.length === 0 && pendingNewScope ? (
-              <div style={{ padding: 20, textAlign: 'center', fontSize: 12, color: css('--muted-foreground'), lineHeight: 1.6 }}>
-                <div style={{ fontWeight: 600, marginBottom: 4, color: css('--foreground') }}>{pendingNewScope.scope === 'global' ? '💬 Project Chat' : `📖 Story Chat${viewContext ? `: ${viewContext.component}` : ''}`}</div>
-                <div style={{ fontSize: 10, opacity: 0.7 }}>Type a message to start the conversation</div>
+              <div style={{ padding: '16px 12px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                <div style={{ fontWeight: 600, marginBottom: 12, color: css('--foreground'), fontSize: 13 }}>
+                  {pendingNewScope.scope === 'global' ? '💬 Project Chat' : `📖 Story Chat${viewContext ? `: ${viewContext.component}` : ''}`}
+                </div>
+                <PromptSuggestions
+                  label="Try asking..."
+                  suggestions={currentSuggestions}
+                  append={handleSuggestionClick}
+                />
+                <div style={{ marginTop: 12, fontSize: 10, color: css('--muted-foreground'), opacity: 0.6 }}>
+                  Or type a message to start the conversation
+                </div>
               </div>
             ) : (
               <MessageList messages={messages} isTyping={showTyping} />
