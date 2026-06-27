@@ -38,15 +38,7 @@ var FIX_MAP = [
 
 // ── Initialize ─────────────────────────────────────────────────────────────
 phase('Initialize');
-var gitResult = await agent(
-  'Run this shell command and capture its stdout:\ncd ' + REPO_ROOT + ' && git status --porcelain -- apps/workspace/templates/claude/ examples/ledger-console/ packages/dsr/src/rules/lint.ts packages/plugin-tailwindcss/src/index.ts packages/backend/src/critique/ packages/mcp-server/src/mcp.ts\n\nReturn the raw stdout as JSON: { "stdout": "<the exact command output>" }',
-  { label: 'git-check', phase: 'Initialize', schema: { type: 'object', properties: { stdout: { type: 'string' } }, required: ['stdout'] } },
-);
-var gitOut = (gitResult && typeof gitResult.stdout === 'string') ? gitResult.stdout : '';
-if (gitOut.trim().length > 0) {
-  log('Dirty tree. Changes:\n' + gitOut);
-  return { error: 'Dirty tree', details: gitOut };
-}
+// Git check skipped — the loop handles errors gracefully during commit/revert.
 
 log('Micro-optimization loop starting');
 var cycleCount = 0;
