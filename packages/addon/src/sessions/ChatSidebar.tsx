@@ -236,7 +236,7 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
   const autoSendRef = useRef<string | null>(null);
   const [selectedElement, setSelectedElement] = useState<ElementSelectedPayload | null>(null);
   const [viewContext, setViewContext] = useState<ViewContextPayload | null>(null);
-  const [filterTab, setFilterTab] = useState<'project' | 'story'>('project');
+  const [filterTab, setFilterTab] = useState<'project' | 'story'>('story');
   const [pendingQuestion, setPendingQuestion] = useState<{
     questions: Question[];
     state: 'interactive' | 'pending' | 'answered' | 'expired';
@@ -580,17 +580,17 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
         <>
           {/* ── Tab filters ── */}
           <div style={{ display: 'flex', gap: 0, borderBottom: `1px solid ${css('--border')}` }}>
-            {(['project', 'story'] as const).map(tab => (
+            {(['story', 'project'] as const).map(tab => (
               <button key={tab} onClick={() => setFilterTab(tab)}
                 style={{
-                  flex: 1, padding: '6px 0', fontSize: 10, fontWeight: 700, cursor: 'pointer',
-                  border: 'none', textTransform: 'uppercase', letterSpacing: '0.05em',
+                  flex: 1, padding: '5px 0', fontSize: 10, fontWeight: filterTab === tab ? 600 : 400, cursor: 'pointer',
+                  border: 'none', textTransform: 'uppercase', letterSpacing: '0.04em',
                   transition: 'all 0.12s',
-                  background: filterTab === tab ? css('--background') : css('--muted'),
+                  background: 'transparent',
                   color: filterTab === tab ? css('--foreground') : css('--muted-foreground'),
-                  borderBottom: filterTab === tab ? `2px solid ${css('--primary')}` : '2px solid transparent',
+                  borderBottom: 'none',
                 }}>
-                {tab === 'project' ? '💬 Project' : `📖 Story${viewContext ? `: ${viewContext.component}` : ''}`}
+                {tab === 'story' ? `📖 Story${viewContext ? `: ${viewContext.component}` : ''}` : '💬 Project'}
               </button>
             ))}
           </div>
@@ -608,7 +608,7 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
                 fontSize: 11, fontWeight: 600, cursor: 'pointer', border: `1px solid ${css('--primary')}`,
                 background: css('--primary'), color: css('--primary-foreground'),
               }}>
-              <span style={{ fontSize: 13, lineHeight: 1 }}>+</span> New{filterTab === 'project' ? ' Project' : ' Story'} Conversation
+              <span style={{ fontSize: 13, lineHeight: 1 }}>+</span> New {filterTab === 'story' ? 'Story' : 'Project'} Conversation
             </button>
 
             {/* ── Mode picker — click a mode to start immediately ── */}
