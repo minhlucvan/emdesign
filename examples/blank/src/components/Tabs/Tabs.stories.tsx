@@ -11,11 +11,23 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
   args: {
-    tabs: undefined,
-    activeTab: 'sample',
-    id: 'sample',
-    className: 'sample',
+    tabs: [
+      { id: 'overview', label: 'Overview' },
+      { id: 'analytics', label: 'Analytics', badge: '12' },
+      { id: 'settings', label: 'Settings' },
+    ],
+    activeTab: 'overview',
   },
 };
 
-
+export const PillVariant: Story = {
+  args: {
+    tabs: [
+      { id: 'day', label: 'Day' },
+      { id: 'week', label: 'Week' },
+      { id: 'month', label: 'Month' },
+    ],
+    activeTab: 'week',
+    variant: 'pills',
+  },
+};

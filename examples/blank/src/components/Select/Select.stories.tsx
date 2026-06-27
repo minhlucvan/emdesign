@@ -11,25 +11,22 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
   args: {
-    options: undefined,
-    value: 'sample',
-    value: 'sample',
-    placeholder: 'sample',
-    disabled: false,
-    error: 'sample',
-    className: 'sample',
+    options: [
+      { value: 'active', label: 'Active' },
+      { value: 'pending', label: 'Pending' },
+      { value: 'completed', label: 'Completed' },
+    ],
+    placeholder: 'Select status...',
   },
 };
 
-export const disabled: Story = {
+export const Disabled: Story = {
   args: {
-    options: undefined,
-    value: 'sample',
-    value: 'sample',
-    placeholder: 'sample',
+    options: [
+      { value: 'read', label: 'Read' },
+      { value: 'write', label: 'Write' },
+      { value: 'admin', label: 'Admin' },
+    ],
     disabled: true,
-    error: 'sample',
-    className: 'sample',
   },
-  parameters: { charters: ['should render with disabled=true'] },
 };

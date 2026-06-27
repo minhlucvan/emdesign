@@ -11,12 +11,16 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
   args: {
-    variant: undefined,
-    width: 'sample',
-    height: 'sample',
-    count: 0,
-    className: 'sample',
+    variant: 'text',
+    count: 3,
   },
 };
 
-
+export const Card: Story = {
+  args: {
+    variant: 'card',
+    count: 1,
+    width: '300px',
+    height: '120px',
+  },
+};

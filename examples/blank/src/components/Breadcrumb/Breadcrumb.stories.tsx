@@ -11,11 +11,23 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
   args: {
-    items: undefined,
-    maxItems: 0,
-    separator: 'sample',
-    className: 'sample',
+    items: [
+      { label: 'Home', href: '/' },
+      { label: 'Products' },
+      { label: 'Analytics' },
+    ],
   },
 };
 
-
+export const ManyItems: Story = {
+  args: {
+    items: [
+      { label: 'Dashboard' },
+      { label: 'Analytics' },
+      { label: 'Reports' },
+      { label: 'Q2 2026' },
+      { label: 'Revenue' },
+    ],
+    maxItems: 3,
+  },
+};

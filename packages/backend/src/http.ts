@@ -14,10 +14,11 @@ import { countMustFix } from './lint/index.js';
 import { effectiveAdapter } from './adapters/index.js';
 import { runtimeFor } from './runtime.js';
 import { applyDesignSystem, listBases, listBaseCategories, baseDetail, basePreviewHtml, customizeDesignSystem } from './scaffold.js';
-import { loadOrBuild } from './graph.js';
+import { loadOrBuild, buildAndSave } from './graph.js';
 import { RULES, RULES_BY_ID } from '@emdesign/graph';
-import { lintFrameworkCharters } from '@emdesign/doctor';
-import type { RenderSnapshot } from '@emdesign/dsr';
+import { lintFrameworkCharters, lintDesignSystem, lintRendered, mergeReports } from '@emdesign/doctor';
+import type { RenderSnapshot, RenderedReviewContext } from '@emdesign/dsr';
+import { detectConflicts } from '@emdesign/dsr';
 import { evidenceDir } from './evidence.js';
 import { normalizeDsRef } from './paths.js';
 import type { IntentType, CommentTarget, CommentStored } from './state.js';
@@ -261,7 +262,60 @@ export async function createHttpBridge(store: Store, paths: RepoPaths, orch?: an
       // non-fatal — framework charters are advisory
     }
 
-    res.json({ component: name, dsId, tiers: { core, designSystem, component: [] } });
+    // ── Tier 3: Doctor rules (production-readiness) ─────────────────────────
+    const doctor: TierItem[] = [];
+    try {
+      buildAndSave(paths, dsId);
+      const ds = runtimeFor(paths).load(dsId);
+      const conflicts = detectConflicts(ds);
+      const stats = ds.graph.stats();
+      const adapter = effectiveAdapter(paths);
+      const dr = adapter.doctorRules();
+      if (dr.length > 0) {
+        const report = lintDesignSystem(`${dsId}/doctor`, { ds, conflicts, stats }, dr);
+        for (const f of report.findings) {
+          doctor.push({ id: f.ruleId, title: f.title, severity: f.severity as TierItem['severity'], pass: false, message: f.detail, fix: f.fix, target: f.target });
+        }
+        for (const f of report.passes) {
+          doctor.push({ id: f.ruleId, title: f.title, severity: f.severity as TierItem['severity'], pass: true, message: f.detail, fix: f.fix, target: f.target });
+        }
+      }
+    } catch (e) {
+      doctor.push({ id: 'doctor-error', title: 'doctor', severity: 'P2', pass: false, message: (e as Error).message });
+    }
+
+    // ── Tier 4: Rendered DOM rules (requires render snapshot) ──────────────
+    const rendered: TierItem[] = [];
+    try {
+      if (render && render.nodes && render.nodes.length > 0) {
+        const adapter = effectiveAdapter(paths);
+        const renderedRules = adapter.renderedDoctorRules();
+        if (renderedRules.length > 0) {
+          const ds = runtimeFor(paths).load(dsId);
+          const snap: RenderSnapshot = {
+            component: name,
+            storyId: String(req.body?.storyId ?? ''),
+            url: '',
+            theme: 'light',
+            viewport: { width: 0, height: 0, deviceScaleFactor: 1 },
+            root: render.root ?? { x: 0, y: 0, width: 0, height: 0 },
+            nodes: render.nodes,
+          };
+          const rctx: RenderedReviewContext = { ds, renders: [snap] };
+          const rr = lintRendered(`${dsId}/rendered`, rctx, renderedRules);
+          for (const f of rr.findings) {
+            rendered.push({ id: f.ruleId, title: f.title, severity: f.severity as TierItem['severity'], pass: false, message: f.detail, fix: f.fix, target: f.target });
+          }
+          for (const f of rr.passes) {
+            rendered.push({ id: f.ruleId, title: f.title, severity: f.severity as TierItem['severity'], pass: true, message: f.detail });
+          }
+        }
+      }
+    } catch {
+      // non-fatal — rendered rules are advisory
+    }
+
+    res.json({ component: name, dsId, tiers: { core, doctor, rendered, designSystem, component: [] } });
   });
 
   // The authoritative gate (used by the CLI + the loop).

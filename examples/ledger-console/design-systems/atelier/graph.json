@@ -259,6 +259,13 @@
       }
     },
     {
+      "id": "atelier/group/text-on-accent/tinted-backgrounds",
+      "label": "cssVarGroup",
+      "props": {
+        "name": "text on accent/tinted backgrounds"
+      }
+    },
+    {
       "id": "atelier/group/type",
       "label": "cssVarGroup",
       "props": {
@@ -474,6 +481,18 @@
       "label": "color",
       "props": {
         "value": "#963228"
+      }
+    },
+    {
+      "id": "atelier/--color-highlight-ink",
+      "label": "token",
+      "props": {
+        "name": "--color-highlight-ink",
+        "kind": "color",
+        "value": "#1a1714",
+        "source": {
+          "file": "atelier/tokens.css"
+        }
       }
     },
     {
@@ -1207,6 +1226,20 @@
       }
     },
     {
+      "id": "rule/filler-copy",
+      "label": "rule",
+      "props": {
+        "ruleId": "filler-copy",
+        "severity": "P0",
+        "message": "Filler/placeholder copy.",
+        "appliesTo": "all",
+        "remediation": {
+          "text": "Write real, specific copy.",
+          "sectionHint": "Voice & Brand"
+        }
+      }
+    },
+    {
       "id": "rule/external-image",
       "label": "rule",
       "props": {
@@ -1460,6 +1493,13 @@
       "props": {}
     },
     {
+      "id": "atelier|contains|atelier/group/text-on-accent/tinted-backgrounds",
+      "label": "contains",
+      "from": "atelier",
+      "to": "atelier/group/text-on-accent/tinted-backgrounds",
+      "props": {}
+    },
+    {
       "id": "atelier|contains|atelier/group/type",
       "label": "contains",
       "from": "atelier",
@@ -1695,6 +1735,27 @@
       "label": "tokenValue",
       "from": "atelier/--color-danger",
       "to": "atelier/#963228",
+      "props": {}
+    },
+    {
+      "id": "atelier|contains|atelier/--color-highlight-ink",
+      "label": "contains",
+      "from": "atelier",
+      "to": "atelier/--color-highlight-ink",
+      "props": {}
+    },
+    {
+      "id": "atelier/--color-highlight-ink|declaredIn|atelier/tokens.css",
+      "label": "declaredIn",
+      "from": "atelier/--color-highlight-ink",
+      "to": "atelier/tokens.css",
+      "props": {}
+    },
+    {
+      "id": "atelier/--color-highlight-ink|tokenValue|atelier/#1a1714",
+      "label": "tokenValue",
+      "from": "atelier/--color-highlight-ink",
+      "to": "atelier/#1a1714",
       "props": {}
     },
     {
@@ -2163,6 +2224,13 @@
       "label": "definedIn",
       "from": "atelier/--color-danger",
       "to": "atelier/§color",
+      "props": {}
+    },
+    {
+      "id": "atelier/--color-highlight-ink|definedIn|atelier/§visual-theme-atmosphere",
+      "label": "definedIn",
+      "from": "atelier/--color-highlight-ink",
+      "to": "atelier/§visual-theme-atmosphere",
       "props": {}
     },
     {
@@ -3121,6 +3189,55 @@
       "id": "rule/invented-metric|governs|atelier/Stack",
       "label": "governs",
       "from": "rule/invented-metric",
+      "to": "atelier/Stack",
+      "props": {}
+    },
+    {
+      "id": "rule/filler-copy|governs|atelier/Badge",
+      "label": "governs",
+      "from": "rule/filler-copy",
+      "to": "atelier/Badge",
+      "props": {}
+    },
+    {
+      "id": "rule/filler-copy|governs|atelier/Button",
+      "label": "governs",
+      "from": "rule/filler-copy",
+      "to": "atelier/Button",
+      "props": {}
+    },
+    {
+      "id": "rule/filler-copy|governs|atelier/Card",
+      "label": "governs",
+      "from": "rule/filler-copy",
+      "to": "atelier/Card",
+      "props": {}
+    },
+    {
+      "id": "rule/filler-copy|governs|atelier/Heading",
+      "label": "governs",
+      "from": "rule/filler-copy",
+      "to": "atelier/Heading",
+      "props": {}
+    },
+    {
+      "id": "rule/filler-copy|governs|atelier/Eyebrow",
+      "label": "governs",
+      "from": "rule/filler-copy",
+      "to": "atelier/Eyebrow",
+      "props": {}
+    },
+    {
+      "id": "rule/filler-copy|governs|atelier/Input",
+      "label": "governs",
+      "from": "rule/filler-copy",
+      "to": "atelier/Input",
+      "props": {}
+    },
+    {
+      "id": "rule/filler-copy|governs|atelier/Stack",
+      "label": "governs",
+      "from": "rule/filler-copy",
       "to": "atelier/Stack",
       "props": {}
     },

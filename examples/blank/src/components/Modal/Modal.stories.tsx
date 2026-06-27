@@ -11,35 +11,28 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
   args: {
-    open: false,
-    title: 'sample',
-    children: undefined,
-    footer: undefined,
+    open: true,
+    title: 'Confirm Delete',
+    children: 'Are you sure you want to delete this item? This action cannot be undone.',
     closeOnOverlay: false,
-    className: 'sample',
   },
 };
 
-export const open: Story = {
+export const WithFooter: Story = {
   args: {
     open: true,
-    title: 'sample',
-    children: undefined,
-    footer: undefined,
+    title: 'Save Changes',
+    children: 'You have unsaved changes. Do you want to save before leaving?',
+    footer: 'Cancel  Save',
     closeOnOverlay: false,
-    className: 'sample',
   },
-  parameters: { charters: ['should render with open=true'] },
 };
 
 export const closeOnOverlay: Story = {
   args: {
-    open: false,
-    title: 'sample',
-    children: undefined,
-    footer: undefined,
+    open: true,
+    title: 'Dismissible Dialog',
+    children: 'Click outside or press Escape to close.',
     closeOnOverlay: true,
-    className: 'sample',
   },
-  parameters: { charters: ['should render with closeOnOverlay=true'] },
 };

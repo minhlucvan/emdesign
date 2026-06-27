@@ -55,7 +55,7 @@ export async function cmdStoryAuto(args: StoryAutoArgs, paths: RepoPaths): Promi
     .map(l => {
       // Skip lines with function types (contain parentheses)
       if (l.includes('(') && l.includes(')')) return null;
-      const m = l.match(/(\w+)\??:\s*(\w+)/);
+      const m = l.match(/(\w+)\??:\s*([\w[\]<>]+)/);
       return m ? { name: m[1], type: m[2], required: !l.includes('?') } : null;
     })
     .filter(Boolean) as { name: string; type: string; required: boolean }[];
@@ -68,6 +68,8 @@ export async function cmdStoryAuto(args: StoryAutoArgs, paths: RepoPaths): Promi
     if (p.type === 'boolean') return `    ${p.name}: false,`;
     if (p.type === 'string') return `    ${p.name}: 'sample',`;
     if (p.type === 'number') return `    ${p.name}: 0,`;
+    if (p.type.endsWith('[]')) return `    ${p.name}: [],`;
+    if (p.type.endsWith('}')) return `    ${p.name}: {} as any,`;
     return `    ${p.name}: undefined,`;
   }).join('\n');
 
@@ -77,6 +79,8 @@ export async function cmdStoryAuto(args: StoryAutoArgs, paths: RepoPaths): Promi
       if (p.type === 'boolean') return `    ${p.name}: false,`;
       if (p.type === 'string') return `    ${p.name}: 'sample',`;
       if (p.type === 'number') return `    ${p.name}: 0,`;
+      if (p.type.endsWith('[]')) return `    ${p.name}: [],`;
+      if (p.type.endsWith('}')) return `    ${p.name}: {} as any,`;
       return `    ${p.name}: undefined,`;
     }).join('\n');
     const variantName = bp.name.replace(/^is/, '').replace(/^has/, '') + 'Variant';

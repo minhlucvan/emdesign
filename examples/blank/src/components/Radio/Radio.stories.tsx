@@ -11,21 +11,15 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
   args: {
-    options: undefined,
-    value: 'sample',
-    value: 'sample',
-    disabled: false,
-    className: 'sample',
+    options: [{ value: 'monthly', label: 'Monthly' }, { value: 'yearly', label: 'Yearly' }],
+    value: 'monthly',
   },
 };
 
-export const disabled: Story = {
+export const Disabled: Story = {
   args: {
-    options: undefined,
-    value: 'sample',
-    value: 'sample',
+    options: [{ value: 'free', label: 'Free' }, { value: 'pro', label: 'Pro' }, { value: 'enterprise', label: 'Enterprise' }],
+    value: 'pro',
     disabled: true,
-    className: 'sample',
   },
-  parameters: { charters: ['should render with disabled=true'] },
 };

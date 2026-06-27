@@ -106,6 +106,23 @@ complete -F _emdesign_completions emdesign
   const gate = rest.includes('--gate');
   const quiet = rest.includes('--quiet');
 
+  // ── Top-level --help dispatch ──────────────────────────────────────────
+  if (rest.includes('--help') || rest.includes('-h')) {
+    const subHelps: Record<string, () => void> = {
+      ds: () => showDsHelp(),
+      doctor: () => showDoctorHelp(),
+      spatial: () => showSpatialHelp(),
+      render: () => showRenderHelp(),
+      component: () => showComponentHelp(),
+      screen: () => showScreenHelp(),
+      story: () => showStoryHelp(),
+      graph: () => showGraphHelp(),
+      explore: () => showExploreHelp(),
+    };
+    if (subHelps[cmd]) { subHelps[cmd](); return; }
+    // fall through to main help
+  }
+
   switch (cmd) {
     // ── Workspace / Project ──────────────────────────────────────────────
     case 'init': {
@@ -136,6 +153,20 @@ complete -F _emdesign_completions emdesign
 
     // ── Server ──────────────────────────────────────────────────────────
     case 'serve': {
+      // Check for port conflict before starting
+      const net = await import('node:net');
+      const inUse = await new Promise<boolean>((resolve) => {
+        const srv = net.createServer();
+        srv.once('error', () => resolve(true));
+        srv.once('listening', () => { srv.close(); resolve(false); });
+        srv.listen(PORT);
+      });
+      if (inUse) {
+        console.error(`[emdesign] Port ${PORT} is already in use — another backend may be running.\n` +
+          `  To stop it: kill $(lsof -ti:${PORT})`);
+        process.exit(1);
+      }
+
       let orch: any;
       try {
         const { PlatformManager } = await import('@emdesign/session');
@@ -496,9 +527,10 @@ complete -F _emdesign_completions emdesign
           verbose: sbRest.includes('--verbose'),
           json: sbRest.includes('--json'),
           story,
+          all: sbRest.includes('--all'),
         }, paths, store);
       } else {
-        formatError('usage: emdesign storybook health|check [--story <id>] [--verbose] [--json]');
+        formatError('usage: emdesign storybook health|check [--story <id>] [--all] [--verbose] [--json]');
         process.exit(1);
       }
       break;
@@ -507,108 +539,342 @@ complete -F _emdesign_completions emdesign
     // ── Help ─────────────────────────────────────────────────────────────
     case 'help':
     default: {
-      process.stdout.write(`
-emdesign — design-engineering CLI
-
-Usage:
-  emdesign <command> [args] [flags]
-
-Common flags:
-  --json                  Structured JSON on stdout (machine-readable)
-  --gate                  Exit code = verdict (0 = pass, 1 = fail)
-  --quiet                 Suppress stderr messages (doctor)
-  --version, -V           Show version
-  --completion [bash|zsh] Generate shell completion script
-
-── Project ──────────────────────────────────────────────
-  init <framework> [--dir .]        Scaffold a new workspace
-  attach [--dir .]                  Attach to existing project
-  update [--dir .]                  Update workspace templates
-  serve [--port 4321]               Start HTTP bridge
-  up                                Start everything (bridge + Storybook)
-  health                            Ping the HTTP server
-
-── Design System ────────────────────────────────────────
-  use <id>                          Switch active design system
-  ds list                           List all design systems
-  ds create <id> [--mode blank|brief|import|extract]
-      [--from <base>] [--name <display>] [--description <text>]  Create DS
-  ds update <id> [--name <name>] [--description <text>]  Update DS metadata
-  ds diff <id1> <id2>              Compare design systems
-  ds validate [id] [--gate]         Validate token contract + DSR rules
-  ds grade [id] [--gate] [--timeout ms]    Grade DS quality
-  ds scaffold <id> [--from <base>]  Copy base primitives
-  ds customize <id> [--color <hex>] [--font <font>] [--name <name>]
-      [--id <target-id>]            Clone + tweak a design system
-  ds conflicts [id]                 List orphan/unused token conflicts
-  ds history [id] [--snapshot]      Show version history / take snapshot
-  ds bases                          List vendored base systems
-  ds base-detail <id>               Show base system details
-  ds context <comp> [instr]         Design context prompt for agent
-
-── Component ────────────────────────────────────────────
-  design <comp> [instruction]       Print design-context prompt for agent
-  generate <name> [--content <src>] Create/edit component from inline source
-      [--source <file>] [--stdin]   ...or from a file / stdin
-      [--story <file>] [--mode create|edit]
-      [--batch <file.json>]         Batch-generate from JSON array [{name,source}]
-  doctor [kind] <comp> [--gate]     Run ALL verification checks
-      [--timeout ms] [--detail] [--quiet]
-      kinds: lint, visual, snapshot, spatial, charters, react
-      (default: all; comma-separate for multiple: "lint,visual")
-  doctor lint <comp>                Token lint only (fastest)
-  doctor visual <comp> [--timeout]  Visual diff only (needs Storybook)
-  doctor spatial <comp>             Geometry audit
-  doctor charters <comp>            Story charter evaluation
-  doctor react <comp>               React-doctor scan
-  vision <comp> [--mode] [--provider]  AI vision critique
-  capture <comp> [--baseline]       Promote to reusable component
-  capture --all [--baseline]        Capture all generated components
-  compose <name> --components "A,B,C" [--layout stack|grid|sidebar]  Compose a view
-  component a11y <comp>             Deep axe-core a11y audit
-  component test <comp>             Generate vitest tests
-  component diff <comp>             Compare generated vs captured version
-  story auto <comp>                 Auto-generate CSF stories from props
-
-── V2 Commands ──────────────────────────────────────────
-  ds compile <id> [--out <dir>]     Compile tokens → TypeScript types + CSS
-  ds export <id> [--out <dir>]      Export DS as consumable npm package
-  ds version <id> <major|minor|patch>  Semantic version bump
-  ds changelog <id>                 Auto-generate changelog from history
-  render analyze <comp>             Headless render → semantic DOM tree
-  render snapshot <comp>            Capture render as structured JSON
-  spatial audit <comp> [--grid]     Full geometry breakdown (bounding boxes, overlaps)
-  spatial grid <comp>               Overlay design grid, measure adherence
-  screen create <name> [--route <path>]  Create screen with routing
-  screen list                       List all screens
-  loop <comp> [--max-iterations <n>]    Full double-loop until gate passes
-  storybook health|check [--verbose]    Deep Storybook diagnostics (browser-level)
-
-── Browse ───────────────────────────────────────────────
-  discover [--kind all|generated|components|primitives]
-      [--filter <text>]             List stories, components, systems
-  doc <target>                      Component/story documentation
-
-── Knowledge Graph ──────────────────────────────────────
-  graph build [ds-id]               Rebuild knowledge graph
-  graph context <node-id>           Full node context
-  graph impact <node-id>            Blast radius / affected dependents
-  graph where-to-fix <artifact> <finding>  Pinpoint fix location
-  graph guidance [name] --intent <text>    Consistency brief for a component
-  graph query [--label <label>] [--from <n>] [--to <n>] [--where <json>]
-
-── Explore Workspace ────────────────────────────────────
-  explore [topic]                   Overview, ds, tokens, primitives,
-      components, hierarchy, rules, charters, sections, stats
-  explore hierarchy <name>          Composition tree
-  explore tokens --json             Structured token output
-
-Legacy aliases (still work): lint, visual-test, score,
-vision-critique, design-context, spatial-audit
-`);
+      showMainHelp();
       break;
     }
   }
+}
+
+// ── Help functions ───────────────────────────────────────────────────────
+
+function showMainHelp(): void {
+  process.stdout.write(`
+emdesign — design-engineering CLI
+
+Usage: emdesign <command> [args] [flags]
+Run 'emdesign <command> --help' for per-command details.
+
+═══ What do you want to do? ═══
+
+🔧  Set up a project
+    init <framework> [--dir .]        Scaffold a new workspace
+    attach [--dir .]                  Attach to existing project
+    serve [--port 4321]               Start HTTP bridge
+    up                                Start everything (bridge + Storybook)
+
+🎨  Create or customize a design system
+    ds search <query>                 Search registries for matching systems
+    ds import awesome|git <id>        Import from awesome-design-md or git
+    ds create <id> [--mode]           Create a new design system from scratch
+    ds customize <id> [--primary]     Clone + customize with brand tokens
+    ds validate [id] --strict         Validate token contract completeness
+
+📦  Compile and publish a design system
+    ds compile <id>                   Compile tokens → TypeScript types + CSS
+    ds export <id>                    Export as consumable npm package
+    ds version <id> <bump>            Semantic version bump
+    ds changelog <id>                 Auto-generate changelog
+
+🏗️  Build a component
+    ds context <comp> [instruction]   Get design context prompt for AI agent
+    generate <name> [--content]       Create/edit a component from source
+    story auto <comp>                 Auto-generate CSF stories from props
+    capture <comp> [--baseline]       Promote to reusable git-tracked component
+
+✅  Verify and test
+    doctor lint <comp>                Fast token-rule compliance check
+    doctor visual <comp>              Pixel diff vs baseline (needs Storybook)
+    doctor spatial <comp>             Geometry audit (overlaps, spacing)
+    doctor charters <comp>            Story charter evaluation
+    doctor all <comp> --gate          Full composite gate (ship/revise)
+
+🔍  Deep analysis (needs Storybook)
+    render analyze <comp>             Headless render -> semantic DOM tree
+    spatial audit <comp> [--grid]     Full geometry breakdown + grid check
+    component a11y <comp>             Deep axe-core accessibility audit
+    component test <comp>             Generate vitest tests from props
+    vision <comp> [--provider]        AI vision critique (5-axis scoring)
+
+📐  Compose views, screens, and pages
+    compose <name> --components "..." Compose components into a layout
+    ds blueprint list                 List composition blueprints
+    ds blueprint apply <id> <name>    Create component from a blueprint
+    screen create <name> [--route]    Create a screen with routing
+    screen list                       List all screens
+
+⚙️  Configure lint rules
+    ds lint-rules list [id]           Show active lint rules
+    ds lint-rules preset <id> <name>  Apply a rule preset
+    ds lint-rules set <id> <rule> <s> Set rule severity (P0|P1|P2|off)
+
+🤖  Automate
+    loop <comp> [--max-iterations]    Double-loop until gate passes
+    generate --batch <file.json>      Batch-generate from manifest
+    capture --all [--baseline]        Capture all generated components
+    doctor all <comp> --gate          CI-ready composite gate
+
+🔎  Explore and discover
+    explore [overview|ds|tokens|...]  Explore workspace state
+    discover [--kind] [--filter]      List stories, components, systems
+    doc <target>                      Component/story documentation
+
+🔄  Knowledge graph
+    graph build [ds-id]               Rebuild the knowledge graph
+    graph context <node-id>           Full node context from the graph
+    graph impact <node-id>            Blast radius / affected dependents
+    graph where-to-fix <artifact> <f> Find fix location for a lint finding
+    graph guidance [name] --intent    Consistency brief for building
+
+── Common flags ────────────────────────────────────────────────────
+    --version, -V           Show version
+    --completion [bash|zsh] Generate shell completion script
+    --json                  Structured JSON on stdout
+    --gate                  Exit code = verdict (0 ship, 1 fail)
+    --quiet                 Suppress stderr messages
+
+── All commands ────────────────────────────────────────────────────
+    capture  compose  design  discover  doc  doctor  ds  explore
+    generate  graph  health  init  loop  render  screen  spatial
+    story  storybook  update  use  vision
+
+Legacy aliases: lint, visual-test, score, vision-critique, spatial-audit
+`);
+}
+
+function showDsHelp(): void {
+  process.stdout.write(`
+emdesign ds — Design system operations
+
+Usage: emdesign ds <subcommand> [args] [--json] [--gate]
+
+Registry:
+  search <query> [--limit N]          Search registries (vendor + awesome)
+  info [id]                           Show detailed system info
+  list                                List all local design systems
+  bases                               List vendored base systems
+  base-detail <id>                    Show base system details
+  import awesome <brand> [--name]     Import from awesome-design-md (74 brands)
+  import git <url> [--path] [--ref]   Import from a git repository
+  import vendor <id> [--name]         Import from vendored base
+
+Lifecycle:
+  create <id> [--mode] [--from] [--name] [--description]  Create new DS
+  customize <id> [--primary] [--body-font] [--spacing]     Clone + customize
+  update <id> [--name] [--description]                     Update metadata
+  use <id>                            Switch active design system
+  validate [id] [--strict] [--gate]   Validate token contract + DSR rules
+  grade [id] [--timeout] [--gate]     Grade DS quality against rubric
+  diff <id1> <id2>                    Compare two design systems
+  conflicts [id]                      List orphan/unused token conflicts
+  history [id] [--snapshot]           Show version history / take snapshot
+
+Compilation:
+  compile <id> [--out <dir>]          Compile tokens -> TypeScript types + CSS
+  export <id> [--out <dir>]           Export as npm-consumable package
+  version <id> <major|minor|patch>    Semantic version bump on manifest
+  changelog <id> [--snapshot]         Show or create changelog entry
+
+Content:
+  scaffold <id> [--from <base>]       Copy base primitives into DS
+  scaffold <id> --blocks <list>       Scaffold specific building blocks
+  block list [--tags <tags>]          List all building blocks (27 available)
+  blueprint list [--category <cat>]   List composition blueprints (14)
+  blueprint apply <id> <target>       Generate component from a blueprint
+  context <comp> [instruction]        Design context prompt for AI agent
+  prompt <comp> [instruction]         Alias for context
+
+Lint rules:
+  lint-rules list [id]                Show active rules, preset, exemptions
+  lint-rules preset <id> <name>       Apply a named rule preset
+  lint-rules set <id> <rule> <sev>    Change rule severity
+
+Run 'emdesign ds <subcommand> --help' for subcommand-specific help.
+`);
+}
+
+function showDoctorHelp(): void {
+  process.stdout.write(`
+emdesign doctor — Multi-axis component verification
+
+Usage: emdesign doctor [kind] <component> [--gate] [--timeout N] [--detail] [--quiet]
+
+Check kinds (default: all):
+  lint                Token-rule compliance          ~100ms  (fastest)
+  visual              Pixel diff vs baseline          ~2s    (needs Storybook)
+  spatial             Geometry audit                  ~500ms (needs Storybook)
+  snapshot            DOM render snapshot              ~2s   (needs Storybook)
+  charters            Story charter evaluation        ~100ms
+  react               React anti-pattern scan          ~1s
+
+Examples:
+  emdesign doctor lint StatsCard           Fast token check
+  emdesign doctor visual StatsCard         Visual diff only
+  emdesign doctor all StatsCard --gate     Full composite gate (CI-ready)
+  emdesign doctor lint,visual StatsCard    Multiple kinds
+
+Flags:
+  --gate              Exit code = verdict (0 ship, 1 fail)
+  --timeout <ms>      Kill check if it runs too long
+  --detail            Show all findings with remediation
+  --quiet             Suppress stderr output
+  --json              Structured JSON output
+`);
+}
+
+function showSpatialHelp(): void {
+  process.stdout.write(`
+emdesign spatial — Spatial/geometry analysis
+
+Usage: emdesign spatial audit|grid <component> [--story <name>] [--theme light|dark]
+
+Subcommands:
+  audit               Full geometry breakdown: bounding boxes, overlaps, spacing
+  grid                Overlay design grid (8px) and measure adherence
+
+Examples:
+  emdesign spatial audit StatsCard
+  emdesign spatial grid StatsCard --grid
+
+Flags:
+  --json              Structured JSON output
+`);
+}
+
+function showRenderHelp(): void {
+  process.stdout.write(`
+emdesign render — Headless render analysis
+
+Usage: emdesign render analyze|snapshot <component> [--story <name>] [--theme light|dark]
+
+Subcommands:
+  analyze             Render -> semantic DOM tree + coordinates + computed styles
+  snapshot            Capture render as structured JSON
+
+Examples:
+  emdesign render analyze StatsCard
+  emdesign render analyze StatsCard --theme dark --out ./analysis.json
+
+Flags:
+  --story <name>      Story variant to render (default: default)
+  --theme light|dark  Color theme (default: light)
+  --out <file>        Write output to file instead of stdout
+  --json              Structured JSON output
+`);
+}
+
+function showComponentHelp(): void {
+  process.stdout.write(`
+emdesign component — Component intelligence commands
+
+Usage: emdesign component <subcommand> <component> [args]
+
+Subcommands:
+  a11y                Deep axe-core accessibility audit (needs Storybook)
+  test                Generate vitest test file from component props
+  diff                Compare generated vs captured versions
+
+Examples:
+  emdesign component a11y StatsCard
+  emdesign component test StatsCard
+  emdesign component diff StatsCard
+
+Flags:
+  --story <name>      Story variant (for a11y)
+  --theme light|dark  Color theme (for a11y)
+  --json              Structured JSON output
+`);
+}
+
+function showScreenHelp(): void {
+  process.stdout.write(`
+emdesign screen — Screen/page management
+
+Usage: emdesign screen create|list [args]
+
+Subcommands:
+  create <name>       Create a new screen with component, story, and routing
+  list                List all screens with routes and layouts
+
+Examples:
+  emdesign screen create Dashboard --route /dashboard
+  emdesign screen create Settings --route /settings --layout sidebar
+  emdesign screen list
+
+Flags:
+  --route <path>      URL route for the screen
+  --layout <name>     Layout component to wrap the screen
+  --json              Structured JSON output
+`);
+}
+
+function showStoryHelp(): void {
+  process.stdout.write(`
+emdesign story — Story auto-generation
+
+Usage: emdesign story auto <component>
+
+Auto-generates CSF stories from component props interface.
+Parses the component source, creates Default + variant stories for boolean props.
+
+Examples:
+  emdesign story auto StatsCard
+
+Flags:
+  --json              Structured JSON output
+`);
+}
+
+function showGraphHelp(): void {
+  process.stdout.write(`
+emdesign graph — Knowledge graph operations
+
+Usage: emdesign graph <subcommand> [args]
+
+Subcommands:
+  build [ds-id]                   Rebuild knowledge graph from scratch
+  context <node-id>               Full node context (neighbors, properties)
+  impact <node-id>                Blast radius / affected dependents
+  where-to-fix <artifact> <find>  Pinpoint fix location for a lint finding
+  guidance [name] --intent <text> Consistency brief for building a component
+  query [--label] [--from] [--to] [--where <json>]  Flexible graph queries
+
+Examples:
+  emdesign graph build atelier
+  emdesign graph impact art/StatsCard
+  emdesign graph where-to-fix StatsCard off-token-color
+
+Flags:
+  --json              Structured JSON output
+`);
+}
+
+function showExploreHelp(): void {
+  process.stdout.write(`
+emdesign explore — Workspace exploration
+
+Usage: emdesign explore [topic] [name] [--json]
+
+Topics:
+  (no topic) / overview     Workspace summary (DS, tokens, primitives, counts)
+  ds                        Design system details
+  tokens [name]             All tokens by kind, optional name filter
+  primitives [name]         All primitives with props, variants, states
+  components [name]         Generated + captured components
+  hierarchy <name>          Composition tree (what it composes, what uses it)
+  rules                     All lint rules by severity
+  charters                  All element charters
+  sections                  All DESIGN.md sections
+  stats                     Graph node/edge counts
+
+Examples:
+  emdesign explore
+  emdesign explore components StatsCard
+  emdesign explore tokens --json
+
+Flags:
+  --json              Structured JSON output
+  --ds <id>           Specify design system (default: active)
+`);
 }
 
 main().catch((err) => {

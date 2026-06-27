@@ -56,13 +56,20 @@ function extractCharters(context: any): {
 } {
   // Try parameters first (most explicit)
   const params = context?.parameters?.charters;
-  const storyCharters: StoryCharter[] = Array.isArray(params) ? params : [];
+  const raw: unknown[] = Array.isArray(params) ? params : [];
+  // Filter out invalid charters (must have a `run` function)
+  const storyCharters: StoryCharter[] = raw.filter((c): c is StoryCharter =>
+    typeof c === 'object' && c !== null && typeof (c as any).run === 'function',
+  );
 
   // Try the component (meta-level charters)
   const comp = context?.component;
-  const componentCharters: StoryCharter[] = Array.isArray((comp as any)?.charters)
+  const rawComp: unknown[] = Array.isArray((comp as any)?.charters)
     ? (comp as any).charters
     : [];
+  const componentCharters: StoryCharter[] = rawComp.filter((c): c is StoryCharter =>
+    typeof c === 'object' && c !== null && typeof (c as any).run === 'function',
+  );
 
   return { componentCharters, storyCharters };
 }
@@ -111,19 +118,33 @@ function CharterRunner({ context }: { context: any }) {
       const component = context.title?.split('/').pop() ?? 'Unknown';
       const story = context.name ?? 'default';
 
-      const result = await evaluateAllCharters(
-        componentCharters,
-        storyCharters,
-        component,
-        story,
-        container,
-      );
+      try {
+        const result = await evaluateAllCharters(
+          componentCharters,
+          storyCharters,
+          component,
+          story,
+          container,
+        );
 
-      // Store globally for the doctor pipeline and debugging
-      window.__EMDESIGN_CHARTERS__ = { lastResult: result };
+        // Store globally for the doctor pipeline and debugging
+        window.__EMDESIGN_CHARTERS__ = { lastResult: result };
 
-      // Send to the manager panel via Storybook's channel
-      addons.getChannel().emit(EVT_CHARTER_RESULT, result);
+        // Send to the manager panel via Storybook's channel
+        addons.getChannel().emit(EVT_CHARTER_RESULT, result);
+      } catch (err) {
+        // Evaluation crashed — still emit an empty result so the panel doesn't hang
+        const fallback: StoryCharterResult = {
+          component,
+          story,
+          findings: [{ id: 'eval-error', component, story, charterName: 'charter-eval', severity: 'P2', pass: false, message: `Charter evaluation error: ${(err as Error).message}` }],
+          passed: 0,
+          failed: 1,
+          allPass: false,
+        };
+        window.__EMDESIGN_CHARTERS__ = { lastResult: fallback };
+        addons.getChannel().emit(EVT_CHARTER_RESULT, fallback);
+      }
     }, 100);
 
     return () => clearTimeout(timer);

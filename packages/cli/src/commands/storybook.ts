@@ -11,6 +11,8 @@ export interface StorybookHealthArgs {
   json?: boolean;
   /** Check a specific story URL for rendering health. */
   story?: string;
+  /** Check all registered stories. */
+  all?: boolean;
 }
 
 interface HealthCheck {
@@ -112,7 +114,7 @@ export async function cmdStorybookHealth(
       });
     }
 
-    // ── 7. Story rendering check (--story flag) ──────────────────────────
+    // ── 7. Story rendering check (--story flag or --all) ─────────────────
     if (args.story) {
       const renderCheck = await checkStoryRendering(url, args.story);
       checks.push(renderCheck);
@@ -122,6 +124,24 @@ export async function cmdStorybookHealth(
           message: `Story "${args.story}" failed to render: ${renderCheck.errors[0]}`,
           fix: 'Check the component for errors — missing imports, runtime exceptions, or undefined props.',
         });
+      }
+    }
+
+    if (args.all) {
+      const allRenderCheck = await checkAllStories(url);
+      checks.push(...allRenderCheck.checks);
+      if (allRenderCheck.failing.length > 0) {
+        issues.push({
+          severity: 'high',
+          message: `${allRenderCheck.failing.length} story/stories failed or rendered empty`,
+          fix: 'Run emdesign storybook health --story <id> for each failing story to get detailed diagnostics.',
+        });
+        for (const f of allRenderCheck.failing.slice(0, 5)) {
+          issues.push({ severity: 'medium', message: `  ${f.id}: ${f.detail}` });
+        }
+        if (allRenderCheck.failing.length > 5) {
+          issues.push({ severity: 'low', message: `  ... and ${allRenderCheck.failing.length - 5} more` });
+        }
       }
     }
   } else {
@@ -369,21 +389,29 @@ async function checkStoryRendering(baseUrl: string, storyId: string): Promise<He
       };
     }
 
-    // Check that the root has actual content
-    const content = await page.$('#storybook-root > *');
-    const hasContent = content !== null;
+    // Check content depth — visible root can still be empty
+    const contentDepth = await page.evaluate(() => {
+      const root = document.getElementById('storybook-root');
+      if (!root) return 0;
+      return root.querySelectorAll('*').length;
+    });
+    const hasContent = contentDepth > 0; // at least one DOM node rendered
 
     await browser.close();
 
+    const pass = hasContent && errors.length === 0;
+    const detail = hasContent
+      ? errors.length === 0
+        ? `Story "${storyId}" rendered successfully (${contentDepth} DOM nodes)`
+        : `Story rendered (${contentDepth} nodes) but with ${errors.length} error(s)`
+      : `Story "${storyId}" rendered empty (0 DOM nodes)`;
+
     return {
       name: `Story Render`,
-      pass: hasContent && errors.length === 0,
-      detail: hasContent
-        ? errors.length === 0
-          ? `Story "${storyId}" rendered successfully`
-          : `Story rendered but with ${errors.length} error(s)`
-        : `Story "${storyId}" rendered empty (no content in #storybook-root)`,
+      pass,
+      detail,
       errors: errors.length > 0 ? errors : undefined,
+      logs: !hasContent ? [`Empty render — component likely crashed or has no default content`] : undefined,
     };
   } catch (e) {
     return {
@@ -393,6 +421,38 @@ async function checkStoryRendering(baseUrl: string, storyId: string): Promise<He
       errors: [(e as Error).message],
     };
   }
+}
+
+/** Check every registered story and report which pass, fail, or render empty. */
+async function checkAllStories(baseUrl: string): Promise<{
+  checks: HealthCheck[];
+  failing: Array<{ id: string; detail: string }>;
+}> {
+  const checks: HealthCheck[] = [];
+  const failing: Array<{ id: string; detail: string }> = [];
+  let stories: Array<{ id: string; title: string; name: string }> = [];
+  try {
+    const res = await fetch(`${baseUrl}/index.json`, { signal: AbortSignal.timeout(3000) });
+    if (res.ok) {
+      const data = await res.json();
+      const entries = data?.entries ?? {};
+      stories = Object.entries(entries).filter(([, e]: any) => e.type === 'story').map(([id, e]: any) => ({ id, title: e.title, name: e.name }));
+    }
+  } catch { checks.push({ name: 'All Stories', pass: false, detail: 'Could not fetch story index' }); return { checks, failing }; }
+  if (stories.length === 0) { checks.push({ name: 'All Stories', pass: true, detail: 'No stories' }); return { checks, failing }; }
+  let passed = 0, empty = 0, errored = 0;
+  for (const story of stories) {
+    try {
+      const result = await checkStoryRendering(baseUrl, story.id);
+      if (result.pass) passed++;
+      else if (result.detail.includes('empty')) { empty++; failing.push({ id: story.id, detail: 'empty' }); }
+      else { errored++; failing.push({ id: story.id, detail: result.errors?.[0] ?? 'error' }); }
+    } catch { errored++; failing.push({ id: story.id, detail: 'exception' }); }
+  }
+  const total = stories.length;
+  const allOk = failing.length === 0;
+  checks.push({ name: 'All Stories', pass: allOk, detail: allOk ? `${total}/${total} stories rendered` : `${passed} pass, ${empty} empty, ${errored} error (${total} total)`, logs: failing.length > 0 ? failing.map(f => `  ${f.id}: ${f.detail}`) : undefined });
+  return { checks, failing };
 }
 
 /** Check if the @ds alias matches the active design system. */

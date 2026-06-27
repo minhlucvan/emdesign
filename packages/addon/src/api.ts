@@ -93,6 +93,13 @@ export const api = {
   getComments: (storyId: string) =>
     json<{ pins: Array<{ n: number; selector: string; text: string; tag?: string; component?: string; storyId: string; sessionId: string; createdAt: string }> }>(`/api/comments?storyId=${encodeURIComponent(storyId)}`),
 
+  // ── Validation / Charters ───────────────────────────────────────────
+  validateComponent: (name: string) => post('/api/charters', { component: name }) as Promise<{
+    component: string;
+    dsId: string;
+    tiers: Record<string, Array<{ id: string; title: string; severity: 'P0' | 'P1' | 'P2'; pass: boolean; message?: string; fix?: string; target?: string }>>;
+  }>,
+
   // ── Platform status ─────────────────────────────────────────────────
   getPlatformStatus: () => json<PlatformState>('/api/platform/status'),
 };
