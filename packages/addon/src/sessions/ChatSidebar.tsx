@@ -2,11 +2,14 @@
  * ChatSidebar — shadcn-chatbot-kit styled. Messages fill available space.
  */
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { addons } from '@storybook/manager-api';
 import { injectShadcnVars, css, MessageList, useAutoScroll } from '@emdesign/chat-ui';
 import type { Message } from '@emdesign/chat-ui';
 import { api } from '../api';
 import { BACKEND_URL, CHAT_MODES } from '../constants';
+import { EVT_ELEMENT_SELECTED, EVT_VIEW_CONTEXT } from '../channel';
 import type { SessionSummary, ChatStartMode } from '../constants';
+import type { ElementSelectedPayload, ViewContextPayload } from '../channel';
 
 let varsInjected = false;
 
@@ -196,6 +199,22 @@ const S = {
   },
 };
 
+/** A session list item with origin badge. */
+function SessionItem({ session, onClick }: { session: SessionSummary; onClick: () => void }) {
+  const s = session as any;
+  const originBadge = s.origin === 'comment' ? '💭' : s.origin === 'chat' ? '💬' : null;
+  return (
+    <button onClick={onClick}
+      style={{ display: 'flex', alignItems: 'center', width: '100%', textAlign: 'left', padding: '8px 12px', border: 'none', borderBottom: `1px solid ${css('--border')}`, background: 'transparent', color: 'inherit', cursor: 'pointer', gap: 6 }}>
+      {originBadge && <span style={{ flexShrink: 0, fontSize: 11, lineHeight: '18px', opacity: 0.7 }}>{originBadge}</span>}
+      <div style={{ flex: 1, overflow: 'hidden' }}>
+        <div style={{ fontSize: 12, fontWeight: 500, color: css('--foreground'), overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.4 }}>{session.display}</div>
+      </div>
+      <span style={{ fontSize: 10, color: css('--muted-foreground'), opacity: 0.5, whiteSpace: 'nowrap', flexShrink: 0 }}>{formatTime(session.timestamp)}</span>
+    </button>
+  );
+}
+
 export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => void; defaultSessionId?: string | null }) {
   if (!varsInjected) { injectShadcnVars(); varsInjected = true; }
 
@@ -215,6 +234,37 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const autoSendRef = useRef<string | null>(null);
+  const [selectedElement, setSelectedElement] = useState<ElementSelectedPayload | null>(null);
+  const [viewContext, setViewContext] = useState<ViewContextPayload | null>(null);
+
+  // Listen for element selections from the preview iframe
+  useEffect(() => {
+    const channel = addons.getChannel();
+    const onElementSelected = (payload: ElementSelectedPayload) => {
+      setSelectedElement(payload);
+    };
+    channel.on(EVT_ELEMENT_SELECTED, onElementSelected);
+    return () => { channel.off(EVT_ELEMENT_SELECTED, onElementSelected); };
+  }, []);
+
+  // Listen for view context changes from the preview iframe
+  useEffect(() => {
+    const channel = addons.getChannel();
+    const onViewContext = (payload: ViewContextPayload) => {
+      setViewContext(payload);
+    };
+    channel.on(EVT_VIEW_CONTEXT, onViewContext);
+    return () => { channel.off(EVT_VIEW_CONTEXT, onViewContext); };
+  }, []);
+
+  // Clear selection on Escape key
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSelectedElement(null);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, []);
 
   useEffect(() => {
     Promise.all([
@@ -343,6 +393,8 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
     try {
       const session = await api.createSession({
         type: mode.intentType ?? 'chat',
+        scope: 'global',
+        origin: 'chat',
       });
       // Add to local sessions list (prepend, dedupe)
       setSessions(prev => {
@@ -383,10 +435,20 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
       }
       setFiles(null);
 
+      // Append view context as system metadata if available
+      const contextMeta = viewContext ? {
+        component: viewContext.component,
+        story: viewContext.storyName,
+        viewport: `${viewContext.viewport.width}x${viewContext.viewport.height}`,
+        designSystem: viewContext.designSystem,
+        tokens: viewContext.tokens,
+      } : undefined;
+      const contextSuffix = contextMeta ? `\n\n[Context: viewing ${contextMeta.component} in "${contextMeta.story}" @ ${contextMeta.viewport}${contextMeta.tokens?.length ? `, tokens: ${contextMeta.tokens.join(', ')}` : ''}]` : '';
+
       const res = await fetch(`${BACKEND_URL}/api/chat/stream`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text + extra }),
+        body: JSON.stringify({ message: text + extra + contextSuffix }),
       });
 
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -525,15 +587,22 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
             {filtered.length === 0 ? (
               <div style={{ padding: 20, textAlign: 'center', fontSize: 12, ...S.muted }}>{search ? 'No matches' : 'No sessions'}</div>
             ) : (
-              filtered.slice(0, 50).map(s => (
-                <button key={s.id} onClick={() => setActiveSessionId(s.id)}
-                  style={{ display: 'flex', alignItems: 'center', width: '100%', textAlign: 'left', padding: '10px 12px', border: 'none', ...S.border, background: 'transparent', color: 'inherit', cursor: 'pointer', gap: 8 }}>
-                  <div style={{ flex: 1, overflow: 'hidden' }}>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: css('--foreground'), overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.4 }}>{s.display}</div>
+              <>
+                {projectSessions.length > 0 && (
+                  <div style={{ padding: '6px 10px 2px', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: css('--muted-foreground'), opacity: 0.6 }}>Project</div>
+                )}
+                {projectSessions.slice(0, 25).map(s => (
+                  <SessionItem key={s.id} session={s} onClick={() => setActiveSessionId(s.id)} />
+                ))}
+                {storySessions.length > 0 && (
+                  <div style={{ padding: '12px 10px 2px', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: css('--muted-foreground'), opacity: 0.6 }}>
+                    Story {viewContext ? `: ${viewContext.component}` : ''}
                   </div>
-                  <span style={{ fontSize: 10, color: css('--muted-foreground'), opacity: 0.5, whiteSpace: 'nowrap', flexShrink: 0 }}>{formatTime(s.timestamp)}</span>
-                </button>
-              ))
+                )}
+                {storySessions.slice(0, 25).map(s => (
+                  <SessionItem key={s.id} session={s} onClick={() => setActiveSessionId(s.id)} />
+                ))}
+              </>
             )}
           </div>
         </>
@@ -549,6 +618,32 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
               <MessageList messages={messages} isTyping={showTyping} />
             )}
           </div>
+
+          {/* ── Context chip ── */}
+          {viewContext && !selectedElement && (
+            <div style={{ padding: '2px 10px', borderTop: `1px solid ${css('--border')}`, background: css('--muted') }}>
+              <div style={{ fontSize: 9, color: css('--muted-foreground'), lineHeight: '22px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                👁 Viewing: {viewContext.component} @ {viewContext.viewport.width}×{viewContext.viewport.height}
+              </div>
+            </div>
+          )}
+
+          {/* ── Selected element card ── */}
+          {selectedElement && (
+            <div style={{ padding: '4px 8px', borderTop: `1px solid ${css('--border')}`, background: css('--muted') }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, fontSize: 11, padding: '4px 6px', borderRadius: 'var(--radius)', border: `1px solid ${css('--primary')}33`, background: `${css('--primary')}11` }}>
+                <span style={{ flexShrink: 0, fontSize: 13, lineHeight: '18px' }}>🔍</span>
+                <div style={{ flex: 1, overflow: 'hidden' }}>
+                  <div style={{ fontWeight: 600, color: css('--foreground'), fontSize: 11, lineHeight: '18px' }}>&lt;{selectedElement.tag}&gt;
+                    {selectedElement.emdesignComponent && <span style={{ fontWeight: 400, opacity: 0.7, marginLeft: 4 }}>({selectedElement.emdesignComponent})</span>}
+                  </div>
+                  {selectedElement.text && <div style={{ color: css('--muted-foreground'), fontSize: 10, lineHeight: '16px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>"{selectedElement.text.slice(0, 80)}"</div>}
+                  <div style={{ color: css('--muted-foreground'), fontSize: 9, lineHeight: '14px', marginTop: 2 }}>{selectedElement.selector}</div>
+                </div>
+                <button onClick={() => setSelectedElement(null)} style={{ background: 'none', border: 'none', color: css('--muted-foreground'), cursor: 'pointer', padding: 0, fontSize: 12, lineHeight: '18px', flexShrink: 0 }}>✕</button>
+              </div>
+            </div>
+          )}
 
           {/* ── Input ── */}
           <div style={{ padding: '6px 8px', borderTop: `1px solid ${css('--border')}`, flexShrink: 0 }}>

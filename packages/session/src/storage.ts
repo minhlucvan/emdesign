@@ -81,6 +81,18 @@ export interface EmSession extends ClaudeSession {
   claudeSessionId?: string;     // Claude's native session ID (for --resume)
   pid?: number;                 // OS process ID
   error?: string;               // last error message
+  /** Conversation scope: 'global' for project-wide, or 'story:<storyId>' for story-scoped */
+  scope?: string;
+  /** Origin of the conversation: 'chat' (manual) or 'comment' (from comment tool) */
+  origin?: 'chat' | 'comment';
+  /** Element context from comment tool submission */
+  elementContext?: {
+    selector: string;
+    tag: string;
+    text?: string;
+    component?: string;
+    box?: { x: number; y: number; width: number; height: number };
+  };
 }
 
 // ── State ────────────────────────────────────────────────────────────

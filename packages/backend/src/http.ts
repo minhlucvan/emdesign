@@ -24,6 +24,113 @@ import { evidenceDir } from './evidence.js';
 import { normalizeDsRef } from './paths.js';
 import type { IntentType, CommentTarget, CommentStored } from './state.js';
 
+// ── In-memory cache for /api/surface ──────────────────────────────────
+
+// ── Pending question state for AskUserQuestion integration ──────────
+
+interface PendingQuestionEntry {
+  toolUseId: string;
+  questions: Array<{
+    question: string;
+    header?: string;
+    options: Array<{ label: string; description: string; preview?: string }>;
+    multiSelect?: boolean;
+  }>;
+  resolve: (answer: Record<string, string | string[]>) => void;
+  reject: (error: Error) => void;
+  timeout: NodeJS.Timeout;
+  createdAt: number;
+  handle: { sessionId: string; sendRaw: (data: object) => Promise<void>; cancel: () => Promise<void> };
+}
+
+const pendingQuestions = new Map<string, PendingQuestionEntry>();
+
+interface SurfaceData {
+  activeComponent: string | null;
+  activeStory: string | null;
+  activeDesignSystem: string | null;
+  viewport: { width: number; height: number } | null;
+  compositionTree: string[];
+  tokenUsage: Array<{ role: string; count: number }>;
+  lintFindings: Array<{ ruleId: string; severity: string; message: string }>;
+  lastCritique: {
+    composite: number;
+    decision: string;
+    mustFix: number;
+    scores: Record<string, number>;
+  } | null;
+  cachedAt: number;
+}
+
+let surfaceCache: { data: SurfaceData | null; expiresAt: number } = { data: null, expiresAt: 0 };
+const SURFACE_TTL_MS = 5_000;
+
+function computeSurface(store: Store, paths: RepoPaths): SurfaceData {
+  const state = store.get();
+  const ds = state.activeDesignSystem ? resolveDesignSystem(paths, state.activeDesignSystem) : null;
+
+  // Read composition from generated components directory
+  let compositionTree: string[] = [];
+  try {
+    if (fs.existsSync(paths.generatedDir)) {
+      compositionTree = fs.readdirSync(paths.generatedDir)
+        .filter((f) => f.endsWith('.tsx'))
+        .map((f) => f.replace(/\.tsx$/, ''));
+    }
+  } catch { /* ignore */ }
+
+  // Count token usage from generated files
+  const tokenCounts = new Map<string, number>();
+  for (const comp of compositionTree) {
+    const src = readComponentSource(paths, comp);
+    if (src) {
+      // Match semantic token classes (bg-*, text-*, border-*, rounded-*, etc.)
+      const tokens = src.match(/[a-z]+-(?:primary|secondary|accent|surface|muted|destructive|info|success|warning|border|background|foreground)/g);
+      if (tokens) {
+        for (const t of tokens) tokenCounts.set(t, (tokenCounts.get(t) || 0) + 1);
+      }
+    }
+  }
+  const tokenUsage = Array.from(tokenCounts.entries())
+    .map(([role, count]) => ({ role, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 30);
+
+  // Gather lint findings from the last lint run
+  const lintFindings: Array<{ ruleId: string; severity: string; message: string }> = [];
+  if (ds) {
+    try {
+      const lintResult = lintDesignSystem(ds, { strict: false });
+      if (lintResult.failed.length) {
+        for (const f of lintResult.failed) {
+          lintFindings.push({
+            ruleId: f.ruleId || 'lint',
+            severity: f.level === 'error' ? 'P0' : 'P1',
+            message: f.message,
+          });
+        }
+      }
+    } catch { /* lint may fail on incomplete DS */ }
+  }
+
+  return {
+    activeComponent: state.currentComponent,
+    activeStory: null,
+    activeDesignSystem: state.activeDesignSystem,
+    viewport: null,
+    compositionTree,
+    tokenUsage,
+    lintFindings,
+    lastCritique: state.lastCritique ? {
+      composite: state.lastCritique.composite,
+      decision: state.lastCritique.decision,
+      mustFix: state.lastCritique.mustFix,
+      scores: state.lastCritique.scores,
+    } : null,
+    cachedAt: Date.now(),
+  };
+}
+
 /** Read a component's source from the generated dir, falling back to a captured component dir. */
 function readComponentSource(paths: RepoPaths, name: string): string | null {
   if (!name) return null;
@@ -55,6 +162,17 @@ export async function createHttpBridge(store: Store, paths: RepoPaths, orch?: an
 
   // Serve visual-test images so the panel can display the diff.
   app.use('/screenshots', express.static(paths.screenshotsDir));
+
+  app.get('/api/surface', (_req, res) => {
+    const now = Date.now();
+    if (surfaceCache.data && now < surfaceCache.expiresAt) {
+      res.json(surfaceCache.data);
+      return;
+    }
+    surfaceCache.data = computeSurface(store, paths);
+    surfaceCache.expiresAt = now + SURFACE_TTL_MS;
+    res.json(surfaceCache.data);
+  });
 
   app.get('/api/health', (_req, res) => {
     const s = store.get();
@@ -335,6 +453,7 @@ export async function createHttpBridge(store: Store, paths: RepoPaths, orch?: an
     const renderViewport = _render && _render.nodes && _render.nodes.length > 0
       ? { width: 1280, height: 720 }
       : undefined;
+    surfaceCache.expiresAt = 0; // charters eval = state refresh → invalidate surface cache
     res.json({ component: name, dsId, renderViewport, tiers: { core, doctor, rendered, designSystem, component: [] } });
   });
 
@@ -370,6 +489,7 @@ export async function createHttpBridge(store: Store, paths: RepoPaths, orch?: an
     const instruction = String(req.body?.instruction ?? '').trim();
     if (!instruction) return res.status(400).json({ error: 'instruction required' });
     store.enqueueIntent({ type, instruction, target: req.body?.target as CommentTarget | undefined, payload: req.body?.payload });
+    surfaceCache.expiresAt = 0; // invalidate surface cache
     res.json(store.get());
   });
 

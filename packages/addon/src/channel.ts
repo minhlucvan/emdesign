@@ -2,13 +2,45 @@
 export const ADDON_ID = 'emdesign';
 
 /** The active canvas tool. `off` disables the picker; the others change what a click does. */
-export type ToolMode = 'off' | 'comment' | 'copy' | 'text';
+export type ToolMode = 'off' | 'comment' | 'copy' | 'text' | 'reference';
 
 export const EVT_TOOL_MODE = 'emdesign/tool-mode'; // manager → preview: { mode: ToolMode }
 export const EVT_COMMENT_SUBMIT = 'emdesign/comment-submit'; // preview → manager: { target, instruction }
 export const EVT_TEXT_SUBMIT = 'emdesign/text-submit'; // preview → manager: { target, from, to } (the pen)
 export const EVT_COPIED = 'emdesign/copied'; // preview → manager: { ok, selector } (toolbar copy confirmation)
 export const EVT_CHAT_MODE = 'emdesign/chat-mode'; // toolbar → manager: { enabled: boolean; sessionId?: string }
+
+// ── EVT_VIEW_CONTEXT ───────────────────────────────────────────────
+
+/** Preview → Manager: sent on story change and viewport resize. */
+export const EVT_VIEW_CONTEXT = 'emdesign/view-context';
+
+export interface ViewContextPayload {
+  component: string;
+  storyId: string;
+  storyName: string;
+  viewport: { width: number; height: number };
+  componentFile?: string;
+  storyFile?: string;
+  designSystem: string;
+  tokens?: string[];
+}
+
+// ── EVT_ELEMENT_SELECTED ───────────────────────────────────────────
+
+/** Preview → Manager: sent when the user clicks an element in reference mode. */
+export const EVT_ELEMENT_SELECTED = 'emdesign/element-selected';
+
+export interface ElementSelectedPayload {
+  tag: string;
+  text: string;
+  selector: string;
+  component: string;
+  rect: { x: number; y: number; width: number; height: number };
+  computedStyles: Record<string, string>;
+  emdesignComponent?: string;
+  tokenBindings?: string[];
+}
 
 /** A pointed-at element captured by the preview overlay. */
 export interface CommentTarget {

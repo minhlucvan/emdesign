@@ -37,6 +37,18 @@ export interface SessionCreateOptions {
   model?: string;
   resumeSessionId?: string;
   instruction?: string;
+  /** Conversation scope: 'global' or 'story:<storyId>' */
+  scope?: string;
+  /** Conversation origin: 'chat' or 'comment' */
+  origin?: 'chat' | 'comment';
+  /** Element context from a comment submission */
+  elementContext?: {
+    selector: string;
+    tag: string;
+    text?: string;
+    component?: string;
+    box?: { x: number; y: number; width: number; height: number };
+  };
 }
 
 // ── Platform State ─────────────────────────────────────────────────

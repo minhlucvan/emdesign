@@ -9,7 +9,6 @@ import { StatsCard } from '../StatsCard/StatsCard';
 import { DataTable } from '../DataTable/DataTable';
 import { FilterBar } from '../FilterBar/FilterBar';
 import { ChartContainer } from '../ChartContainer/ChartContainer';
-import { ActivityFeed } from '../ActivityFeed/ActivityFeed';
 
 const sampleColumns = [
   { key: 'name', label: 'Name', sortable: true },
@@ -28,15 +27,6 @@ const sampleRows = [
   { name: 'Frank Davis', status: 'Pending', amount: '$920', date: '2026-06-24', method: 'Wire' },
   { name: 'Grace Kim', status: 'Active', amount: '$1,800', date: '2026-06-24', method: 'Mastercard' },
   { name: 'Henry Wilson', status: 'Completed', amount: '$560', date: '2026-06-23', method: 'ACH' },
-];
-
-const sampleActivities = [
-  { action: 'Payment received', detail: 'from Alice Johnson — $1,250', time: '2m ago', status: 'success' as const },
-  { action: 'New customer', detail: 'Bob Smith registered', time: '15m ago', status: 'success' as const },
-  { action: 'Invoice overdue', detail: 'Carol White — #INV-2024-089', time: '1h ago', status: 'warn' as const },
-  { action: 'Subscription cancelled', detail: 'David Lee — Pro plan', time: '2h ago', status: 'danger' as const },
-  { action: 'Report generated', detail: 'Q2 2026 Financial Summary', time: '3h ago' },
-  { action: 'Refund processed', detail: 'Eve Brown — $230', time: '5h ago', status: 'success' as const },
 ];
 
 export function Dashboard() {
@@ -74,11 +64,6 @@ export function Dashboard() {
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Right panel: Activity */}
-      <div className="w-80 border-l border-border bg-surface-raised overflow-y-auto">
-        <ActivityFeed activities={sampleActivities} />
       </div>
     </div>
   );

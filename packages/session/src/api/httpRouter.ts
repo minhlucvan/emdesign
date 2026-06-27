@@ -30,6 +30,9 @@ export function createSessionRouter(orch: PlatformOrchestrator): Router {
         args: req.body.args ?? {},
         model: req.body.model,
         instruction: req.body.instruction,
+        scope: req.body.scope,
+        origin: req.body.origin,
+        elementContext: req.body.elementContext,
       });
       res.status(201).json(session);
     } catch (e) { next(e); }

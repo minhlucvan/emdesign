@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { addons } from '@storybook/preview-api';
-import { EVT_TOOL_MODE, EVT_COMMENT_SUBMIT, EVT_TEXT_SUBMIT, EVT_COPIED, EVT_CHAT_MODE, type ToolMode, type CommentTarget } from './channel';
+import { EVT_TOOL_MODE, EVT_COMMENT_SUBMIT, EVT_TEXT_SUBMIT, EVT_COPIED, EVT_CHAT_MODE, EVT_ELEMENT_SELECTED, type ToolMode, type CommentTarget, type ElementSelectedPayload } from './channel';
 
 function cssPath(el: Element, root: Element): string {
   const parts: string[] = [];
@@ -56,6 +56,7 @@ const HINTS: Record<ToolMode, string> = {
   comment: 'emdesign: click an element to comment · Esc to cancel',
   copy: 'emdesign: click an element to copy its identifier · Esc to cancel',
   text: 'emdesign: click a text element to edit it inline · Enter to apply · Esc to cancel',
+  reference: 'emdesign: click an element to reference it in chat · Esc to cancel',
 };
 
 /**
@@ -142,7 +143,31 @@ function ToolOverlay({ storyId, component }: { storyId?: string; component?: str
       e.stopPropagation();
       const target = buildTarget(el, root, storyId, component);
 
-      if (m === 'comment') {
+      if (m === 'reference') {
+        // Build a richer payload with computed styles and component metadata
+        const computedStyles: Record<string, string> = {};
+        try {
+          const cs = getComputedStyle(el);
+          for (const key of ['color', 'backgroundColor', 'fontSize', 'fontWeight', 'marginTop', 'marginRight', 'marginBottom', 'marginLeft', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'borderRadius', 'boxShadow', 'display', 'position']) {
+            computedStyles[key] = cs.getPropertyValue(key);
+          }
+        } catch { /* cross-origin iframe */ }
+        // Resolve emdesign component from closest data-emdesign-component ancestor
+        const emdesignComponent = el.closest('[data-emdesign-component]')?.getAttribute('data-emdesign-component') || undefined;
+        const payload: ElementSelectedPayload = {
+          tag: target.tag || '',
+          text: target.text || '',
+          selector: target.selector,
+          component: component || target.component || '',
+          rect: { x: target.box?.x ?? 0, y: target.box?.y ?? 0, width: target.box?.width ?? 0, height: target.box?.height ?? 0 },
+          computedStyles,
+          emdesignComponent,
+        };
+        addons.getChannel().emit(EVT_ELEMENT_SELECTED, payload);
+        setPins((p) => [...p, { n: p.length + 1, box: target.box as Box, text: `referenced <${target.tag}>` }]);
+        flash(`referenced <${target.tag}>`);
+        offAndSync();
+      } else if (m === 'comment') {
         composingRef.current = true;
         setComposing({ target, box: target.box as Box });
         setText('');

@@ -38,6 +38,9 @@ export class SessionManager {
       projectName: path.basename(this.paths.root),
       emdesignStatus: 'created',
       emdesignType: opts.type,
+      scope: opts.scope,
+      origin: opts.origin,
+      elementContext: opts.elementContext,
     };
 
     this.store.upsert(session);

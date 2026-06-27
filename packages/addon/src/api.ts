@@ -71,7 +71,7 @@ export const api = {
 
   // ── Session management ──────────────────────────────────────────────
   listSessions: () => json<SessionListResponse>('/api/sessions'),
-  createSession: (body: { type: string; instruction?: string }) =>
+  createSession: (body: { type: string; instruction?: string; scope?: string; origin?: string; elementContext?: Record<string, unknown> }) =>
     post('/api/sessions', body) as Promise<SessionSummary>,
   cancelSession: (id: string) =>
     post(`/api/sessions/${id}/cancel`, {}) as Promise<{ ok: boolean }>,

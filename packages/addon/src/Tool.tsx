@@ -3,7 +3,7 @@ import { IconButton, Separator } from '@storybook/components';
 import { useChannel } from '@storybook/manager-api';
 import { styled } from '@storybook/theming';
 import { api } from './api';
-import { EVT_TOOL_MODE, EVT_COMMENT_SUBMIT, EVT_TEXT_SUBMIT, EVT_CHAT_MODE, type ToolMode, type CommentTarget } from './channel';
+import { EVT_TOOL_MODE, EVT_COMMENT_SUBMIT, EVT_TEXT_SUBMIT, EVT_CHAT_MODE, EVT_ELEMENT_SELECTED, type ToolMode, type CommentTarget, type ElementSelectedPayload } from './channel';
 import { useStudioState } from './ui';
 import { ChatModeController } from './ChatModeController';
 
@@ -21,6 +21,12 @@ const TOOLS: Array<{ mode: Exclude<ToolMode, 'off'>; title: string; label: strin
     title: 'emdesign: copy an element’s identifier context',
     label: 'Copy',
     icon: <path d="M5.5 5.5V3.2A1.2 1.2 0 0 1 6.7 2h6.1A1.2 1.2 0 0 1 14 3.2v6.1a1.2 1.2 0 0 1-1.2 1.2h-2.3M3.2 5.5h6.1A1.2 1.2 0 0 1 10.5 6.7v6.1A1.2 1.2 0 0 1 9.3 14H3.2A1.2 1.2 0 0 1 2 12.8V6.7A1.2 1.2 0 0 1 3.2 5.5Z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />,
+  },
+  {
+    mode: 'reference',
+    title: 'emdesign: reference an element into chat',
+    label: 'Reference',
+    icon: <path d="M3 3h10a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H8l-2 2v-2H3a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Zm2 3v2h6V6H5Z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />,
   },
   {
     mode: 'text',
@@ -44,7 +50,18 @@ export function Tool() {
       try {
         // Build a structured prompt with element context
         const prompt = `Update component "${p.target.component || 'unknown'}": ${p.instruction}\n\nTarget element: <${p.target.tag}${p.target.selector ? ' ' + p.target.selector : ''}>\n- Text: "${p.target.text || ''}"\n- Story: ${p.target.storyId || ''}`;
-        const session = await api.createSession({ type: 'change-request', instruction: prompt });
+        const session = await api.createSession({
+          type: 'change-request',
+          instruction: prompt,
+          scope: p.target.storyId ? `story:${p.target.storyId}` : 'global',
+          origin: 'comment',
+          elementContext: {
+            selector: p.target.selector || '',
+            tag: p.target.tag || '',
+            text: p.target.text,
+            component: p.target.component,
+          },
+        });
         // Persist the comment pin with session reference
         await api.storeComment({
           storyId: p.target.storyId || '',

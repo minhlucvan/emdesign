@@ -53,7 +53,7 @@
       {
         "selector": "div:nth-of-type(1) > aside",
         "tag": "aside",
-        "classes": "w-[240px] h-screen bg-surface-dark flex flex-col shrink-0 gap-2",
+        "classes": "w-[240px] h-screen bg-surface-dark flex flex-col shrink-0",
         "text": "Acme Dashboard▦Overview◈Analytics12⇄Transactions●Customers♦Products⚙SettingsJDJohn Doejohn@acme.com",
         "box": {
           "x": 0,
@@ -77,7 +77,7 @@
           "paddingRight": "0px",
           "paddingBottom": "0px",
           "paddingLeft": "0px",
-          "gap": "8px",
+          "gap": "normal",
           "display": "flex",
           "position": "static",
           "zIndex": "auto",
@@ -158,13 +158,13 @@
       {
         "selector": "div:nth-of-type(1) > aside > nav",
         "tag": "nav",
-        "classes": "flex-1 overflow-y-auto px-3 py-4 space-y-2",
+        "classes": "flex-1 overflow-y-auto px-3 py-4 space-y-1",
         "text": "▦Overview◈Analytics12⇄Transactions●Customers♦Products⚙Settings",
         "box": {
           "x": 0,
-          "y": 64,
+          "y": 56,
           "width": 240,
-          "height": 575
+          "height": 595
         },
         "styles": {
           "color": "rgb(0, 0, 0)",
@@ -193,11 +193,11 @@
       {
         "selector": "div:nth-of-type(1) > aside > nav > a:nth-of-type(1)",
         "tag": "a",
-        "classes": "flex items-center gap-3 h-8 px-2 rounded text-sm transition-[background-color] duration-[120ms] bg-accent/15 text-accent font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50",
+        "classes": "flex items-center gap-3 h-8 px-2 rounded text-sm transition-[background-color] duration-[120ms] bg-accent/15 text-accent font-medium",
         "text": "▦Overview",
         "box": {
           "x": 12,
-          "y": 80,
+          "y": 72,
           "width": 216,
           "height": 32
         },
@@ -232,7 +232,7 @@
         "text": "▦",
         "box": {
           "x": 20,
-          "y": 86,
+          "y": 78,
           "width": 20,
           "height": 20
         },
@@ -267,7 +267,7 @@
         "text": "Overview",
         "box": {
           "x": 52,
-          "y": 86,
+          "y": 78,
           "width": 168,
           "height": 20
         },
@@ -298,11 +298,11 @@
       {
         "selector": "div:nth-of-type(1) > aside > nav > a:nth-of-type(2)",
         "tag": "a",
-        "classes": "flex items-center gap-3 h-8 px-2 rounded text-sm transition-[background-color] duration-[120ms] text-text-muted hover:bg-white/5 hover:text-text-inverse focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50",
+        "classes": "flex items-center gap-3 h-8 px-2 rounded text-sm transition-[background-color] duration-[120ms] text-text-muted hover:bg-white/5 hover:text-text-inverse",
         "text": "◈Analytics12",
         "box": {
           "x": 12,
-          "y": 120,
+          "y": 108,
           "width": 216,
           "height": 32
         },
@@ -314,7 +314,7 @@
           "fontFamily": "ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
           "fontWeight": "400",
           "lineHeight": "20px",
-          "marginTop": "8px",
+          "marginTop": "4px",
           "marginRight": "0px",
           "marginBottom": "0px",
           "marginLeft": "0px",
@@ -337,7 +337,7 @@
         "text": "◈",
         "box": {
           "x": 20,
-          "y": 126,
+          "y": 114,
           "width": 20,
           "height": 20
         },
@@ -372,7 +372,7 @@
         "text": "Analytics",
         "box": {
           "x": 52,
-          "y": 126,
+          "y": 114,
           "width": 131.484375,
           "height": 20
         },
@@ -407,7 +407,7 @@
         "text": "12",
         "box": {
           "x": 195.484375,
-          "y": 124,
+          "y": 112,
           "width": 24.515625,
           "height": 24
         },
@@ -438,11 +438,11 @@
       {
         "selector": "div:nth-of-type(1) > aside > nav > a:nth-of-type(3)",
         "tag": "a",
-        "classes": "flex items-center gap-3 h-8 px-2 rounded text-sm transition-[background-color] duration-[120ms] text-text-muted hover:bg-white/5 hover:text-text-inverse focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50",
+        "classes": "flex items-center gap-3 h-8 px-2 rounded text-sm transition-[background-color] duration-[120ms] text-text-muted hover:bg-white/5 hover:text-text-inverse",
         "text": "⇄Transactions",
         "box": {
           "x": 12,
-          "y": 160,
+          "y": 144,
           "width": 216,
           "height": 32
         },
@@ -454,7 +454,7 @@
           "fontFamily": "ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
           "fontWeight": "400",
           "lineHeight": "20px",
-          "marginTop": "8px",
+          "marginTop": "4px",
           "marginRight": "0px",
           "marginBottom": "0px",
           "marginLeft": "0px",
@@ -477,7 +477,7 @@
         "text": "⇄",
         "box": {
           "x": 20,
-          "y": 166,
+          "y": 150,
           "width": 20,
           "height": 20
         },
@@ -512,7 +512,7 @@
         "text": "Transactions",
         "box": {
           "x": 52,
-          "y": 166,
+          "y": 150,
           "width": 168,
           "height": 20
         },
@@ -543,11 +543,11 @@
       {
         "selector": "div:nth-of-type(1) > aside > nav > a:nth-of-type(4)",
         "tag": "a",
-        "classes": "flex items-center gap-3 h-8 px-2 rounded text-sm transition-[background-color] duration-[120ms] text-text-muted hover:bg-white/5 hover:text-text-inverse focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50",
+        "classes": "flex items-center gap-3 h-8 px-2 rounded text-sm transition-[background-color] duration-[120ms] text-text-muted hover:bg-white/5 hover:text-text-inverse",
         "text": "●Customers",
         "box": {
           "x": 12,
-          "y": 200,
+          "y": 180,
           "width": 216,
           "height": 32
         },
@@ -559,7 +559,7 @@
           "fontFamily": "ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
           "fontWeight": "400",
           "lineHeight": "20px",
-          "marginTop": "8px",
+          "marginTop": "4px",
           "marginRight": "0px",
           "marginBottom": "0px",
           "marginLeft": "0px",
@@ -582,7 +582,7 @@
         "text": "●",
         "box": {
           "x": 20,
-          "y": 206,
+          "y": 186,
           "width": 20,
           "height": 20
         },
@@ -617,7 +617,7 @@
         "text": "Customers",
         "box": {
           "x": 52,
-          "y": 206,
+          "y": 186,
           "width": 168,
           "height": 20
         },
@@ -648,11 +648,11 @@
       {
         "selector": "div:nth-of-type(1) > aside > nav > a:nth-of-type(5)",
         "tag": "a",
-        "classes": "flex items-center gap-3 h-8 px-2 rounded text-sm transition-[background-color] duration-[120ms] text-text-muted hover:bg-white/5 hover:text-text-inverse focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50",
+        "classes": "flex items-center gap-3 h-8 px-2 rounded text-sm transition-[background-color] duration-[120ms] text-text-muted hover:bg-white/5 hover:text-text-inverse",
         "text": "♦Products",
         "box": {
           "x": 12,
-          "y": 240,
+          "y": 216,
           "width": 216,
           "height": 32
         },
@@ -664,7 +664,7 @@
           "fontFamily": "ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
           "fontWeight": "400",
           "lineHeight": "20px",
-          "marginTop": "8px",
+          "marginTop": "4px",
           "marginRight": "0px",
           "marginBottom": "0px",
           "marginLeft": "0px",
@@ -687,7 +687,7 @@
         "text": "♦",
         "box": {
           "x": 20,
-          "y": 246,
+          "y": 222,
           "width": 20,
           "height": 20
         },
@@ -722,7 +722,7 @@
         "text": "Products",
         "box": {
           "x": 52,
-          "y": 246,
+          "y": 222,
           "width": 168,
           "height": 20
         },
@@ -753,11 +753,11 @@
       {
         "selector": "div:nth-of-type(1) > aside > nav > a:nth-of-type(6)",
         "tag": "a",
-        "classes": "flex items-center gap-3 h-8 px-2 rounded text-sm transition-[background-color] duration-[120ms] text-text-muted hover:bg-white/5 hover:text-text-inverse focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50",
+        "classes": "flex items-center gap-3 h-8 px-2 rounded text-sm transition-[background-color] duration-[120ms] text-text-muted hover:bg-white/5 hover:text-text-inverse",
         "text": "⚙Settings",
         "box": {
           "x": 12,
-          "y": 280,
+          "y": 252,
           "width": 216,
           "height": 32
         },
@@ -769,7 +769,7 @@
           "fontFamily": "ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
           "fontWeight": "400",
           "lineHeight": "20px",
-          "marginTop": "8px",
+          "marginTop": "4px",
           "marginRight": "0px",
           "marginBottom": "0px",
           "marginLeft": "0px",
@@ -792,7 +792,7 @@
         "text": "⚙",
         "box": {
           "x": 20,
-          "y": 286,
+          "y": 258,
           "width": 20,
           "height": 20
         },
@@ -827,7 +827,7 @@
         "text": "Settings",
         "box": {
           "x": 52,
-          "y": 286,
+          "y": 258,
           "width": 168,
           "height": 20
         },
@@ -862,9 +862,9 @@
         "text": "JDJohn Doejohn@acme.com",
         "box": {
           "x": 0,
-          "y": 647,
+          "y": 651,
           "width": 240,
-          "height": 73
+          "height": 69
         },
         "styles": {
           "color": "rgb(0, 0, 0)",
@@ -897,9 +897,9 @@
         "text": "JDJohn Doejohn@acme.com",
         "box": {
           "x": 16,
-          "y": 664,
+          "y": 668,
           "width": 208,
-          "height": 40
+          "height": 36
         },
         "styles": {
           "color": "rgb(0, 0, 0)",
@@ -932,7 +932,7 @@
         "text": "JD",
         "box": {
           "x": 16,
-          "y": 668,
+          "y": 670,
           "width": 32,
           "height": 32
         },
@@ -963,13 +963,13 @@
       {
         "selector": "div:nth-of-type(1) > aside > div:nth-of-type(2) > div > div:nth-of-type(2)",
         "tag": "div",
-        "classes": "flex-1 min-w-0 space-y-1",
+        "classes": "flex-1 min-w-0",
         "text": "John Doejohn@acme.com",
         "box": {
           "x": 60,
-          "y": 664,
+          "y": 668,
           "width": 164,
-          "height": 40
+          "height": 36
         },
         "styles": {
           "color": "rgb(0, 0, 0)",
@@ -1002,7 +1002,7 @@
         "text": "John Doe",
         "box": {
           "x": 60,
-          "y": 664,
+          "y": 668,
           "width": 164,
           "height": 19.5
         },
@@ -1049,7 +1049,7 @@
           "fontFamily": "ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
           "fontWeight": "400",
           "lineHeight": "16.5px",
-          "marginTop": "4px",
+          "marginTop": "0px",
           "marginRight": "0px",
           "marginBottom": "0px",
           "marginLeft": "0px",
@@ -1068,7 +1068,7 @@
       {
         "selector": "div:nth-of-type(1) > div",
         "tag": "div",
-        "classes": "flex-1 flex flex-col overflow-hidden min-h-0",
+        "classes": "flex-1 flex flex-col overflow-hidden",
         "text": "DashboardTotal Revenue$48,250↑ 12.5% from last monthActive Users2,847↑ 8.2% from last monthBounce Rate24.3%↓ 3.1% decrea",
         "box": {
           "x": 240,
@@ -1418,7 +1418,7 @@
       {
         "selector": "div:nth-of-type(1) > div > header > div > button:nth-of-type(1)",
         "tag": "button",
-        "classes": "relative w-8 h-8 flex items-center justify-center rounded text-text-muted hover:text-text hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent transition-[background-color] duration-[120ms]",
+        "classes": "relative w-8 h-8 flex items-center justify-center rounded text-text-muted hover:text-text hover:bg-surface-hover transition-[background-color] duration-[120ms]",
         "text": "",
         "box": {
           "x": 1180,
@@ -1593,7 +1593,7 @@
       {
         "selector": "div:nth-of-type(1) > div > header > div > button:nth-of-type(2)",
         "tag": "button",
-        "classes": "w-8 h-8 flex items-center justify-center rounded text-text-muted hover:text-text hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent transition-[background-color] duration-[120ms]",
+        "classes": "w-8 h-8 flex items-center justify-center rounded text-text-muted hover:text-text hover:bg-surface-hover transition-[background-color] duration-[120ms]",
         "text": "",
         "box": {
           "x": 1224,
@@ -1733,7 +1733,7 @@
       {
         "selector": "div:nth-of-type(1) > div > div",
         "tag": "div",
-        "classes": "flex-1 overflow-y-auto p-6 min-h-0",
+        "classes": "flex-1 overflow-y-auto p-6",
         "text": "Total Revenue$48,250↑ 12.5% from last monthActive Users2,847↑ 8.2% from last monthBounce Rate24.3%↓ 3.1% decreaseAvg. Se",
         "box": {
           "x": 240,

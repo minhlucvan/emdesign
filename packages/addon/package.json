@@ -8,6 +8,7 @@
     "./preview": "./src/preview.tsx",
     "./charters/preview": "./src/charters/preview.tsx",
     "./charters/channel": "./src/charters/channel.ts",
+    "./harness": "./src/harness/index.tsx",
     "./preset": "./src/preset.js",
     "./package.json": "./package.json"
   },
