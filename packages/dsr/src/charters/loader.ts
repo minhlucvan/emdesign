@@ -62,7 +62,9 @@ export async function loadElementCharters(
   if (indexExists) {
     try {
       const resolvedPath = fs.existsSync(indexPath) ? indexPath : indexTsPath;
-      const mod = await import(resolvedPath);
+      // Bust Node.js module cache with a timestamp so edits to .ts charters
+      // are picked up without a full restart during development.
+      const mod = await import(resolvedPath + `?t=${Date.now()}`);
       const charters = mod.default ?? [];
       if (Array.isArray(charters)) {
         return validateCharters(charters);

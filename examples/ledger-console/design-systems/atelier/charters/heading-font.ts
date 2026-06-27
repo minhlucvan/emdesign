@@ -29,26 +29,36 @@ export const headingFont: ElementCharter = {
     for (const node of headings) {
       const name = String(node.props.name ?? '');
 
-      // Check uses edges to see which font token this primitive references
+      // Check uses edges to see which font tokens this primitive references
       const usesEdges = ctx.graph.out(node.id, 'uses');
       const fontEdges = usesEdges.filter((e) =>
         String(e.to).includes('font'),
       );
 
-      for (const edge of fontEdges) {
+      // A heading passes if ANY of its font edges references the display font.
+      // It may also reference --font-sans (e.g. for sub-elements like Eyebrow
+      // in the same file) — that's allowed as long as display font is present.
+      const usesDisplayFont = fontEdges.some((edge) => {
         const tokenNode = ctx.graph.node(edge.to);
-        const tokenName = String(tokenNode?.props?.name ?? '');
+        return String(tokenNode?.props?.name ?? '').includes('display');
+      });
 
-        if (!tokenName.includes('display')) {
-          findings.push({
-            id: `font/${node.id}`,
-            severity: 'P0',
-            message:
-              `Heading "${name}" uses font token "${tokenName}", ` +
-              `but headings must use the display font.`,
-            target: node.id,
-            remediation: `Replace ${tokenName} with --font-display in ${name}.`,
-          });
+      if (!usesDisplayFont && fontEdges.length > 0) {
+        // Only flag if heading uses fonts but NONE of them is the display font
+        for (const edge of fontEdges) {
+          const tokenNode = ctx.graph.node(edge.to);
+          const tokenName = String(tokenNode?.props?.name ?? '');
+          if (!tokenName.includes('display')) {
+            findings.push({
+              id: `font/${node.id}`,
+              severity: 'P0',
+              message:
+                `Heading "${name}" uses font token "${tokenName}", ` +
+                `but headings must use the display font.`,
+              target: node.id,
+              remediation: `Replace ${tokenName} with --font-display in ${name}.`,
+            });
+          }
         }
       }
 

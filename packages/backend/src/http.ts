@@ -246,7 +246,7 @@ export async function createHttpBridge(store: Store, paths: RepoPaths, orch?: an
           url: '',
           theme: 'light',
           viewport: { width: 0, height: 0, deviceScaleFactor: 1 },
-          root: render.root ?? { width: 0, height: 0 },
+          root: render.root ?? { x: 0, y: 0, width: 0, height: 0 },
           nodes: render.nodes,
         };
         const fwReport = lintFrameworkCharters('framework', [snap]);
