@@ -7,6 +7,7 @@
  *
  *  - geometry/no-overlap:         No sibling elements overlap
  *  - geometry/no-child-overflow:  No child element overflows its parent
+ *  - geometry/minimum-gap:        Adjacent siblings have breathing room (≥8px)
  *
  * Each charter produces structured findings with coordinate data and remediation
  * guidance suitable for AI agent consumption. See the individual files for details.
@@ -17,6 +18,7 @@
 import type { ElementCharter } from '../charter.js';
 import { noOverlap } from './no-overlap.js';
 import { noChildOverflow } from './no-child-overflow.js';
+import { minimumGap } from './minimum-gap.js';
 
 /**
  * All framework-level geometry charters.
@@ -27,7 +29,9 @@ import { noChildOverflow } from './no-child-overflow.js';
 export const FRAMEWORK_GEOMETRY_CHARTERS: ElementCharter[] = [
   noOverlap,
   noChildOverflow,
+  minimumGap,
 ];
 
 export { noOverlap } from './no-overlap.js';
 export { noChildOverflow } from './no-child-overflow.js';
+export { minimumGap } from './minimum-gap.js';

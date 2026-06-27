@@ -25,6 +25,7 @@ export interface EcLoaderOptions {
  *
  *  - geometry/no-overlap:         No sibling elements overlap
  *  - geometry/no-child-overflow:  No child element overflows its parent
+ *  - geometry/minimum-gap:        Adjacent siblings have breathing room (≥8px)
  *
  * Returns a fresh array each call (immutable list of charter instances).
  */
