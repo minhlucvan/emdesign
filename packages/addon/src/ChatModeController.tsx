@@ -52,11 +52,9 @@ function buildChatCSS(isDark: boolean): string {
   .emdesign-chat-active div:has(> [class*="yeohsa"]) {
     display: none !important;
   }
-  /* Make the scroll-area fill the sidebar */
+  /* Scroll-area viewport — keep unchanged so no reflow on toggle */
   .emdesign-chat-active [data-radix-scroll-area-viewport] {
-    height: 100% !important;
-    flex: 1 !important;
-    overflow: hidden !important;
+    overflow: hidden scroll !important;
   }
   .emdesign-chat-active [data-radix-scroll-area-content] {
     min-height: 100% !important;
