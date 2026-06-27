@@ -674,10 +674,9 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
             }}
               style={{
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                padding: '0 7px', borderRadius: 6, height: 32, minHeight: 32,
+                padding: '0 7px', borderRadius: 4, height: 28, minHeight: 28,
                 fontSize: 12, fontWeight: 700, cursor: 'pointer', lineHeight: '12px',
                 border: 'none', background: 'transparent', color: css('--muted-foreground'),
-                boxShadow: `0 0 0 1px ${css('--border')} inset`,
                 whiteSpace: 'nowrap', flexShrink: 0,
               }}>
               <span style={{ fontSize: 14, lineHeight: 1, fontWeight: 400 }}>+</span> New
