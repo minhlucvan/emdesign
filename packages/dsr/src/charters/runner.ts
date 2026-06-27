@@ -21,6 +21,69 @@ export { buildResult } from './story-charter.js';
 // ---------------------------------------------------------------------------
 
 /**
+ * Map of HTML tags to their implicit ARIA roles.
+ * Used by getByRole to find elements that don't have explicit role attributes.
+ */
+const IMPLICIT_ROLES: Record<string, string[]> = {
+  button: ['button'],
+  a: ['link'],
+  'h1': ['heading', 'heading', 'heading', 'heading', 'heading', 'heading'],
+  h2: ['heading'],
+  h3: ['heading'],
+  h4: ['heading'],
+  h5: ['heading'],
+  h6: ['heading'],
+  nav: ['navigation'],
+  img: ['img'],
+  'input[type=checkbox]': ['checkbox'],
+  'input[type=radio]': ['radio'],
+  'input[type=text]': ['textbox'],
+  'input[type=email]': ['textbox'],
+  'input[type=search]': ['searchbox'],
+  textarea: ['textbox'],
+  select: ['combobox', 'listbox'],
+  ul: ['list'],
+  ol: ['list'],
+  li: ['listitem'],
+  table: ['table'],
+  form: ['form'],
+  header: ['banner'],
+  footer: ['contentinfo'],
+  main: ['main'],
+  aside: ['complementary'],
+};
+
+/**
+ * Get the implicit role(s) for a given element based on its tag and attributes.
+ */
+function implicitRoleFor(el: Element): string[] {
+  const tag = el.tagName.toLowerCase();
+  const roles: string[] = [];
+
+  // Direct tag match
+  if (IMPLICIT_ROLES[tag]) {
+    roles.push(...IMPLICIT_ROLES[tag]);
+  }
+
+  // Special cases
+  if (tag === 'a' && !el.hasAttribute('href')) {
+    return []; // <a> without href has no implicit role
+  }
+  if (tag === 'input') {
+    const type = (el as HTMLInputElement).type?.toLowerCase() || 'text';
+    const key = `input[type=${type}]`;
+    if (IMPLICIT_ROLES[key]) {
+      roles.push(...IMPLICIT_ROLES[key]);
+    }
+  }
+  if (tag.startsWith('h') && tag.length === 2 && tag[1] >= '1' && tag[1] <= '6') {
+    return ['heading']; // all heading levels
+  }
+
+  return [...new Set(roles)];
+}
+
+/**
  * Build a StoryCharterContext from a container element.
  * Called once per charter evaluation, with the same container.
  */
@@ -45,20 +108,47 @@ function buildContext(container: HTMLElement, snapshot?: RenderSnapshot): StoryC
         const all = container.querySelectorAll<HTMLElement>('*');
         for (let i = 0; i < all.length; i++) {
           const el = all[i];
-          const r = el.getAttribute('role');
-          if (r !== role) continue;
-          if (options?.level !== undefined) {
-            const lvl = el.getAttribute('aria-level');
-            if (lvl !== String(options.level)) continue;
+
+          // Check explicit role attribute
+          const explicitRole = el.getAttribute('role');
+          if (explicitRole === role) {
+            if (options?.level !== undefined) {
+              const lvl = el.getAttribute('aria-level');
+              if (lvl !== String(options.level)) continue;
+            }
+            return el;
           }
-          // Also check implicit role for heading/tag matches
-          return el;
+
+          // Check implicit role from tag
+          const implicitRoles = implicitRoleFor(el);
+          if (implicitRoles.includes(role)) {
+            if (options?.level !== undefined) {
+              // For heading roles, check the heading level from tag
+              const tag = el.tagName.toLowerCase();
+              if (role === 'heading' && tag.startsWith('h')) {
+                const lvl = tag[1];
+                if (lvl !== String(options.level)) continue;
+              } else {
+                const lvl = el.getAttribute('aria-level');
+                if (lvl !== String(options.level)) continue;
+              }
+            }
+            return el;
+          }
         }
         // Wait a tick before retrying (for async-rendered content)
         await new Promise((r) => setTimeout(r, 50));
       }
-      // One more time before giving up
-      return container.querySelector(`[role="${role}"]`) as HTMLElement | null;
+      // One more time before giving up — check explicit role
+      const fromExplicit = container.querySelector(`[role="${role}"]`) as HTMLElement | null;
+      if (fromExplicit) return fromExplicit;
+      // Fallback: check by tag for common implicit roles
+      if (role === 'button') return container.querySelector('button') as HTMLElement | null;
+      if (role === 'heading' && options?.level) return container.querySelector(`h${options.level}`) as HTMLElement | null;
+      if (role === 'navigation') return container.querySelector('nav') as HTMLElement | null;
+      if (role === 'link') return container.querySelector('a[href]') as HTMLElement | null;
+      if (role === 'list') return container.querySelector('ul, ol') as HTMLElement | null;
+      return null;
     },
     querySelector(selector: string): HTMLElement | null {
       return container.querySelector(selector) as HTMLElement | null;
