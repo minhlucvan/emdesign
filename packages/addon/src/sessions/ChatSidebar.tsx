@@ -236,6 +236,7 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
   const autoSendRef = useRef<string | null>(null);
   const [selectedElement, setSelectedElement] = useState<ElementSelectedPayload | null>(null);
   const [viewContext, setViewContext] = useState<ViewContextPayload | null>(null);
+  const [filterTab, setFilterTab] = useState<'all' | 'project' | 'story'>('all');
   const [pendingQuestion, setPendingQuestion] = useState<{
     questions: Question[];
     state: 'interactive' | 'pending' | 'answered' | 'expired';
@@ -379,6 +380,11 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
   // Split sessions into project (global) and story-scoped
   const projectSessions = useMemo(() => filtered.filter((s: any) => !s.scope || s.scope === 'global'), [filtered]);
   const storySessions = useMemo(() => filtered.filter((s: any) => s.scope && s.scope !== 'global'), [filtered]);
+  const displaySessions = useMemo(() => {
+    if (filterTab === 'project') return projectSessions;
+    if (filterTab === 'story') return storySessions;
+    return filtered;
+  }, [filterTab, projectSessions, storySessions, filtered]);
 
   const activeSession = activeSessionId ? allSessions.find(s => s.id === activeSessionId) : null;
 
@@ -547,7 +553,7 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
 
   // Show typing during streaming, hide when stream ends (regardless of sending state)
   const showTyping = streaming;
-  const { containerRef: listRef, handleScroll: listScroll } = useAutoScroll([filtered]);
+  const { containerRef: listRef, handleScroll: listScroll } = useAutoScroll([displaySessions]);
 
   if (loading) return <div className="emdesign-chat-root" style={{ ...rootStyle, padding: 20, textAlign: 'center', fontSize: 12, ...S.muted }}>Loading...</div>;
 
@@ -609,26 +615,30 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
             )}
           </div>
 
+          {/* ── Tab filters ── */}
+          <div style={{ display: 'flex', gap: 4, padding: '4px 8px', borderBottom: `1px solid ${css('--border')}` }}>
+            {(['all', 'project', 'story'] as const).map(tab => (
+              <button key={tab} onClick={() => setFilterTab(tab)}
+                style={{
+                  flex: 1, padding: '4px 0', fontSize: 10, fontWeight: 600, cursor: 'pointer',
+                  border: 'none', borderRadius: 'var(--radius)',
+                  background: filterTab === tab ? css('--primary') : 'transparent',
+                  color: filterTab === tab ? css('--primary-foreground') : css('--muted-foreground'),
+                  textTransform: 'uppercase', letterSpacing: '0.05em',
+                  transition: 'all 0.12s',
+                }}>
+                {tab === 'all' ? 'All' : tab === 'project' ? '💬 Project' : `📖 Story${viewContext && tab === 'story' ? `: ${viewContext.component}` : ''}`}
+              </button>
+            ))}
+          </div>
+
           <div ref={listRef} onScroll={listScroll} className="emdesign-scroll" style={{ flex: 1, overflow: 'auto' }}>
-            {filtered.length === 0 ? (
+            {displaySessions.length === 0 ? (
               <div style={{ padding: 20, textAlign: 'center', fontSize: 12, ...S.muted }}>{search ? 'No matches' : 'No sessions'}</div>
             ) : (
-              <>
-                {projectSessions.length > 0 && (
-                  <div style={{ padding: '6px 10px 2px', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: css('--muted-foreground'), opacity: 0.6 }}>Project</div>
-                )}
-                {projectSessions.slice(0, 25).map(s => (
-                  <SessionItem key={s.id} session={s} onClick={() => setActiveSessionId(s.id)} />
-                ))}
-                {storySessions.length > 0 && (
-                  <div style={{ padding: '12px 10px 2px', fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: css('--muted-foreground'), opacity: 0.6 }}>
-                    Story {viewContext ? `: ${viewContext.component}` : ''}
-                  </div>
-                )}
-                {storySessions.slice(0, 25).map(s => (
-                  <SessionItem key={s.id} session={s} onClick={() => setActiveSessionId(s.id)} />
-                ))}
-              </>
+              displaySessions.slice(0, 50).map(s => (
+                <SessionItem key={s.id} session={s} onClick={() => setActiveSessionId(s.id)} />
+              ))
             )}
           </div>
         </>
