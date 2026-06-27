@@ -59,7 +59,7 @@ export const api = {
     const params = overrides ? `?${new URLSearchParams(overrides).toString()}` : '';
     return `${BACKEND_URL}/api/bases/${id}/preview${params}`;
   },
-  customizeDesignSystem: (body: { baseRef: string; id: string; name?: string; customizations?: Record<string, string | number | undefined } }) =>
+  customizeDesignSystem: (body: { baseRef: string; id: string; name?: string; customizations?: Record<string, string | number | undefined> }) =>
     post('/api/design-systems/customize', body) as Promise<{ id: string; apply: unknown; note?: string }>,
   getLogs: () => json<LogsResponse>('/api/logs'),
   getHealth: () => json<HealthInfo>('/api/health'),

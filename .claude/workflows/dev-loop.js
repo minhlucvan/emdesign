@@ -34,6 +34,8 @@ var FIX_MAP = [
   { check: function(r) { return r.anyCount > 0; }, file: REPO_ROOT + '/apps/workspace/templates/claude/workflows/core-loop.js', anchor: 'TYPESCRIPT: NEVER use @ts-ignore', insert: '\n TYPESCRIPT STRICT: NEVER use `as any`. If a type is complex, define an interface or type alias. Use generics for data arrays (items: T[]).', op: 'insert-before' },
   // Too complex
   { check: function(r) { return r.linesOfCode > 200; }, file: REPO_ROOT + '/apps/workspace/templates/claude/workflows/core-loop.js', anchor: 'COMPOSE primitives from "@ds"', insert: ' KEEP COMPONENTS SMALL: Target under 80 lines per component. Extract sub-components for repeated JSX. Extract custom hooks for data fetching and side effects.', op: 'insert-before' },
+  // Inline var() for color tokens — must use Tailwind semantic classes instead
+  { check: function(r) { return r.arbitraryVarColorCount > 0; }, file: REPO_ROOT + '/apps/workspace/templates/claude/workflows/core-loop.js', anchor: 'TAILWIND CONFIG: The active design system', insert: ' USE SEMANTIC CLASSES: The Tailwind config maps ALL --color-* tokens to classes. NEVER use bg-[var(--color-x)], text-[var(--color-x)], or border-[var(--color-x)]. Use bg-highlight, text-highlight, border-highlight etc. Only use var(--x) for non-color tokens like --motion-fast, --focus-ring, --shadow-raised.', op: 'replace-line' },
 ];
 
 // ── Initialize ─────────────────────────────────────────────────────────────
@@ -90,13 +92,14 @@ while (cycleCount < maxCycles) {
     '5. tsIgnoreCount: count of @ts-ignore\n' +
     '6. linesOfCode: total lines\n' +
     '7. patternViolations: array of strings describing anti-patterns (hooks, keys, inline handlers, inline styles, raw elements)\n' +
+    '8. arbitraryVarColorCount: count of bg-[var(--color-*, text-[var(--color-*, border-[var(--color-*, hover:bg-[var(--color-*)\n' +
     'Return JSON with all fields.',
     { label: 'metrics-' + component, phase: 'Check',
       schema: { type: 'object', additionalProperties: true, properties: {
         rawHexCount: { type: 'number' }, unresolvedVarCount: { type: 'number' }, offTokenStyleCount: { type: 'number' },
         anyCount: { type: 'number' }, tsIgnoreCount: { type: 'number' }, linesOfCode: { type: 'number' },
-        patternViolations: { type: 'array' }, maxConditionalDepth: { type: 'number' },
-      }, required: ['rawHexCount', 'unresolvedVarCount', 'offTokenStyleCount', 'anyCount', 'tsIgnoreCount', 'linesOfCode', 'patternViolations'] },
+        patternViolations: { type: 'array' }, maxConditionalDepth: { type: 'number' }, arbitraryVarColorCount: { type: 'number' },
+      }, required: ['rawHexCount', 'unresolvedVarCount', 'offTokenStyleCount', 'anyCount', 'tsIgnoreCount', 'linesOfCode', 'patternViolations', 'arbitraryVarColorCount'] },
     },
   );
 

@@ -167,7 +167,7 @@ export function DesignSystemTab() {
             </Section>
           </Stack>
         ) : <Section><Muted>select a system above</Muted></Section>}
-        </>}
+        </>)}
     </Page>
   );
 }
