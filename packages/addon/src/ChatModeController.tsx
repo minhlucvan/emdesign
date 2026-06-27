@@ -190,7 +190,7 @@ export function ChatModeController() {
       )}
       {/* Chat panel portaled into the sidebar content area (below header, natural flow) */}
       {visible && contentEl && createPortal(
-        <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: '0 12px' }}>
+        <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           <ChatSidebar onClose={toggleChat} defaultSessionId={pendingSessionId} />
         </div>,
         contentEl
