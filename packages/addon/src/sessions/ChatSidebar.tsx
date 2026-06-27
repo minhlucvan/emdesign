@@ -233,6 +233,8 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
   const [showNewPicker, setShowNewPicker] = useState(false);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [pendingNewScope, setPendingNewScope] = useState<{ scope: string; origin: string } | null>(null);
+  const skipConversationLoadRef = useRef(false);
   const autoSendRef = useRef<string | null>(null);
   const [selectedElement, setSelectedElement] = useState<ElementSelectedPayload | null>(null);
   const [viewContext, setViewContext] = useState<ViewContextPayload | null>(null);
@@ -307,6 +309,8 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
 
   useEffect(() => {
     if (!activeSessionId) { setMessages([]); return; }
+    // Skip loading if this session was just created via pendingNewScope
+    if (skipConversationLoadRef.current) { skipConversationLoadRef.current = false; setMsgLoading(false); return; }
     setMsgLoading(true);
     api.getSessionConversation(activeSessionId).then((raw: any) => {
       let converted = processMessages(raw as any[]);
@@ -435,6 +439,33 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
     const currentFiles = files;
     setInput('');
     console.log('[chat] sending...');
+
+    // If this is a pending new conversation, create the session first
+    if (pendingNewScope) {
+      const scope = pendingNewScope.scope;
+      setCreating(true);
+      try {
+        const session = await api.createSession({
+          type: 'chat',
+          scope,
+          origin: pendingNewScope.origin,
+        });
+        setSessions(prev => {
+          const exists = prev.find(s => s.id === session.id);
+          return exists ? prev : [session, ...prev];
+        });
+        skipConversationLoadRef.current = true;
+        setActiveSessionId(session.id);
+        setPendingNewScope(null);
+      } catch (e) {
+        setCreateError(`Failed to create session: ${(e as Error).message}`);
+        setCreating(false);
+        setSending(false);
+        return;
+      }
+      setCreating(false);
+    }
+
     setSending(true);
     setStreaming(true);
     setPendingQuestion(null); // clear any stale pending question
@@ -544,7 +575,7 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
     }
     setStreaming(false);
     setSending(false);
-  }, [input, files, sending, uploadFiles]);
+  }, [input, files, sending, uploadFiles, pendingNewScope]);
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => setInput(e.target.value), []);
 
@@ -567,6 +598,13 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
             <button onClick={() => setActiveSessionId(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 12, ...S.muted }}>←</button>
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, textTransform: 'none', fontWeight: 400 }}>{activeSession.display}</span>
           </>
+        ) : pendingNewScope ? (
+          <>
+            <button onClick={() => { setPendingNewScope(null); setMessages([]); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 12, ...S.muted }}>←</button>
+            <span style={{ flex: 1, textTransform: 'none', fontWeight: 400, fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {pendingNewScope.scope === 'global' ? '💬 New Project Chat' : `📖 New Story Chat${viewContext ? `: ${viewContext.component}` : ''}`}
+            </span>
+          </>
         ) : (
           <span style={{ flex: 1 }}>Sessions</span>
         )}
@@ -576,7 +614,7 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
       </div>
 
       {/* ── Session list ── */}
-      {!activeSession ? (
+      {!activeSession && !pendingNewScope ? (
         <>
           {/* ── Tab filters ── */}
           <div style={{ display: 'flex', gap: 0, borderBottom: `1px solid ${css('--border')}` }}>
@@ -601,7 +639,10 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
 
           {/* ── New Conversation button ── */}
           <div style={{ padding: '2px 8px 6px', ...S.border }}>
-            <button onClick={() => setShowNewPicker(p => !p)}
+            <button onClick={() => {
+              const scope = filterTab === 'story' && viewContext ? `story:${viewContext.storyId}` : 'global';
+              setPendingNewScope({ scope, origin: 'chat' });
+            }}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
                 width: '100%', padding: '5px 10px', borderRadius: 'var(--radius)',
@@ -610,26 +651,6 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
               }}>
               <span style={{ fontSize: 13, lineHeight: 1 }}>+</span> New {filterTab === 'story' ? 'Story' : 'Project'} Conversation
             </button>
-
-            {/* ── Mode picker — click a mode to start immediately ── */}
-            {showNewPicker && (
-              <div style={{ marginTop: 6, padding: 6, borderRadius: 'var(--radius)', border: `1px solid ${css('--border')}`, background: css('--background') }}>
-                {createError && <div style={{ marginBottom: 6, fontSize: 9, color: css('--destructive'), lineHeight: 1.3 }}>{createError}</div>}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                  {CHAT_MODES.map(m => (
-                    <button key={m.id} onClick={() => handleCreateSession(m.id)} disabled={creating}
-                      style={{
-                        padding: '5px 10px', borderRadius: 999, fontSize: 10, fontWeight: 500,
-                        cursor: creating ? 'default' : 'pointer', border: `1px solid ${css('--border')}`,
-                        background: css('--muted'), color: css('--foreground'),
-                        opacity: creating ? 0.5 : 1, transition: 'all 0.12s',
-                      }}>
-                      {m.icon} {m.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
 
           <div ref={listRef} onScroll={listScroll} className="emdesign-scroll" style={{ flex: 1, overflow: 'auto' }}>
@@ -648,8 +669,13 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
           <div ref={msgRef} onScroll={msgScroll} className="emdesign-scroll" style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
             {msgLoading ? (
               <div style={{ padding: 20, textAlign: 'center', fontSize: 12, ...S.muted }}>Loading...</div>
-            ) : messages.length === 0 ? (
+            ) : messages.length === 0 && !pendingNewScope ? (
               <div style={{ padding: 20, textAlign: 'center', fontSize: 12, ...S.muted }}>No messages in this session</div>
+            ) : messages.length === 0 && pendingNewScope ? (
+              <div style={{ padding: 20, textAlign: 'center', fontSize: 12, color: css('--muted-foreground'), lineHeight: 1.6 }}>
+                <div style={{ fontWeight: 600, marginBottom: 4, color: css('--foreground') }}>{pendingNewScope.scope === 'global' ? '💬 Project Chat' : `📖 Story Chat${viewContext ? `: ${viewContext.component}` : ''}`}</div>
+                <div style={{ fontSize: 10, opacity: 0.7 }}>Type a message to start the conversation</div>
+              </div>
             ) : (
               <MessageList messages={messages} isTyping={showTyping} />
             )}
