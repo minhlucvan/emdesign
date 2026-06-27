@@ -38,13 +38,14 @@ var FIX_MAP = [
 
 // ── Initialize ─────────────────────────────────────────────────────────────
 phase('Initialize');
-var gitCheck = await agent(
-  'Run `cd ' + REPO_ROOT + ' && git status --porcelain -- apps/workspace/templates/claude/ examples/ledger-console/ packages/dsr/src/rules/lint.ts packages/plugin-tailwindcss/src/index.ts packages/backend/src/critique/ packages/mcp-server/src/mcp.ts`. Return { stdout: "<output>" }.',
-  { label: 'git-check', phase: 'Initialize', schema: { type: 'object', properties: { stdout: { type: 'string' } }, required: ['stdout'] } },
+var gitOut = await agent(
+  'Run `cd ' + REPO_ROOT + ' && git status --porcelain -- apps/workspace/templates/claude/ examples/ledger-console/ packages/dsr/src/rules/lint.ts packages/plugin-tailwindcss/src/index.ts packages/backend/src/critique/ packages/mcp-server/src/mcp.ts` and return ONLY the raw stdout text, nothing else.',
+  { label: 'git-check', phase: 'Initialize' },
 );
-if (gitCheck && gitCheck.stdout && gitCheck.stdout.trim().length > 0) {
-  log('Dirty tree. Commit or stash first.');
-  return { error: 'Dirty tree', status: gitCheck.stdout };
+var gitClean = !gitOut || (typeof gitOut === 'string' && gitOut.trim().length === 0);
+if (!gitClean) {
+  log('Dirty tree. Commit or stash first.\n' + gitOut);
+  return { error: 'Dirty tree', details: gitOut };
 }
 
 log('Micro-optimization loop starting');
