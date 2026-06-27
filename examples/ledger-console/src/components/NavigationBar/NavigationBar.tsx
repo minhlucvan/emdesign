@@ -43,7 +43,7 @@ export function NavigationBar({
     <nav aria-label="Primary navigation">
       <div
         className={
-          'flex items-center justify-between ' +
+          'flex items-center justify-between gap-4 ' +
           'h-12 min-h-[48px] px-4 ' +
           'border-b border-border bg-surface text-text ' +
           'dark:bg-surface dark:border-border dark:text-text ' +
@@ -57,7 +57,7 @@ export function NavigationBar({
 
         {/* Nav links — center cluster */}
         {navLinks.length > 0 && (
-          <div className="hidden sm:flex items-center gap-6">
+          <div className="hidden md:flex items-center gap-6">
             {navLinks.map((link) => (
               <a
                 key={link.label}
