@@ -1,7 +1,7 @@
 export const meta = {
   name: 'ship-code',
   description:
-    'Implement an OpenSpec change against an ALREADY-MERGED spec contract (stage 3-5 of the platform workflow; the spec PR from /opsx:spec-pr must be merged first). REMOTE is the default. Base sync (REMOTE paths: git fetch origin <base> → switch to <base> → merge --ff-only origin/<base>, so the change is implemented on top of the latest base; never auto-stashes; --local skips it and ships from feat/<change>) → Preflight (tools+toolchain, validate, clean tree, branch, load .handoff/<change>/plan.json, assert the contract is on base) → for EACH unit Red→Green→one commit → Verify (resolver-selected per-toolchain gates — uv/go/pnpm + ci-free-gates.sh + coverage + node .claude/workflows/lib/openspec.js validate, repair loop) → Review (code-review-and-quality + security-and-hardening audit; advisory on remote, gates the merge on --local) → Evidence → Sync RECONCILE (re-sync delta vs canonical; a non-empty canonical diff = the contract drifted during implementation → STOP and send back to /opsx:spec + /opsx:spec-pr). REMOTE path: CHANGELOG entry → chore commit (evidence+changelog only; specs already on base) → push + open/update the code PR with the agent review findings + a link to the merged spec PR (stops at PR opened, no auto-merge). LOCAL escape hatch (args.local=true) instead bundles the spec sync, merges feat/<change> into <base> locally, re-verifies, archives, optional tag/PR. --worktree runs all implementation phases inside an isolated git worktree (main checkout stays on <base>; pushes and PR creation are deferred for human local verification). Honors dryRun, only:<unit>, retryBlocked, a token budget reserve, mergeStrategy, bump, noPushMain, archive, skipReview, openPr, worktree, and base.',
+    'Implement an OpenSpec change against an ALREADY-MERGED spec contract (stage 3-5 of the platform workflow; the spec PR from /opsx:spec-pr must be merged first). REMOTE is the default. Base sync (REMOTE paths: git fetch origin <base> → switch to <base> → merge --ff-only origin/<base>, so the change is implemented on top of the latest base; never auto-stashes; --local skips it and ships from feat/<change>) → Preflight (tools+toolchain, validate, clean tree, branch, load .handoff/<change>/plan.json, assert the contract is on base) → for EACH unit Red→Green→one commit → Verify (resolver-selected per-toolchain gates — uv/go/pnpm + ci-free-gates.sh + coverage + node .claude/workflows/lib/openspec.js validate, repair loop) → Review (code-review-and-quality + security-and-hardening audit; advisory on remote, gates the merge on --local) → Evidence → Sync RECONCILE (re-sync delta vs canonical; a non-empty canonical diff = the contract drifted during implementation → STOP and send back to /opsx:spec + /opsx:spec-pr). REMOTE path: CHANGELOG entry → chore commit (evidence+changelog only; specs already on base) → push + open/update the code PR with the agent review findings + a link to the merged spec PR (stops at PR opened, no auto-merge). LOCAL escape hatch (args.local=true) instead bundles the spec sync, merges feat/<change> into <base> locally, re-verifies, archives, optional tag/PR. --worktree runs all implementation phases inside an isolated git worktree (main checkout stays on <base>; pushes and PR creation are deferred for human local verification). --worktree + --local (or --local-worktree) runs implementation in a worktree then does merge/archive/cleanup in the main checkout — best of both worlds when you want local isolation AND automated finishing. Honors dryRun, only:<unit>, retryBlocked, a token budget reserve, mergeStrategy, bump, noPushMain, archive, skipReview, openPr, worktree, localWorktree, and base.',
   phases: [
     { title: 'Base sync',           detail: 'remote paths: git fetch origin <base> → switch to <base> → merge --ff-only origin/<base> (sync base to origin before preflight; clean tree required, never auto-stash; --local skips — it ships from feat/<change>)' },
     { title: 'Preflight',           detail: 'tools+toolchain, validate, branch, load handoff (--local checks base + branch slug match)' },
@@ -53,16 +53,17 @@ const keepBranch = !!A.keepBranch
 // PR for the record/human review. Forces the local branch to be kept on origin.
 const openPr = A.openPr === true
 // --worktree: run implementation phases inside an isolated git worktree.
-// The main checkout stays on main, freeing it for parallel work on other changes.
-// Unlike the default remote path, worktree mode does NOT push or create a PR —
-// it stops after implementation for human local verification.
-const worktree = A.worktree === true
-if (A.worktree && local) {
-  throw new Error('--worktree is incompatible with --local; worktree mode requires the remote path (PR-gated)')
-}
+// The main checkout stays on the base branch, freeing it for parallel work.
+// When combined with --local: implementation runs in the worktree, then
+// merge/archive/cleanup runs in the main checkout (no push, no PR).
+// Without --local: worktree mode stops after implementation for human local
+// verification (the user then runs /opsx:ship-pr <change> to push + create the PR).
+let worktree = A.worktree === true
+// --local-worktree is a convenience alias for --worktree --local
+if (A.localWorktree === true) { worktree = true; local = true }
 
 if (!change || typeof change !== 'string') {
-  throw new Error('ship-code requires args { change, date, dryRun?, only?, retryBlocked?, reserveTokens?, local?, base?, mergeStrategy?, bump?, noPushMain?, archive?, skipReview?, keepBranch?, openPr?, worktree? }; got typeof=' + (typeof args) + ' keys=' + Object.keys(A).join(','))
+  throw new Error('ship-code requires args { change, date, dryRun?, only?, retryBlocked?, reserveTokens?, local?, base?, mergeStrategy?, bump?, noPushMain?, archive?, skipReview?, keepBranch?, openPr?, worktree?, localWorktree? }; got typeof=' + (typeof args) + ' keys=' + Object.keys(A).join(','))
 }
 if (!/^[a-z0-9][a-z0-9-]*$/.test(change)) throw new Error('Unsafe change name (expected kebab-case slug): ' + change)
 if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error('Unsafe date (expected YYYY-MM-DD): ' + date)
@@ -382,9 +383,18 @@ if (!runnable.length) {
 // ---------------------------------------------------------------- Worktree path
 // When --worktree is set, run all implementation phases (Implement → Verify →
 // Review → Evidence → Sync → Changelog) inside a single isolated git worktree
-// via agent({ isolation: 'worktree' }). The worktree agent does NOT push and does
-// NOT create a PR — it stops after implementation so the human can verify locally
-// (touch point 3 of the 4-touch-point workflow). The main checkout stays on base.
+// via agent({ isolation: 'worktree' }).
+//
+// Two modes:
+//   1. worktree-only (remote worktree): The agent does NOT push/create a PR.
+//      Stops after implementation so the human can verify locally, then run
+//      /opsx:ship-pr <change> to push + PR. Main checkout stays on base.
+//   2. worktree + local (--local-worktree): Implementation runs in worktree,
+//      then merge/archive/cleanup runs in the main checkout.
+let worktreeDidImplement = false
+let wtResult = null
+const commits = []
+let blocked = null
 if (worktree) {
   phase('Implement')
 
@@ -398,7 +408,7 @@ if (worktree) {
 
   const specPathsStr = (pre.specPaths || []).join(', ') || '(none)'
 
-  const wtResult = await agent(
+  wtResult = await agent(
     [
       `Implement OpenSpec change "${change}" test-first in this isolated git worktree.`,
       ``,
@@ -466,9 +476,9 @@ if (worktree) {
       `   - git commit -s -m "chore(${change}): evidence, changelog" -m "Co-Authored-By: Claude <noreply@anthropic.com>"`,
       ``,
       `9. RETURN a structured result matching the WORKTREE_RESULT schema.`,
-      `   Set pushed=false and prUrl=null. The branch feat/${change} exists locally`,
-      `   with all implementation + chore commits. The user will test locally,`,
-      `   then run \`/opsx:code-pr ${change}\` to push + create the PR.`,
+      local
+        ? `   (--local mode) The branch feat/${change} with all commits will be merged into "${base}" after this worktree returns. Set pushed=false, prUrl=null.`
+        : `   Set pushed=false and prUrl=null. The branch feat/${change} exists locally with all implementation + chore commits. The user will test locally, then run \`/opsx:ship-pr ${change}\` to push + create the PR.`,
     ].join('\n'),
     {
       schema: WORKTREE_RESULT,
@@ -492,30 +502,44 @@ if (worktree) {
     }
   }
 
-  log(`worktree: ${change} done — ${(wtResult.commits || []).length} commit(s) on feat/${change}. Run /opsx:ship-pr ${change} to create the PR.`)
-  return {
-    stage: 'done', ok: true, mode: 'worktree',
-    change, title, branch, dryRun,
-    commits: wtResult.commits || [],
-    repairs: wtResult.repairs || 0,
-    gatesRun: wtResult.gatesRun || [],
-    coverage: wtResult.coverage || '',
-    reviewVerdict: wtResult.reviewVerdict || 'n/a',
-    reviewFindings: wtResult.reviewFindings || [],
-    evidenceDir: wtResult.evidenceDir || `${pre.changeRoot}/evidence`,
-    skillsApplied: [],
-    specsSynced: wtResult.synced ? wtResult.synced.synced : false,
-    changelogWritten: !!wtResult.changelogWritten,
-    choreCommitted: !!wtResult.choreCommitted,
-    notes: `Worktree path complete. Branch "${branch}" is ready. Main checkout was never switched away from "${base}".`,
-    nextStep: `Test locally, then run /opsx:ship-pr ${change} to push + create the PR.`,
+  if (!local) {
+    // REMOTE WORKTREE: return results for human verification (no push/PR)
+    log(`worktree: ${change} done — ${(wtResult.commits || []).length} commit(s) on feat/${change}. Run /opsx:ship-pr ${change} to create the PR.`)
+    return {
+      stage: 'done', ok: true, mode: 'worktree',
+      change, title, branch, dryRun,
+      commits: wtResult.commits || [],
+      repairs: wtResult.repairs || 0,
+      gatesRun: wtResult.gatesRun || [],
+      coverage: wtResult.coverage || '',
+      reviewVerdict: wtResult.reviewVerdict || 'n/a',
+      reviewFindings: wtResult.reviewFindings || [],
+      evidenceDir: wtResult.evidenceDir || `${pre.changeRoot}/evidence`,
+      skillsApplied: [],
+      specsSynced: wtResult.synced ? wtResult.synced.synced : false,
+      changelogWritten: !!wtResult.changelogWritten,
+      choreCommitted: !!wtResult.choreCommitted,
+      notes: `Worktree path complete. Branch "${branch}" is ready. Main checkout was never switched away from "${base}".`,
+      nextStep: `Test locally, then run /opsx:ship-pr ${change} to push + create the PR.`,
+    }
   }
+
+  // LOCAL + WORKTREE: extract worktree results, then continue with merge/archive/cleanup in main checkout
+  log(`worktree: ${change} done — ${(wtResult.commits || []).length} commit(s). Proceeding to local merge/archive/cleanup in main checkout.`)
+  worktreeDidImplement = true
+  commits.push(...(wtResult.commits || []))
+  gatesRun = wtResult.gatesRun || []
+  coverage = wtResult.coverage || ''
+  review = { verdict: wtResult.reviewVerdict || 'pass', findings: wtResult.reviewFindings || [] }
+  synced = wtResult.synced || { synced: false, notes: 'from worktree' }
+  evidenceDir = wtResult.evidenceDir || `${pre.changeRoot}/evidence`
+  // Fall through to merge/archive/cleanup — skip inline implement/verify/review/evidence/sync
 }
 
 // ---------------------------------------------------------------- Phase 2: Implement (per pair: Red → Green → one commit)
-phase('Implement')
-const commits = []
-let blocked = null
+if (!worktreeDidImplement) {
+  phase('Implement')
+  blocked = null
 for (const p of runnable) {
   if (budget && budget.total && budget.remaining() < reserve) {
     log(`budget reserve reached — stopping before pair ${p.pair} (${runnable.length - commits.length} pair(s) left)`); break
@@ -571,49 +595,60 @@ if (blocked) {
   return { stage: 'implement', ok: false, reason: `pair ${blocked.pair} blocked — stopping before PR. ${blocked.why}`, change, branch, commits, blockedPair: blocked.pair }
 }
 log(`implement: ${commits.length} per-task commit(s) made`)
+} // end if (!worktreeDidImplement) — inline implement done
+
+// Shared variables used by both inline and worktree paths.
+// Declared here so the local merge path can use them regardless of origin.
+let repairs = 0
+let gatesRun = []
+let coverage = ''
+let review = null
+let evidenceDir = `${pre.changeRoot}/evidence`
+let synced = { synced: false, notes: 'no delta specs', drift: false, driftPaths: [] }
 
 // ---------------------------------------------------------------- Phase 3: Verify (deterministic-first + repair loop)
-phase('Verify')
-const coverProfile = `/tmp/shipcode-${change}.cover`
-function verifyPrompt() {
-  return [
-    `Verify the full tree on branch "${branch}" for change "${change}". DETERMINISTIC gate — pass is exit-code-driven. Use Bash, run in order:`,
-    TOOLCHAIN_NOTE,
-    gatePlanNote(base),
-    `Capture the coverage line from each toolchain's coverage gate (py: pytest --cov term-missing total; go: \`go tool cover -func\` tail; ts: vitest summary) into the coverage field as a short per-toolchain summary.`,
-    llmGates ? `LLM GATES (--llm-gates set): also run the benchmark grid and the preserved threshold scripts — \`bash benchmarks/gates/faithfulness-gte.sh 0.85\`, \`citation-accuracy-gte.sh 0.95\`, \`latency-p95-lte.sh 12000\`, \`tenant-isolation-test.sh\`, \`retrieve-kb-acl-test.sh\` (needs ANTHROPIC_* + a pgvector DB). Record llmGates=passed/failed.` : `LLM gates NOT requested (no --llm-gates) — record llmGates=skipped; do not run the LLM benchmark grid.`,
-    `pass=true only if every gate that ran exited 0 and all tests are green. List every command run in gatesRun. On failure, pass=false + first failing gate's trimmed output in failureLog. Do not edit files.`,
-  ].join('\n')
-}
-let verdict = await agent(verifyPrompt(), { schema: VERDICT, label: 'verify', phase: 'Verify', agentType: 'general-purpose' })
-let repairs = 0
-while (verdict && !verdict.pass && repairs < maxRepairs) {
-  if (budget && budget.total && budget.remaining() < reserve) { log('budget reserve reached during repair'); break }
-  repairs++
-  log(`verify failed — repair ${repairs}/${maxRepairs}`)
-  const repaired = await agent(
-    [
-      `The full verify gate failed for change "${change}". Make the SMALLEST in-scope fix. ${await getPromptHooks('on-verify', { change }).then(h => h.join(' '))}`,
-      `Failing output:\n${verdict.failureLog}`,
-      `Prefer fixing production code over weakening tests. Then amend it into the most relevant per-task commit (git add -A && git commit --amend --no-edit) OR a new fixup commit if it spans pairs. Do not push. If out of scope, set fixed=false.`,
-    ].join('\n'),
-    { schema: REPAIR, label: `repair:${repairs}`, phase: 'Verify', agentType: 'general-purpose' },
-  )
-  if (!repaired || !repaired.fixed) { log(`repair ${repairs} did not fix it: ${repaired ? repaired.notes : 'null'}`); break }
-  verdict = await agent(verifyPrompt(), { schema: VERDICT, label: `verify:retry${repairs}`, phase: 'Verify', agentType: 'general-purpose' })
-}
-const gatesRun = (verdict && verdict.gatesRun) || []
-const coverage = (verdict && verdict.coverage) || ''
-if (!verdict || !verdict.pass) {
-  return { stage: 'verify', ok: false, reason: 'verification did not pass — stopping before PR', failureLog: verdict ? verdict.failureLog : 'verify agent returned null', repairs, gatesRun, change, branch, commits }
-}
-log(`verify passed (${repairs} repair(s)); ${coverage || 'coverage n/a'}; gates: ${gatesRun.join(' | ')}`)
+if (!worktreeDidImplement) {
+  phase('Verify')
+  const coverProfile = `/tmp/shipcode-${change}.cover`
+  function verifyPrompt() {
+    return [
+      `Verify the full tree on branch "${branch}" for change "${change}". DETERMINISTIC gate — pass is exit-code-driven. Use Bash, run in order:`,
+      TOOLCHAIN_NOTE,
+      gatePlanNote(base),
+      `Capture the coverage line from each toolchain's coverage gate (py: pytest --cov term-missing total; go: \`go tool cover -func\` tail; ts: vitest summary) into the coverage field as a short per-toolchain summary.`,
+      llmGates ? `LLM GATES (--llm-gates set): also run the benchmark grid and the preserved threshold scripts — \`bash benchmarks/gates/faithfulness-gte.sh 0.85\`, \`citation-accuracy-gte.sh 0.95\`, \`latency-p95-lte.sh 12000\`, \`tenant-isolation-test.sh\`, \`retrieve-kb-acl-test.sh\` (needs ANTHROPIC_* + a pgvector DB). Record llmGates=passed/failed.` : `LLM gates NOT requested (no --llm-gates) — record llmGates=skipped; do not run the LLM benchmark grid.`,
+      `pass=true only if every gate that ran exited 0 and all tests are green. List every command run in gatesRun. On failure, pass=false + first failing gate's trimmed output in failureLog. Do not edit files.`,
+    ].join('\n')
+  }
+  let verdict = await agent(verifyPrompt(), { schema: VERDICT, label: 'verify', phase: 'Verify', agentType: 'general-purpose' })
+  repairs = 0
+  while (verdict && !verdict.pass && repairs < maxRepairs) {
+    if (budget && budget.total && budget.remaining() < reserve) { log('budget reserve reached during repair'); break }
+    repairs++
+    log(`verify failed — repair ${repairs}/${maxRepairs}`)
+    const repaired = await agent(
+      [
+        `The full verify gate failed for change "${change}". Make the SMALLEST in-scope fix. ${await getPromptHooks('on-verify', { change }).then(h => h.join(' '))}`,
+        `Failing output:\n${verdict.failureLog}`,
+        `Prefer fixing production code over weakening tests. Then amend it into the most relevant per-task commit (git add -A && git commit --amend --no-edit) OR a new fixup commit if it spans pairs. Do not push. If out of scope, set fixed=false.`,
+      ].join('\n'),
+      { schema: REPAIR, label: `repair:${repairs}`, phase: 'Verify', agentType: 'general-purpose' },
+    )
+    if (!repaired || !repaired.fixed) { log(`repair ${repairs} did not fix it: ${repaired ? repaired.notes : 'null'}`); break }
+    verdict = await agent(verifyPrompt(), { schema: VERDICT, label: `verify:retry${repairs}`, phase: 'Verify', agentType: 'general-purpose' })
+  }
+  gatesRun = (verdict && verdict.gatesRun) || []
+  coverage = (verdict && verdict.coverage) || ''
+  if (!verdict || !verdict.pass) {
+    return { stage: 'verify', ok: false, reason: 'verification did not pass — stopping before PR', failureLog: verdict ? verdict.failureLog : 'verify agent returned null', repairs, gatesRun, change, branch, commits }
+  }
+  log(`verify passed (${repairs} repair(s)); ${coverage || 'coverage n/a'}; gates: ${gatesRun.join(' | ')}`)
+} // end if (!worktreeDidImplement) — inline verify done
 
 // ---------------------------------------------------------------- Phase 3b: Code review (BOTH paths — code-review-and-quality + security-and-hardening)
 // Agent PRE-review of the diff. LOCAL: gates the local merge (blocker → stop). REMOTE: advisory —
 // findings are posted on the code PR for the human approver (agent assists, human decides).
-let review = null
-{
+if (!worktreeDidImplement) {
   phase('Review')
   if (skipReview) {
     log('code review skipped via --skipReview')
@@ -642,58 +677,62 @@ let review = null
       reviewFindings: review ? review.findings : [],
     }
   }
-}
+} // end if (!worktreeDidImplement) — inline review done
 
 // ---------------------------------------------------------------- Phase 4: Evidence
-phase('Evidence')
-const evidence = await agent(
-  [
-    `Write the evidence bundle for change "${change}" into "${pre.changeRoot}/evidence/" (create dir). Use Bash/Write. It moves to the archive with the change and is linked from the PR.`,
-    `- gates.md — a table \`toolchain | unitDir | gate | command | result\` of the gates that ran (${gatesRun.join('; ')}), incl. the free bench ladder and \`node .claude/workflows/lib/openspec.js validate\`, plus the llmGates tier status; the per-unit commits (${commits.map((c) => c.pair + ':' + c.sha).join(', ')}), repair count (${repairs}), and the governing skills (${(await getPromptHooks('on-ship-end', { change }).then(h => h.join(', ')))}).`,
-    `- test-results.md — concatenate the per-toolchain test tails: \`uv --directory <member> run python -m pytest -q 2>&1 | tail -40\` per touched Python member, \`(cd <module> && go test -race ./...) 2>&1 | tail -40\` per Go module, \`(cd apps/portal && pnpm test) 2>&1 | tail -40\` if the portal was touched (note DB-dependent pytest skips without TEST_DATABASE_URL; e2e skips without browsers — skips are not failures).`,
-    `- coverage.txt — one block per toolchain (py: pytest --cov term-missing summary; go: \`go tool cover -func\` tail; ts: vitest coverage summary), else "coverage not captured".`,
-    `Concise + factual. Do NOT commit (a later step commits evidence). Return the dir + file list.`,
-  ].join('\n'),
-  { schema: EVIDENCE, label: 'evidence', phase: 'Evidence', agentType: 'general-purpose' },
-)
-const evidenceDir = (evidence && evidence.evidenceDir) || `${pre.changeRoot}/evidence`
-log(`evidence: ${evidence && evidence.written ? evidence.files.join(', ') : (evidence ? evidence.notes : 'failed')}`)
+if (!worktreeDidImplement) {
+  phase('Evidence')
+  const evidence = await agent(
+    [
+      `Write the evidence bundle for change "${change}" into "${pre.changeRoot}/evidence/" (create dir). Use Bash/Write. It moves to the archive with the change and is linked from the PR.`,
+      `- gates.md — a table \`toolchain | unitDir | gate | command | result\` of the gates that ran (${gatesRun.join('; ')}), incl. the free bench ladder and \`node .claude/workflows/lib/openspec.js validate\`, plus the llmGates tier status; the per-unit commits (${commits.map((c) => c.pair + ':' + c.sha).join(', ')}), repair count (${repairs}), and the governing skills (${(await getPromptHooks('on-ship-end', { change }).then(h => h.join(', ')))}).`,
+      `- test-results.md — concatenate the per-toolchain test tails: \`uv --directory <member> run python -m pytest -q 2>&1 | tail -40\` per touched Python member, \`(cd <module> && go test -race ./...) 2>&1 | tail -40\` per Go module, \`(cd apps/portal && pnpm test) 2>&1 | tail -40\` if the portal was touched (note DB-dependent pytest skips without TEST_DATABASE_URL; e2e skips without browsers — skips are not failures).`,
+      `- coverage.txt — one block per toolchain (py: pytest --cov term-missing summary; go: \`go tool cover -func\` tail; ts: vitest coverage summary), else "coverage not captured".`,
+      `Concise + factual. Do NOT commit (a later step commits evidence). Return the dir + file list.`,
+    ].join('\n'),
+    { schema: EVIDENCE, label: 'evidence', phase: 'Evidence', agentType: 'general-purpose' },
+  )
+  evidenceDir = (evidence && evidence.evidenceDir) || `${pre.changeRoot}/evidence`
+  log(`evidence: ${evidence && evidence.written ? evidence.files.join(', ') : (evidence ? evidence.notes : 'failed')}`)
+} // end if (!worktreeDidImplement) — inline evidence done
 
 // ---------------------------------------------------------------- Phase 5: Sync delta specs (RECONCILE + drift guard)
 // The contract was already merged by the spec PR (/opsx:spec-pr). Re-running sync here is
 // idempotent in the happy path; a non-empty canonical diff means implementation evolved the
 // delta beyond the merged contract → DRIFT → stop before the code PR and send back to /opsx:spec.
-phase('Sync')
-let synced = { synced: false, notes: 'no delta specs', drift: false, driftPaths: [] }
-if (budget && budget.total && budget.remaining() < reserve) {
-  return { stage: 'finalize', ok: false, reason: 'budget reserve reached before sync/changelog/PR; per-task commits are on the branch (specs not yet reconciled)', change, branch, commits, gatesRun, coverage, dryRun }
-}
-if (pre.specPaths && pre.specPaths.length) {
-  const s = await agent(
-    local
-      ? [
-          // LOCAL escape hatch: no prior spec PR — sync delta→canonical and KEEP the edits
-          // (they are committed in the merge chore commit below). No drift guard here.
-          `Sync the delta specs for change "${change}" into the canonical specs: invoke Skill({ skill: "openspec-sync-specs" }) for change "${change}". Merges ADDED/MODIFIED/REMOVED/RENAMED from ${pre.specPaths.join(', ')} into openspec/specs/<capability>/spec.md, idempotent.`,
-          `Do NOT commit (the merge phase stages openspec/specs/). Set synced=true if it ran, drift=false, driftPaths=[].`,
-        ].join('\n')
-      : [
-          // REMOTE/spec-first: the contract was merged by /opsx:spec-pr — this is a RECONCILE.
-          `RECONCILE the delta specs for change "${change}" against the already-merged canonical specs. Use Bash + Skill({ skill: "openspec-sync-specs" }).`,
-          `1. Confirm openspec/specs/ is clean: git diff --name-only -- openspec/specs/ (expect empty).`,
-          `2. Invoke Skill({ skill: "openspec-sync-specs" }) for change "${change}" — merge from ${pre.specPaths.join(', ')}, idempotent.`,
-          `3. DRIFT CHECK: git diff --name-only -- openspec/specs/ . If NON-EMPTY, implementation changed the contract beyond the merged spec PR → set drift=true, driftPaths=those files, and REVERT (git checkout -- openspec/specs/) so this run never silently changes the contract. If EMPTY, drift=false (contract already in sync).`,
-          `Do NOT commit. Return synced, drift, driftPaths.`,
-        ].join('\n'),
-    { schema: SYNCED, label: local ? 'sync-specs' : 'reconcile-specs', phase: 'Sync', agentType: 'general-purpose' },
-  )
-  if (s) synced = s
-}
-if (synced.drift) {
-  return { stage: 'sync', ok: false, change, branch, commits, gatesRun, coverage, dryRun,
-    reason: `spec drifted during implementation: ${(synced.driftPaths || []).join(', ')}. The merged contract no longer matches the delta. Author the change to the delta specs, run /opsx:spec ${change} (re-review), then /opsx:spec-pr ${change} (merge the updated contract) before re-shipping. Code commits stand on ${branch}.` }
-}
-log(local ? `sync: merged delta specs (local bundle)` : `sync: reconcile clean (contract in sync with the merged spec PR)${synced.synced ? '' : ' — no delta specs'}`)
+if (!worktreeDidImplement) {
+  phase('Sync')
+  synced = { synced: false, notes: 'no delta specs', drift: false, driftPaths: [] }
+  if (budget && budget.total && budget.remaining() < reserve) {
+    return { stage: 'finalize', ok: false, reason: 'budget reserve reached before sync/changelog/PR; per-task commits are on the branch (specs not yet reconciled)', change, branch, commits, gatesRun, coverage, dryRun }
+  }
+  if (pre.specPaths && pre.specPaths.length) {
+    const s = await agent(
+      local
+        ? [
+            // LOCAL escape hatch: no prior spec PR — sync delta→canonical and KEEP the edits
+            // (they are committed in the merge chore commit below). No drift guard here.
+            `Sync the delta specs for change "${change}" into the canonical specs: invoke Skill({ skill: "openspec-sync-specs" }) for change "${change}". Merges ADDED/MODIFIED/REMOVED/RENAMED from ${pre.specPaths.join(', ')} into openspec/specs/<capability>/spec.md, idempotent.`,
+            `Do NOT commit (the merge phase stages openspec/specs/). Set synced=true if it ran, drift=false, driftPaths=[].`,
+          ].join('\n')
+        : [
+            // REMOTE/spec-first: the contract was merged by /opsx:spec-pr — this is a RECONCILE.
+            `RECONCILE the delta specs for change "${change}" against the already-merged canonical specs. Use Bash + Skill({ skill: "openspec-sync-specs" }).`,
+            `1. Confirm openspec/specs/ is clean: git diff --name-only -- openspec/specs/ (expect empty).`,
+            `2. Invoke Skill({ skill: "openspec-sync-specs" }) for change "${change}" — merge from ${pre.specPaths.join(', ')}, idempotent.`,
+            `3. DRIFT CHECK: git diff --name-only -- openspec/specs/ . If NON-EMPTY, implementation changed the contract beyond the merged spec PR → set drift=true, driftPaths=those files, and REVERT (git checkout -- openspec/specs/) so this run never silently changes the contract. If EMPTY, drift=false (contract already in sync).`,
+            `Do NOT commit. Return synced, drift, driftPaths.`,
+          ].join('\n'),
+      { schema: SYNCED, label: local ? 'sync-specs' : 'reconcile-specs', phase: 'Sync', agentType: 'general-purpose' },
+    )
+    if (s) synced = s
+  }
+  if (synced.drift) {
+    return { stage: 'sync', ok: false, change, branch, commits, gatesRun, coverage, dryRun,
+      reason: `spec drifted during implementation: ${(synced.driftPaths || []).join(', ')}. The merged contract no longer matches the delta. Author the change to the delta specs, run /opsx:spec ${change} (re-review), then /opsx:spec-pr ${change} (merge the updated contract) before re-shipping. Code commits stand on ${branch}.` }
+  }
+  log(local ? `sync: merged delta specs (local bundle)` : `sync: reconcile clean (contract in sync with the merged spec PR)${synced.synced ? '' : ' — no delta specs'}`)
+} // end if (!worktreeDidImplement) — inline sync done
 
 // ---------------------------------------------------------------- Phase 5b: Merge (LOCAL PATH ONLY — git switch base && merge --squash/--no-ff/--ff-only)
 let mergeResult = null

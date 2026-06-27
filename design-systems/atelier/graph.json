@@ -111,6 +111,17 @@
       }
     },
     {
+      "id": "atelier/charters/no-overlap.ts",
+      "label": "file",
+      "props": {
+        "path": "charters/no-overlap.ts",
+        "type": "asset",
+        "source": {
+          "file": "atelier/charters/no-overlap.ts"
+        }
+      }
+    },
+    {
       "id": "atelier/code/Badge.tsx",
       "label": "file",
       "props": {
@@ -1284,6 +1295,18 @@
           "file": "atelier/charters/heading-font.ts"
         }
       }
+    },
+    {
+      "id": "charter/atelier/no-overlap",
+      "label": "charter",
+      "props": {
+        "name": "no-overlap",
+        "dsId": "atelier",
+        "file": "atelier/charters/no-overlap.ts",
+        "source": {
+          "file": "atelier/charters/no-overlap.ts"
+        }
+      }
     }
   ],
   "edges": [
@@ -1348,6 +1371,13 @@
       "label": "contains",
       "from": "atelier",
       "to": "atelier/charters/index.ts",
+      "props": {}
+    },
+    {
+      "id": "atelier|contains|atelier/charters/no-overlap.ts",
+      "label": "contains",
+      "from": "atelier",
+      "to": "atelier/charters/no-overlap.ts",
       "props": {}
     },
     {
@@ -3307,6 +3337,20 @@
       "label": "hasCharter",
       "from": "atelier",
       "to": "charter/atelier/heading-font",
+      "props": {}
+    },
+    {
+      "id": "atelier|contains|charter/atelier/no-overlap",
+      "label": "contains",
+      "from": "atelier",
+      "to": "charter/atelier/no-overlap",
+      "props": {}
+    },
+    {
+      "id": "atelier|hasCharter|charter/atelier/no-overlap",
+      "label": "hasCharter",
+      "from": "atelier",
+      "to": "charter/atelier/no-overlap",
       "props": {}
     }
   ]
