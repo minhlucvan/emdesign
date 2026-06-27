@@ -14,6 +14,8 @@ export interface AgentBuildContext {
   newSessionId?: string;
   /** Capability bits discovered via the help probe. */
   capabilities: Record<string, boolean>;
+  /** Permission/interactive mode (default: 'bypassPermissions'). */
+  permissionMode?: string;
 }
 
 export interface MinimalAgentDef {

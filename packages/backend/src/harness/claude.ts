@@ -7,6 +7,10 @@ import type { MinimalAgentDef } from './types.js';
  * stdin open for follow-up turns / tool_result injection — exactly what the live
  * change-request loop needs). Session is resumed via the CLI so Claude keeps working
  * memory across change requests instead of re-reading everything each time.
+ *
+ * The `permissionMode` build context field controls whether Claude's interactive prompts
+ * (including AskUserQuestion) are surfaced or bypassed. Default is 'bypassPermissions';
+ * set to 'interactive' to enable structured question/answer flows in the chat UI.
  */
 export const claudeAdapter: MinimalAgentDef = {
   id: 'claude',
@@ -19,7 +23,7 @@ export const claudeAdapter: MinimalAgentDef = {
     '--include-partial-messages': 'partialMessages',
     '--add-dir': 'addDir',
   },
-  buildArgs: ({ model, extraAllowedDirs = [], resumeSessionId, newSessionId, capabilities }) => {
+  buildArgs: ({ model, extraAllowedDirs = [], resumeSessionId, newSessionId, capabilities, permissionMode }) => {
     const args = ['-p', '--input-format', 'stream-json', '--output-format', 'stream-json', '--verbose'];
     if (capabilities.partialMessages) args.push('--include-partial-messages');
     if (model && model !== 'default') args.push('--model', model);
@@ -27,8 +31,7 @@ export const claudeAdapter: MinimalAgentDef = {
     if (dirs.length && capabilities.addDir !== false) args.push('--add-dir', ...dirs);
     if (resumeSessionId) args.push('--resume', resumeSessionId);
     else if (newSessionId) args.push('--session-id', newSessionId);
-    // The backend owns a controlled cwd, so it bypasses Claude's interactive approval.
-    args.push('--permission-mode', 'bypassPermissions');
+    args.push('--permission-mode', permissionMode ?? 'bypassPermissions');
     return args;
   },
   promptViaStdin: true,

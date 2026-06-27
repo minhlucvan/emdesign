@@ -3,8 +3,8 @@
  */
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { addons } from '@storybook/manager-api';
-import { injectShadcnVars, css, MessageList, useAutoScroll } from '@emdesign/chat-ui';
-import type { Message } from '@emdesign/chat-ui';
+import { injectShadcnVars, css, MessageList, useAutoScroll, QuestionCard } from '@emdesign/chat-ui';
+import type { Message, Question } from '@emdesign/chat-ui';
 import { api } from '../api';
 import { BACKEND_URL, CHAT_MODES } from '../constants';
 import { EVT_ELEMENT_SELECTED, EVT_VIEW_CONTEXT } from '../channel';
@@ -236,6 +236,11 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
   const autoSendRef = useRef<string | null>(null);
   const [selectedElement, setSelectedElement] = useState<ElementSelectedPayload | null>(null);
   const [viewContext, setViewContext] = useState<ViewContextPayload | null>(null);
+  const [pendingQuestion, setPendingQuestion] = useState<{
+    questions: Question[];
+    state: 'interactive' | 'pending' | 'answered' | 'expired';
+    sessionId: string;
+  } | null>(null);
 
   // Listen for element selections from the preview iframe
   useEffect(() => {
@@ -324,7 +329,7 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
         setMessages(prev => [...prev, { id: asstId, role: 'assistant', content: '', createdAt: new Date() }]);
         fetch(`${BACKEND_URL}/api/chat/stream`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: autoText }),
+          body: JSON.stringify({ message: autoText, interactive: true, sessionId: activeSessionId || undefined }),
         }).then(async (res) => {
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const reader = res.body?.getReader();
@@ -351,7 +356,11 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
               try {
                 const data = JSON.parse(line.slice(6));
                 if (data.type === 'text') { assistantText += data.text; setMessages(prev => prev.map(m => m.id === asstId ? { ...m, content: assistantText } : m)); }
-                else if (data.type === 'done') { streamDone = true; setStreaming(false); break; }
+                else if (data.type === 'question') {
+                  setPendingQuestion({ questions: data.questions, state: 'interactive', sessionId: activeSessionId || '' });
+                } else if (data.type === 'question_timeout') {
+                  setPendingQuestion(prev => prev ? { ...prev, state: 'expired' } : null);
+                } else if (data.type === 'done') { streamDone = true; setStreaming(false); break; }
               } catch { /* skip */ }
             }
           }
@@ -422,6 +431,7 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
     console.log('[chat] sending...');
     setSending(true);
     setStreaming(true);
+    setPendingQuestion(null); // clear any stale pending question
 
     // Add user message
     const userMsg: Message = { id: `u-${Date.now()}`, role: 'user', content: text || '(file upload)', createdAt: new Date() };
@@ -452,7 +462,11 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
       const res = await fetch(`${BACKEND_URL}/api/chat/stream`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text + extra + contextSuffix }),
+        body: JSON.stringify({
+          message: text + extra + contextSuffix,
+          interactive: true,
+          sessionId: activeSessionId || undefined,
+        }),
       });
 
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -493,6 +507,14 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
             if (data.type === 'text') {
               assistantText += data.text;
               setMessages(prev => prev.map(m => m.id === asstId ? { ...m, content: assistantText } : m));
+            } else if (data.type === 'question') {
+              setPendingQuestion({
+                questions: data.questions,
+                state: 'interactive',
+                sessionId: activeSessionId || '',
+              });
+            } else if (data.type === 'question_timeout') {
+              setPendingQuestion(prev => prev ? { ...prev, state: 'expired' } : null);
             } else if (data.type === 'done') {
               console.log('[chat] DONE received — hiding typing');
               streamDone = true;
@@ -620,6 +642,52 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
               <div style={{ padding: 20, textAlign: 'center', fontSize: 12, ...S.muted }}>No messages in this session</div>
             ) : (
               <MessageList messages={messages} isTyping={showTyping} />
+            )}
+
+            {/* ── Pending Question Card ── */}
+            {pendingQuestion && pendingQuestion.state !== 'answered' && (
+              <div style={{ padding: '0 10px' }}>
+                {pendingQuestion.state === 'interactive' && (
+                  <div style={{ fontSize: 10, color: 'hsl(var(--muted-foreground))', marginBottom: 4 }}>
+                    The AI is waiting for your answer...
+                  </div>
+                )}
+                {pendingQuestion.state === 'expired' && (
+                  <div style={{ fontSize: 10, color: 'hsl(var(--muted-foreground))', marginBottom: 4 }}>
+                    ⏱ Question expired
+                  </div>
+                )}
+                <QuestionCard
+                  questions={pendingQuestion.questions}
+                  state={pendingQuestion.state}
+                  onSubmit={(answers) => {
+                    setPendingQuestion(prev => prev ? { ...prev, state: 'pending' } : null);
+                    const sid = pendingQuestion.sessionId;
+                    fetch(`\${BACKEND_URL}/api/chat/answer`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ sessionId: sid, answers }),
+                    }).then(res => {
+                      if (res.ok) {
+                        setPendingQuestion(prev => prev ? { ...prev, state: 'answered' } : null);
+                      } else {
+                        setPendingQuestion(prev => prev ? { ...prev, state: 'interactive' } : null);
+                      }
+                    }).catch(() => {
+                      setPendingQuestion(prev => prev ? { ...prev, state: 'interactive' } : null);
+                    });
+                  }}
+                  onCancel={() => {
+                    const sid = pendingQuestion.sessionId;
+                    fetch(`\${BACKEND_URL}/api/chat/answer/cancel`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ sessionId: sid }),
+                    }).catch(() => {});
+                    setPendingQuestion(null);
+                  }}
+                />
+              </div>
             )}
           </div>
 

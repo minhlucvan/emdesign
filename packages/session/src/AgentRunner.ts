@@ -26,6 +26,8 @@ export interface AgentRunnerOptions {
   resumeSessionId?: string;
   allowedDirs?: string[];
   signal?: AbortSignal;
+  /** Permission mode for the agent (default: 'bypassPermissions'). */
+  permissionMode?: string;
 }
 
 export interface AgentHandle {
@@ -33,6 +35,8 @@ export interface AgentHandle {
   pid: number;
   /** Write a follow-up prompt to the running agent's stdin. */
   sendPrompt(prompt: string): Promise<void>;
+  /** Write raw JSON to stdin (for tool_result injection, etc.). */
+  sendRaw(data: object): Promise<void>;
   /** Kill the process (SIGTERM → SIGKILL after timeout). */
   cancel(): Promise<void>;
   /** Subscribe to stream-json events from stdout. */
@@ -95,6 +99,7 @@ export class AgentRunner {
       resumeSessionId: opts.resumeSessionId,
       newSessionId: opts.newSessionId,
       capabilities,
+      permissionMode: opts.permissionMode,
     });
 
     const child = spawn(binPath, args, {
@@ -170,6 +175,9 @@ export class AgentRunner {
       sendPrompt: async (prompt: string) => {
         const msg = { type: 'user', message: { role: 'user', content: [{ type: 'text', text: prompt }] } };
         child.stdin!.write(JSON.stringify(msg) + '\n');
+      },
+      sendRaw: async (data: object) => {
+        child.stdin!.write(JSON.stringify(data) + '\n');
       },
       cancel: async () => {
         return new Promise((resolve) => {

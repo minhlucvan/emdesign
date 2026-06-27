@@ -715,10 +715,36 @@ export async function createHttpBridge(store: Store, paths: RepoPaths, orch?: an
     res.json({ pins: state.comments[storyId] || [] });
   });
 
+  // ---- question answer endpoints (AskUserQuestion integration) ----
+  app.post('/api/chat/answer', (req, res) => {
+    const { sessionId, answers } = req.body || {};
+    if (!sessionId) return res.status(400).json({ error: 'sessionId required' });
+    if (!answers) return res.status(400).json({ error: 'answers required' });
+    const entry = pendingQuestions.get(sessionId);
+    if (!entry) return res.status(404).json({ error: 'No pending question for this session' });
+    clearTimeout(entry.timeout);
+    pendingQuestions.delete(sessionId);
+    entry.resolve(answers);
+    res.json({ ok: true });
+  });
+
+  app.post('/api/chat/answer/cancel', (req, res) => {
+    const { sessionId } = req.body || {};
+    if (!sessionId) return res.status(400).json({ error: 'sessionId required' });
+    const entry = pendingQuestions.get(sessionId);
+    if (!entry) return res.status(404).json({ error: 'No pending question for this session' });
+    clearTimeout(entry.timeout);
+    pendingQuestions.delete(sessionId);
+    entry.reject(new Error('Cancelled'));
+    res.json({ ok: true });
+  });
+
   // ---- chat stream (SSE) ----
   app.post('/api/chat/stream', async (req, res) => {
     const message = String(req.body?.message ?? '').trim();
     if (!message) return res.status(400).json({ error: 'message required' });
+    const interactive = !!req.body?.interactive;
+    const sessionIdHint = String(req.body?.sessionId ?? '').trim() || `chat_${Date.now()}`;
 
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
@@ -736,11 +762,22 @@ export async function createHttpBridge(store: Store, paths: RepoPaths, orch?: an
         def: claudeAdapter,
         cwd: paths.root,
         prompt: message,
+        permissionMode: interactive ? 'interactive' : undefined,
         allowedDirs: [paths.root],
       });
 
-      // Cancel if client disconnects
-      req.on('close', () => handle.cancel().catch(() => {}));
+      let questionDetected = false;
+
+      // Cancel if client disconnects; clean up any pending question
+      req.on('close', () => {
+        const entry = pendingQuestions.get(sessionIdHint);
+        if (entry) {
+          clearTimeout(entry.timeout);
+          pendingQuestions.delete(sessionIdHint);
+          entry.reject(new Error('Stream closed'));
+        }
+        handle.cancel().catch(() => {});
+      });
 
       handle.onLog((line) => {
         try {

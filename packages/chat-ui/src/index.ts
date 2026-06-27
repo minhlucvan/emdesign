@@ -1,3 +1,5 @@
+export { QuestionCard } from './question-card'
+export type { QuestionCardProps, Question, QuestionOption } from './question-card'
 export { injectShadcnVars, css, shadcnVars } from './theme'
 export { Chat, ChatContainer, ChatMessages, ChatForm } from './chat'
 export type { ChatProps } from './chat'
