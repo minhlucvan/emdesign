@@ -108,92 +108,90 @@ while (cycleCount < maxCycles) {
     },
   );
 
-  // Find the first failing check
-  var fixApplied = false;
+  // Collect ALL failing fixes from one observation
+  var pendingFixes = [];
   for (var fi = 0; fi < FIX_MAP.length; fi++) {
     if (FIX_MAP[fi].check(metrics)) {
-      log('Issue detected: ' + JSON.stringify(FIX_MAP[fi].check.toString().slice(0, 80)));
-
-      // ── Fix ──────────────────────────────────────────────────────────
-      phase('Fix');
-      var fixFile = FIX_MAP[fi].file;
-      var fixAnchor = FIX_MAP[fi].anchor;
-      var fixText = FIX_MAP[fi].insert;
-      var fixOp = FIX_MAP[fi].op;
-
-      var fixResult = await agent(
-        'Read the file at ' + fixFile + '. Find this EXACT text:\n"""' + fixAnchor + '"""\n\n' +
-        'Apply ' + fixOp + ' with this text:\n"""' + fixText + '"""\n\n' +
-        'Write the FULL modified file back. Do NOT change anything else.\n' +
-        'Then run \`cd ' + REPO_ROOT + ' && git diff -- ' + fixFile + '\` and include the diff.\n' +
-        'Return { applied: true|false, diff: "..." }',
-        { label: 'fix-' + fi + '-' + component, phase: 'Fix', schema: { type: 'object', properties: { applied: { type: 'boolean' }, diff: { type: 'string' } }, required: ['applied'] } },
-      );
-
-      if (fixResult && fixResult.applied) {
-        // ── Verify ─────────────────────────────────────────────────────
-        phase('Verify');
-        log('Fix applied. Rebuilding ' + component + ' to verify...');
-
-        var rebuild = await agent(
-          'Rebuild "' + component + '" through core-loop (edit mode): ' +
-          'call edit_component with the same source, run the cascade, gate. ' +
-          'Return { shipped: true|false }',
-          { label: 'rebuild-' + component, phase: 'Verify', schema: { type: 'object', properties: { shipped: { type: 'boolean' } }, required: ['shipped'] } },
-        );
-
-        // Recheck metrics
-        var recheck = await agent(
-          'Read ' + sourcePath + ' and run the EXACT same white-box metrics check again. Return the same JSON format.',
-          { label: 'recheck-' + component, phase: 'Verify',
-            schema: { type: 'object', additionalProperties: true, properties: {
-              rawHexCount: { type: 'number' }, unresolvedVarCount: { type: 'number' }, offTokenStyleCount: { type: 'number' },
-              anyCount: { type: 'number' }, tsIgnoreCount: { type: 'number' }, linesOfCode: { type: 'number' }, patternViolations: { type: 'array' },
-            }, required: ['rawHexCount', 'unresolvedVarCount', 'offTokenStyleCount', 'anyCount', 'tsIgnoreCount', 'linesOfCode', 'patternViolations'] },
-          },
-        );
-
-        var stillFailing = FIX_MAP[fi].check(recheck);
-
-        if (!stillFailing) {
-          // ── Commit ─────────────────────────────────────────────────
-          phase('Commit');
-          await agent(
-            'Commit: cd ' + REPO_ROOT + ' && git add -A && git commit -m "dev-loop: auto-fix ' + FIX_MAP[fi].anchor.slice(0, 60) + '"',
-            { label: 'commit', phase: 'Commit' },
-          );
-          totalFixes++;
-          cycleCount++;
-          fixApplied = true;
-          log('✅ Fix verified and committed. Total fixes: ' + totalFixes);
-          break;
-        } else {
-          // Revert the change
-          log('Fix did not pass recheck. Reverting.');
-          await agent(
-            'Revert: cd ' + REPO_ROOT + ' && git restore ' + fixFile,
-            { label: 'revert', phase: 'Verify' },
-          );
-        }
-      }
+      pendingFixes.push(fi);
     }
   }
 
-  if (!fixApplied) {
-    // No metric issues found for this component
+  if (pendingFixes.length === 0) {
     log(component + ' passed all metrics. Moving to next component.');
     cycleCount++;
+    stallCount++;
+    if (stallCount >= 10) { log('10 clean cycles. All metrics passing. Stopping.'); break; }
+    continue;
   }
 
-  if (!fixApplied) {
-    stallCount++;
-    if (stallCount >= 10) {
-      log('No fixes found for 10 consecutive cycles. All metrics passing. Stopping.');
-      break;
+  stallCount = 0;
+  log(pendingFixes.length + ' issue(s) detected in ' + component + '. Fixing all at once...');
+
+  // ── Fix ALL at once ──────────────────────────────────────────────────
+  phase('Fix');
+  var fixDescriptions = [];
+  for (var pi = 0; pi < pendingFixes.length; pi++) {
+    var fx = FIX_MAP[pendingFixes[pi]];
+    fixDescriptions.push('- ' + fx.anchor + ' in ' + fx.file);
+  }
+
+  var batchFixResult = await agent(
+    'Apply ALL of the following fixes to the engine files at once:\n' +
+    fixDescriptions.join('\n') + '\n\n' +
+    'For each fix, read the target file, find the anchor text, and insert/modify exactly as described.\n' +
+    'Do NOT change anything else. After ALL fixes are applied, run:\n' +
+    'cd ' + REPO_ROOT + ' && git diff --stat\n' +
+    'Return { filesChanged: ["file1", "file2"], diff: "..." }',
+    { label: 'batch-fix-' + component, phase: 'Fix',
+      schema: { type: 'object', properties: { filesChanged: { type: 'array', items: { type: 'string' } }, diff: { type: 'string' } }, required: ['filesChanged'] } },
+  );
+
+  if (batchFixResult && batchFixResult.filesChanged && batchFixResult.filesChanged.length > 0) {
+    // ── Verify all at once ─────────────────────────────────────────────
+    phase('Verify');
+    log(batchFixResult.filesChanged.length + ' file(s) changed. Rebuilding ' + component + ' to verify...');
+
+    var rebuild = await agent(
+      'Rebuild "' + component + '" through core-loop (edit mode): ' +
+      'call edit_component, run the cascade (lint → visual → a11y → vision → LLM → gate). ' +
+      'Return { shipped: true|false }',
+      { label: 'rebuild-' + component, phase: 'Verify', schema: { type: 'object', properties: { shipped: { type: 'boolean' } }, required: ['shipped'] } },
+    );
+
+    // Recheck ALL metrics at once
+    var recheck = await agent(
+      'Read ' + sourcePath + ' and run the EXACT same white-box metrics check again. Return the same JSON format.',
+      { label: 'recheck-' + component, phase: 'Verify',
+        schema: { type: 'object', additionalProperties: true, properties: {
+          rawHexCount: { type: 'number' }, unresolvedVarCount: { type: 'number' }, offTokenStyleCount: { type: 'number' },
+          anyCount: { type: 'number' }, tsIgnoreCount: { type: 'number' }, linesOfCode: { type: 'number' }, patternViolations: { type: 'array' },
+        }, required: ['rawHexCount', 'unresolvedVarCount', 'offTokenStyleCount', 'anyCount', 'tsIgnoreCount', 'linesOfCode', 'patternViolations'] },
+      },
+    );
+
+    // Check if ALL pending fixes passed
+    var stillFailing = pendingFixes.filter(function(fi) { return FIX_MAP[fi].check(recheck); });
+
+    if (stillFailing.length === 0) {
+      // ── Commit ─────────────────────────────────────────────────────
+      phase('Commit');
+      await agent(
+        'Commit all changes: cd ' + REPO_ROOT + ' && git add -A && git commit -m "dev-loop: fix ' + pendingFixes.length + ' issues (' + pendingFixes.map(function(fi) { return FIX_MAP[fi].anchor.slice(0, 30); }).join(', ') + ')"',
+        { label: 'commit', phase: 'Commit' },
+      );
+      totalFixes += pendingFixes.length;
+      log('✅ ' + pendingFixes.length + ' fixes verified and committed. Total: ' + totalFixes);
+    } else {
+      log(stillFailing.length + '/' + pendingFixes.length + ' fixes did not pass recheck. Reverting all.');
+      for (var ri = 0; ri < batchFixResult.filesChanged.length; ri++) {
+        await agent('Revert: cd ' + REPO_ROOT + ' && git restore ' + batchFixResult.filesChanged[ri], { label: 'revert-' + ri, phase: 'Verify' });
+      }
     }
   } else {
-    stallCount = 0;
+    log('No fixes applied. Batch fix returned no changes.');
   }
+
+  cycleCount++;
 
   if (totalFixes >= 100) {
     log('Reached 100 fixes. Stopping.');
