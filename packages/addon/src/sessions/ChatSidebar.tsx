@@ -697,7 +697,7 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
                 fontSize: 11, fontWeight: 600, cursor: 'pointer', border: `1px solid ${css('--primary')}`,
                 background: css('--primary'), color: css('--primary-foreground'),
               }}>
-              <span style={{ fontSize: 13, lineHeight: 1 }}>+</span> New {filterTab === 'story' ? 'Story' : filterTab === 'project' ? 'Project' : 'Design System'} Conversation
+              <span style={{ fontSize: 13, lineHeight: 1 }}>+</span> New Conversation
             </button>
           </div>
 
