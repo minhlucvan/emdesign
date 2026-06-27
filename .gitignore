@@ -21,4 +21,5 @@ playwright-report/
 .env
 .claude/settings.local.json
 .claude/worktrees/
+.handoff/
 uploads/
