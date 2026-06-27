@@ -43,14 +43,6 @@ export class SessionManager {
     this.store.upsert(session);
     this.bus.emit({ type: 'session:created', session });
 
-    // Build MCP server config for the agent to connect back
-    const mcpServers = {
-      emdesign: {
-        command: 'npx',
-        args: ['tsx', 'packages/cli/src/cli.ts', 'mcp'],
-      },
-    };
-
     // Compose a workflow bootstrap prompt
     const workflowPrompt = this.buildWorkflowPrompt(opts);
 
@@ -59,7 +51,6 @@ export class SessionManager {
         def: claudeAdapter,
         cwd: this.paths.root,
         prompt: workflowPrompt,
-        mcpServers,
         model: opts.model,
         newSessionId: id,
         allowedDirs: [this.paths.root],
@@ -164,10 +155,10 @@ export class SessionManager {
   private buildWorkflowPrompt(opts: SessionCreateOptions): string {
     return `You are running an emdesign workflow. Your task is: ${opts.instruction ?? opts.type}.
 
-You have access to the emdesign MCP tools. Use them to:
-1. Get design context
-2. Create/edit components
-3. Run lint and visual tests
+You have access to the emdesign CLI. Use it to:
+1. Get design context (emdesign design)
+2. Create/edit components (emdesign serve at localhost:4321)
+3. Run lint and visual tests (emdesign lint, emdesign visual-test)
 4. Score and iterate
 
 Follow the standard emdesign workflow: analyze → build → critique → gate.

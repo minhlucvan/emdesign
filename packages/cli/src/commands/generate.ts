@@ -18,6 +18,7 @@ export interface GenerateArgs {
   name: string;
   mode: 'create' | 'edit';
   source?: string;        // file path
+  content?: string;       // inline source (alternative to --source / --stdin)
   stdin?: boolean;        // read source from stdin
   story?: string;         // file path
   stdinStory?: boolean;   // read story from stdin
@@ -33,14 +34,16 @@ export async function cmdGenerate(args: GenerateArgs, paths: RepoPaths, store: S
 
   // Resolve source
   let source: string | undefined;
-  if (args.stdin) {
+  if (args.content) {
+    source = args.content;
+  } else if (args.stdin) {
     source = await readStdin();
   } else if (args.source) {
     source = fs.readFileSync(path.resolve(args.source), 'utf8');
   }
 
   if (!source) {
-    formatError('generate requires source via --source <file> or --stdin');
+    formatError('generate requires source via --content <source>, --source <file>, or --stdin');
     process.exit(1);
   }
 

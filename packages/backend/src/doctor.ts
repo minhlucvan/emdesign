@@ -33,6 +33,8 @@ export interface GradeOptions {
   components?: string[];
   /** Skip charter evaluation. */
   skipCharters?: boolean;
+  /** AbortSignal for cancellation / timeout. */
+  signal?: AbortSignal;
 }
 
 /**
@@ -121,8 +123,12 @@ export async function gradeDesignSystem(paths: RepoPaths, ref: string, opts: Gra
         const themes = opts.renderThemes ?? ['light', 'dark'];
         const toRender = components.slice(0, 8);
         for (const component of toRender) {
+          if (opts.signal?.aborted) {
+            renderLintNote = 'grade cancelled (timeout or abort)';
+            break;
+          }
           try {
-            const snapshots = await renderSnapshot(paths, component, { story: 'default', themes });
+            const snapshots = await renderSnapshot(paths, component, { story: 'default', themes }, opts.signal);
             allSnapshots.push(...snapshots);
           } catch {
             // Individual component failures are non-fatal

@@ -122,6 +122,7 @@ export async function renderSnapshot(
   paths: RepoPaths,
   component: string,
   opts: RenderSnapshotOptions = {},
+  signal?: AbortSignal,
 ): Promise<RenderSnapshotOutput[]> {
   if (!component) return [];
   const { themes = ['light'], story = 'default', viewportWidth = 1280, viewportHeight = 720 } = opts;
@@ -130,10 +131,12 @@ export async function renderSnapshot(
   const url = `${baseUrl}/iframe.html?id=${storyId}&viewMode=story`;
 
   ensureDir(paths.screenshotsDir);
+  if (signal?.aborted) return [];
   const browser = await chromium.launch({ headless: true });
   const snapshots: RenderSnapshotOutput[] = [];
 
   try {
+    if (signal?.aborted) { await browser.close(); return []; }
     const page = await browser.newPage({ viewport: { width: viewportWidth, height: viewportHeight }, deviceScaleFactor: 2 });
     await page.goto(url, { waitUntil: 'networkidle' });
     await page.waitForSelector('#storybook-root', { timeout: 10_000 });
@@ -141,6 +144,7 @@ export async function renderSnapshot(
     await page.waitForTimeout(300);
 
     for (const theme of themes) {
+      if (signal?.aborted) break;
       if (theme === 'dark') {
         // Set the data-theme attribute on the document element
         await page.evaluate((t) => {

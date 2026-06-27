@@ -1,25 +1,34 @@
 ---
 name: "MDS: System Use"
-description: Select the active design system and rewire the workspace — rebind tokens.css + the @ds alias, rebuild the knowledge graph. Everything crafted next uses this system.
+description: Select the active design system and rewire the workspace — rebind tokens.css + the @ds alias, rebuild the knowledge graph. Direct CLI path, no workflow needed.
 category: System
-tags: [system, design-system, select, workspace]
+tags: [system, design-system, use, switch]
 ---
 
 # MDS: System Use
 
-Make a design system active. This is the "select → update workspace" action.
+Select a design system as the active one and rewire the workspace. This is a direct CLI operation.
 
-**Input**: a design-system `id`. Example: `/mds:system:use atelier2`
+**Input**: a design system ID. Example: `/mds:system:use atelier`
 
 ## Workflow
-1. (Optional) `list_design_systems` to show choices.
-2. MCP `apply_design_system({id})` → rewires the workspace:
-   - rewrites `src/active-design-system.css` to import the system's `tokens.css` (hot-reloads),
-   - writes `.emdesign/active-ds` (the `@ds` Vite alias reads it),
-   - rebuilds the knowledge graph (`design-systems/<id>/graph.json`).
-3. Tell the user to **restart Storybook** so the `@ds` alias repoints (tokens hot-reload without restart).
-4. Confirm with `validate_design_system({id})`; surface any missing roles.
+
+1. **List options.** `emdesign ds list` (or `emdesign ds search <query>`) to see available systems.
+2. **Activate.** `emdesign use <id>`
+   - Rebinds `active-design-system.css` to the selected system's `tokens.css`
+   - Updates the `@ds` alias in the Vite/TS config
+   - Rebuilds the knowledge graph
+   - Confirms with token validation
+3. **Verify.** `emdesign ds validate <id> --strict`
+4. **Restart Storybook** if it was running, so it picks up the new tokens.
+
+## Common Intents Routed Here
+
+| Intent Example | Action |
+|----------------|--------|
+| "Switch to the atelier design system" | `emdesign use atelier` |
+| "Activate my custom brand" | `emdesign use my-brand` |
 
 ## Guardrails
-- Selecting a system is the precondition for the craft flow — do it before `/mds:craft:*`.
-- If `validate_design_system` fails, route back to `/mds:system:update` (don't craft on a broken contract).
+- Always validate after switching: `ds validate --strict`.
+- Storybook needs a restart after switching design systems.

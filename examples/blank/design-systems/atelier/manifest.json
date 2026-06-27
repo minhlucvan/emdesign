@@ -10,7 +10,15 @@
     "components": "components.html"
   },
   "craft": {
-    "applies": ["off-token-color", "ai-default-indigo", "accent-overuse", "filler-copy", "invented-metric", "external-image", "token-self-check"],
-    "exemptions": []
-  }
+    "applies": [
+      "off-token-color",
+      "accent-overuse",
+      "sans-display"
+    ],
+    "exemptions": [
+      "filler-copy"
+    ],
+    "preset": "editorial"
+  },
+  "version": "0.1.1"
 }

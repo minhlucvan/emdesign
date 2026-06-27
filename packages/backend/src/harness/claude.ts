@@ -35,5 +35,4 @@ export const claudeAdapter: MinimalAgentDef = {
   promptInputFormat: 'stream-json',
   streamFormat: 'claude-stream-json',
   resumesSessionViaCli: true,
-  mcpConfigStrategy: 'claude-mcp-json',
 };

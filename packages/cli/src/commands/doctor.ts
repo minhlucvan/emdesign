@@ -32,6 +32,10 @@ export interface DoctorArgs {
   evidence?: string;
   gate?: boolean;
   json?: boolean;
+  /** Suppress stderr output. */
+  quiet?: boolean;
+  /** Global timeout in ms (default: no timeout). */
+  timeout?: number;
 }
 
 /** Read component source from generated dir, falling back to components dir. */
@@ -56,10 +60,21 @@ export async function cmdDoctor(args: DoctorArgs, paths: RepoPaths, store: Store
     process.exit(1);
   }
 
-  const kinds = parseKinds(args.kind ?? 'all');
+  // Suppress stderr in quiet mode
+  const stderr = args.quiet ? { write: () => true } : process.stderr;
+
+  // Timeout guard — exits the process if doctor runs longer than allowed
+  if (args.timeout && args.timeout > 0) {
+    setTimeout(() => {
+      stderr.write(`[emdesign] doctor timed out after ${args.timeout}ms\n`);
+      process.exit(1);
+    }, args.timeout).unref();
+  }
+
   const ds = resolveDesignSystem(paths, activeDsId(store));
   const source = readComponentSource(paths, name);
 
+  const kinds = parseKinds(args.kind ?? 'all');
   const findings: DoctorFinding[] = [];
   const scores: Record<string, number> = {};
   let mustFix = 0;
@@ -84,8 +99,8 @@ export async function cmdDoctor(args: DoctorArgs, paths: RepoPaths, store: Store
           kind: 'lint',
           severity: f.severity as 'P0' | 'P1' | 'P2',
           message: f.message,
-          target: f.target,
-          remediation: f.remediation,
+          target: f.id,
+          remediation: f.fix,
         });
       }
     } catch (e) {
@@ -171,14 +186,21 @@ export async function cmdDoctor(args: DoctorArgs, paths: RepoPaths, store: Store
       const adapter = effectiveAdapter(paths);
       const storyFile = path.join(paths.generatedDir, `${name}${adapter.storyExt}`);
       if (fs.existsSync(storyFile)) {
-        const storyCount = fs.readFileSync(storyFile, 'utf8').split('export const ').length - 1;
+        const content = fs.readFileSync(storyFile, 'utf8');
+        const storyCount = content.split('export const ').length - 1;
+        // Score based on story quality — full charters (play function) vs basic stories
+        const hasCharters = content.includes('charters:') || content.includes('play:');
+        const hasExports = storyCount > 1;
+        scores.charters = hasCharters && hasExports ? 1.0 : content.length > 100 ? 0.5 : 0.2;
         findings.push({
           kind: 'charters',
-          severity: 'P2',
-          message: `Story file found: ${storyCount} story export(s)`,
+          severity: hasCharters ? 'P2' : 'P1',
+          message: `Story file found: ${storyCount} export(s)${hasCharters ? ', includes charters/play functions' : ' — no charters defined (add charters for structured testing)'}`,
           target: storyFile,
+          remediation: hasCharters ? undefined : 'Add `charters: [...]` to story exports for structured testing.',
         });
       } else {
+        scores.charters = 0;
         findings.push({
           kind: 'charters',
           severity: 'P2',
@@ -187,6 +209,7 @@ export async function cmdDoctor(args: DoctorArgs, paths: RepoPaths, store: Store
         });
       }
     } catch (e) {
+      scores.charters = 0;
       findings.push({ kind: 'charters', severity: 'P2', message: `Charter check error: ${(e as Error).message}` });
     }
   }
@@ -201,8 +224,8 @@ export async function cmdDoctor(args: DoctorArgs, paths: RepoPaths, store: Store
           kind: 'react',
           severity: f.severity === 'P0' ? 'P0' : f.severity === 'P1' ? 'P1' : 'P2',
           message: f.message,
-          target: f.location,
-          remediation: f.remediation,
+          target: f.snippet,
+          remediation: f.fix,
         });
       }
       if (scan.findings.filter((f: any) => f.severity === 'P0').length > 0) {
@@ -264,15 +287,15 @@ export async function cmdDoctor(args: DoctorArgs, paths: RepoPaths, store: Store
       gate: args.gate ? (decision === 'ship' ? 'pass' : 'fail') : undefined,
     });
   } else {
-    process.stderr.write(renderDoctorSummary(result));
+    stderr.write(renderDoctorSummary(result));
     // Print findings if --detail
     if (args.detail && findings.length > 0) {
-      process.stderr.write('── Findings ──\n');
+      stderr.write('── Findings ──\n');
       for (const f of findings) {
-        process.stderr.write(`  [${f.kind}/${f.severity}] ${f.message}${f.target ? ` (${f.target})` : ''}\n`);
-        if (f.remediation) process.stderr.write(`    → ${f.remediation}\n`);
+        stderr.write(`  [${f.kind}/${f.severity}] ${f.message}${f.target ? ` (${f.target})` : ''}\n`);
+        if (f.remediation) stderr.write(`    → ${f.remediation}\n`);
       }
-      process.stderr.write('\n');
+      stderr.write('\n');
     }
     formatJson(result, { took: elapsed });
   }

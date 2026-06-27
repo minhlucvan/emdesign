@@ -10,24 +10,42 @@ against it (Flow B). This skill routes a request; read it first, then dispatch.
 
 ## Flow A — Design System (the contract every project starts from)
 
-| Do | Skill | Command | Tools |
-|---|---|---|---|
-| Create a system (brief/blank/import/extract) | `design-system-author` (+ `brand-extract`) | `/mds:system:create` | `create_design_system`, `validate_design_system`, `design-system-loop` |
-| Update a system (tokens/spec) | `design-md`, `color-expert` | `/mds:system:update` | `graph_find_affected` (impact first), `validate_design_system`, `graph_rebuild` |
-| Select a system → rewire workspace | — | `/mds:system:use` | `apply_design_system` (tokens.css + `@ds` + graph) |
+| Do | Skill | MCP Command | CLI Equivalent | Tools |
+|---|---|---|---|---|
+| Create a system (brief/blank/import/extract) | `design-system-author` (+ `brand-extract`) | `/mds:system:create` | `ds create/import/search` | `create_design_system`, `validate_design_system`, `design-system-loop` |
+| Update a system (tokens/spec) | `design-md`, `color-expert` | `/mds:system:update` | `ds customize/update/lint-rules` | `graph_find_affected` (impact first), `validate_design_system`, `graph_rebuild` |
+| Select a system → rewire workspace | — | `/mds:system:use` | `use <id>` | `apply_design_system` (tokens.css + `@ds` + graph) |
+| Compile tokens | `ds-compile` | — (CLI only) | `ds compile/export/version` | Token → TypeScript compilation |
+| Configure lint rules | `ds-lint-rules` | — (CLI only) | `ds lint-rules preset/set` | Rule presets, exemption management |
 
 ## Flow B — Craft (uses the active design system)
 
-| Phase | Do | Skill | Command | Feedback sources |
-|---|---|---|---|---|
-| Analyze + intent | consistency brief + `intent.md`/`brief.md` | `component-build` | (in `/mds:craft:component`) | `get_design_context`, `graph_get_context` |
-| Build component | generate code-first via `@ds` | `component-build` (+ `web-section`) | `/mds:craft:component` | — |
-| Build view (page) | decompose → author/reuse leaves → compose → verify the whole | `page-architect` (+ `component-build`) | `/mds:craft:view` | the 4 sources, per-leaf + page-level |
-| Stories | variants & states | — | `/mds:craft:story` | visual |
-| Verify | score against all sources | `design-review` | `/mds:review` | rule, visual, vision, LLM |
-| Vision only | critique how it looks | — | `/mds:vision` | vision |
-| Update | apply human change-request | `component-build` | `/mds:craft:update` | human + re-verify |
-| Ship | gate + capture | — | `/mds:ship` | `critique_score` + human approval |
+| Phase | Do | Skill | MCP Command | CLI Equivalent | Feedback sources |
+|---|---|---|---|---|---|
+| Analyze + intent | consistency brief | `component-build` | `/mds:craft:component` | `design/ds context` | `get_design_context`, `graph_get_context` |
+| Build component | generate code via `@ds` | `component-build` | `/mds:craft:component` | `generate [--content]` | — |
+| Build view (page) | decompose → compose | `page-architect` | `/mds:craft:view` | `compose + screen create` | 4 sources, per-leaf + page |
+| Stories | variants & states | — | `/mds:craft:story` | `story auto` | visual |
+| Verify | score all sources | `design-review` | `/mds:review` | `doctor all --gate` | rule, visual, vision, LLM |
+| Vision only | critique looks | — | `/mds:vision` | `vision` | vision |
+| Deep analysis | DOM/spatial/a11y | `visual-quality` | — (CLI only) | `render analyze/spatial audit/component a11y` | Deterministic metrics |
+| Blueprints | composition patterns | `screen-compose` | — (CLI only) | `ds blueprint apply` | — |
+| Pipeline | batch/loop | `pipeline-loop` | — (CLI only) | `loop/generate --batch/capture --all` | Composite gate |
+| Update | apply change-request | `component-build` | `/mds:craft:update` | `generate --mode edit` | human + re-verify |
+| Ship | gate + capture | — | `/mds:ship` | `capture [--baseline]` | `critique_score` + human approval |
+
+## Which Interface to Use
+
+| Situation | Use MCP (`/mds:*`) | Use CLI Directly |
+|-----------|-------------------|-----------------|
+| Interactive agent loop with critique | ✅ | ❌ |
+| CI/CD pipeline | ❌ | ✅ `doctor all --gate` |
+| Batch operations | ❌ | ✅ `generate --batch` |
+| Human-in-the-loop review | ✅ | ❌ |
+| Headless / server environment | ❌ | ✅ |
+| Token compilation | ❌ | ✅ `ds compile` |
+| Deep DOM/spatial debugging | ❌ | ✅ `render analyze` |
+| Storybook panel integration | ✅ | ❌ |
 
 ## Browser bridge (the Storybook panel)
 Humans also drive both flows from the **emdesign Storybook panel** — pointing at an element to comment,

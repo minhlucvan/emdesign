@@ -5,7 +5,7 @@
   "description": "emdesign Studio backend — headless design-engineering engine (library): MCP server, agent harness, prompt composer, code-first capture, visual testing, consistency linter, graph + critique. The executable lives in @emdesign/cli.",
   "main": "dist/index.js",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./dist/index.js"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

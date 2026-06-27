@@ -30,9 +30,37 @@ Run a single graph test: `npx vitest run -t "<test name>" -w @emdesign/graph` (o
 
 ### CLI (`emdesign` / `emdesign-backend`, = `packages/cli`)
 The thin client the agent, `/mds:*` commands, and gates invoke. Dev-invoke it without a build via
-`npx tsx packages/cli/src/cli.ts <cmd>`. Subcommands: `serve` / `mcp` (start server / MCP over stdio),
-`ds create|use|validate|list`, `use <id>`, `graph build <id>`, `init <framework>`, `attach`,
-`design-context`, `lint <Component>`, `visual-test <Component>`, `score`, `capture`.
+`npx tsx packages/cli/src/cli.ts <cmd>`.
+
+#### CLI Command Overview (80+ commands across V1-V3)
+
+**Workspace:** `init <framework>` | `attach` | `update` | `serve [--port]` | `up` | `health`
+
+**Design System Registry:** `ds create` | `ds import awesome|git|vendor` | `ds search <query>` | `ds info [id]` | `ds list` | `ds bases`
+
+**Design System Management:** `ds use <id>` | `ds customize <id> --primary --font` | `ds update` | `ds validate [--strict]` | `ds grade [--timeout]` | `ds diff <a> <b>` | `ds conflicts` | `ds history`
+
+**DS Compilation:** `ds compile <id>` | `ds export <id>` | `ds version <id> <bump>` | `ds changelog` | `ds validate --strict`
+
+**DS Lint Rules:** `ds lint-rules list` | `ds lint-rules set <rule> <severity>` | `ds lint-rules preset <name>`
+
+**Component Lifecycle:** `design <comp> [instr]` | `ds context <comp>` | `generate <name> [--content]` | `story auto <comp>` | `capture <comp> [--baseline]` | `vision <comp>`
+
+**Verification:** `doctor [lint|visual|spatial|snapshot|charters|react|a11y|all] <comp> [--gate]` | `doctor all --gate`
+
+**Diagnostic:** `render analyze <comp>` | `spatial audit <comp> [--grid]` | `component a11y <comp>` | `component test <comp>` | `component diff <comp>`
+
+**Composition & Screens:** `compose <name> --components <list>` | `ds blueprint apply|list` | `ds block list` | `ds scaffold --blocks` | `screen create|list`
+
+**Knowledge Graph:** `graph build|context|impact|where-to-fix|guidance|query`
+
+**Exploration:** `explore [overview|ds|tokens|primitives|components|hierarchy|rules|charters|sections|stats]` | `discover` | `doc`
+
+**Automation:** `loop <comp> [--max-iterations]` | `generate --batch` | `capture --all` | `doctor all --gate`
+
+**Universal flags:** `--json` | `--gate` | `--quiet` | `--version` | `--completion [bash|zsh]`
+
+See `docs/cli-commands.md` for full reference. See `apps/workspace/templates/claude/skills/` per-workflow skills.
 
 ### Gates (`scripts/gates/*.sh`) — exit code is the verdict
 `lint.sh <Component>` (0 = no P0), `visual.sh <Component>` (needs Storybook on :6006),

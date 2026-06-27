@@ -1,2 +1,2 @@
-/* Active design system. `emdesign use <id>` rewrites this import. Default: the seeded Atelier. */
-@import "../design-systems/atelier/tokens.css";
+/* active design system */
+@import "../design-systems/dashboard-ui/tokens.css";

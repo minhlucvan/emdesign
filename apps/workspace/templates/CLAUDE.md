@@ -40,36 +40,59 @@ emdesign.config.json  ← Workspace config (framework, plugin list, paths)
 .claude/           ← Commands, agents, skills, workflows (the /mds system)
 ```
 
-## Workflow — the `/mds:*` commands
+## Workflow — CLI & `/mds:*` Commands
 
-All design and build work runs through these slash commands. They are defined
-in `.claude/commands/mds/`.
+Work is driven either via **CLI commands** (direct, scriptable, batch-friendly)
+or **`/mds:*` slash commands** (agent-in-the-loop with human review via Storybook).
+Both access the same engine. Use CLI for automation and CI; use `/mds:*` for
+interactive agent sessions.
 
-### Craft (build a component or story)
+### Design System Management
 
-| Command | When to use |
-|---------|-------------|
-| `/mds:craft:component` | Build a new component from an idea. Runs the full design loop. |
-| `/mds:craft:update` | Apply a change request to an existing component. |
-| `/mds:craft:story` | Add or refine CSF stories (variants, states, edge cases). |
-| `/mds:craft:view` | Build a full page by progressive decomposition. |
+| Phase | CLI Command | `/mds:*` Command | When to use |
+|-------|-------------|-------------------|-------------|
+| Create | `ds create/import/search` | `/mds:system:create` | Set up a new DS |
+| Customize | `ds customize --primary --font` | `/mds:system:update` | Re-skin existing DS |
+| Switch | `use <id>` | `/mds:system:use` | Activate a DS |
+| Compile | `ds compile/export/version` | — (CLI only) | Production-ready tokens |
+| Validate | `ds validate --strict` | (included in create) | Token contract check |
+| Lint Rules | `ds lint-rules list/set/preset` | — (CLI only) | Configure rule presets |
 
-### System (manage design systems)
+### Component Building
 
-| Command | When to use |
-|---------|-------------|
-| `/mds:system:create` | Author a new design system (brief, blank, import, or extract). |
-| `/mds:system:update` | Update an existing design system (blast-radius checked). |
-| `/mds:system:use` | Select a design system as the active one. |
+| Phase | CLI Command | `/mds:*` Command | When to use |
+|-------|-------------|-------------------|-------------|
+| Context | `design/ds context <comp>` | (part of craft loop) | Get design context |
+| Create | `generate <name> [--content]` | `/mds:craft:component` | Write component code |
+| Stories | `story auto <comp>` | `/mds:craft:story` | Auto-gen CSF stories |
+| View | `compose/screen create` | `/mds:craft:view` | Build screens |
+| Blueprints | `ds blueprint apply` | — (CLI only) | Use composition patterns |
 
-### Review & Ship (quality)
+### Verification
 
-| Command | When to use |
-|---------|-------------|
-| `/mds:review` | One-shot read-only critique (4 feedback sources). |
-| `/mds:vision` | Vision-only critique (screenshot → visual scores). |
-| `/mds:ship` | Gate then capture a component (requires human approval). |
-| `/mds:inbox` | Drain the browser intent queue from the Storybook panel. |
+| Phase | CLI Command | `/mds:*` Command | When to use |
+|-------|-------------|-------------------|-------------|
+| Pre-check | `storybook health` | — (CLI only) | Verify Storybook readiness |
+| Fast gate | `doctor lint <comp>` | (in review loop) | Token compliance |
+| Visual | `doctor visual <comp>` | (in review loop) | Pixel diff |
+| Full gate | `doctor all <comp> --gate` | `/mds:review` | Composite ship decision |
+| Deep analysis | `render analyze/spatial audit` | — (CLI only) | DOM/spatial debugging |
+| A11y | `component a11y <comp>` | — (CLI only) | Accessibility audit |
+| Vision | `vision <comp>` | `/mds:vision` | AI visual critique |
+| Ship | `capture` | `/mds:ship` | Promote to reusable |
+
+### Automation
+
+| Phase | CLI Command | When to use |
+|-------|-------------|-------------|
+| Batch generate | `generate --batch <file>` | Multiple components at once |
+| Double-loop | `loop <comp>` | Iterate until gate passes |
+| Batch capture | `capture --all` | Promote all passing components |
+| CI gate | `doctor all --gate` | Pre-commit / CI pipeline |
+
+### CLI Quick Reference
+
+See `.claude/cli-reference.md` for the full command catalog organized by category.
 
 ## The design loop
 

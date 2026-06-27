@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import type { RepoPaths, Store } from '@emdesign/backend';
 import {
   createDesignSystem,
@@ -8,7 +10,31 @@ import {
   renderGrade,
   runtimeFor,
   normalizeDsRef,
+  validateDesignSystem,
+  updateDesignSystem,
+  diffDesignSystems,
+  compileDesignSystem,
+  exportDesignSystem,
+  resolveDesignSystem,
+  composePrompt,
+  effectiveAdapter,
+  loadOrBuild,
+  overlayGenerated,
+  ensureDir,
+  searchDesignSystems,
+  importAwesomeDesign,
+  importGitDesign,
+  getDesignSystemInfo,
+  getLintRules,
+  setLintRule,
+  applyLintPreset,
+  LINT_RULE_PRESETS,
+  listBlocks,
+  scaffoldBlocks,
+  listBlueprints,
+  applyBlueprint,
 } from '@emdesign/backend';
+import { getContext, consistencyBrief } from "@emdesign/graph";
 import { formatJson, formatError } from '../lib/format.js';
 import { activeDsId } from '../lib/resolve.js';
 
@@ -26,7 +52,7 @@ export async function cmdDs(ds: DsArgs, paths: RepoPaths, store: Store): Promise
   switch (ds.subcommand) {
     case 'create': {
       if (!a1) {
-        formatError('usage: emdesign ds create <id> [--mode blank|brief|import|extract] [--from <base>]');
+        formatError('usage: emdesign ds create <id> [--mode blank|brief|import|extract] [--from <base>] [--name <name>] [--description <text>]');
         process.exit(1);
       }
       const modeIdx = ds.argv.indexOf('--mode');
@@ -35,7 +61,9 @@ export async function cmdDs(ds: DsArgs, paths: RepoPaths, store: Store): Promise
       const from = fromIdx >= 0 ? ds.argv[fromIdx + 1] : undefined;
       const nameIdx = ds.argv.indexOf('--name');
       const name = nameIdx >= 0 ? ds.argv[nameIdx + 1] : undefined;
-      const result = createDesignSystem(paths, { id: a1, mode, from, name });
+      const descIdx = ds.argv.indexOf('--description');
+      const description = descIdx >= 0 ? ds.argv[descIdx + 1] : undefined;
+      const result = createDesignSystem(paths, { id: a1, mode, from, name, description });
       out(result, ds.json);
       break;
     }
@@ -59,39 +87,367 @@ export async function cmdDs(ds: DsArgs, paths: RepoPaths, store: Store): Promise
 
     case 'validate': {
       const id = a1 ? normalizeDsRef(a1) : normalizeDsRef(activeDsId(store));
-      const r = runtimeFor(paths).validate(id);
+      const tokenCheck = validateDesignSystem(paths, id);
+      const dsrCheck = runtimeFor(paths).validate(id);
+      const enriched = {
+        id,
+        ok: tokenCheck.ok && dsrCheck.ok,
+        declared: tokenCheck.declared,
+        missingRoles: tokenCheck.missingRoles,
+        note: tokenCheck.note,
+        diagnostics: dsrCheck.diagnostics,
+      };
+      if (ds.json) {
+        formatJson(enriched);
+      } else {
+        process.stdout.write(
+          `Design system: ${id}\n` +
+          `Token contract: ${tokenCheck.ok ? '✅ complete' : '❌ incomplete'} (${tokenCheck.declared} declared roles)\n` +
+          (tokenCheck.missingRoles.length > 0 ? `  Missing roles: ${tokenCheck.missingRoles.join(', ')}\n` : '') +
+          `DSR diagnostics: ${dsrCheck.diagnostics.length} issues (${dsrCheck.diagnostics.filter(d => d.severity === 'P0').length} P0)\n`
+        );
+      }
+      if (ds.gate && !enriched.ok) process.exit(1);
+      // Strict mode: fail on warnings too
+      if (ds.argv.includes('--strict') && (tokenCheck.missingRoles.length > 0 || dsrCheck.diagnostics.length > 0)) {
+        process.exit(1);
+      }
+      break;
+    }
+
+    case 'compile': {
+      const id = a1 ?? activeDsId(store);
+      const r = compileDesignSystem(paths, id);
+      const outDir = ds.argv.includes('--out') ? ds.argv[ds.argv.indexOf('--out') + 1] : undefined;
+      if (outDir) {
+        ensureDir(outDir);
+        fs.writeFileSync(path.join(outDir, 'tokens.ts'), r.files.tokensTs);
+        fs.writeFileSync(path.join(outDir, 'types.ts'), r.files.typesTs);
+        fs.writeFileSync(path.join(outDir, 'tokens.css'), r.files.tokensCss);
+      }
+      if (ds.json) {
+        formatJson(r);
+      } else {
+        process.stdout.write(`${id}: ${r.note}\n`);
+        for (const [cat, toks] of Object.entries(r.categories)) {
+          process.stdout.write(`  ${cat}: ${toks!.length} tokens\n`);
+        }
+      }
+      break;
+    }
+
+    case 'export': {
+      const id = a1 ?? activeDsId(store);
+      const outDir = ds.argv.includes('--out') ? ds.argv[ds.argv.indexOf('--out') + 1] : undefined;
+      const r = exportDesignSystem(paths, id, outDir);
       out(r, ds.json);
-      if (ds.gate && !r.ok) process.exit(1);
+      break;
+    }
+
+    case 'version': {
+      const id = a1 ?? activeDsId(store);
+      const bump = a2 as 'major' | 'minor' | 'patch' | undefined;
+      if (!bump || !['major', 'minor', 'patch'].includes(bump)) {
+        formatError('usage: emdesign ds version <id> <major|minor|patch>');
+        process.exit(1);
+      }
+      // Read manifest from the design system directory
+      const dsPath = path.join(process.cwd(), 'design-systems', ...normalizeDsRef(id).split('/'));
+      const manifestFile = path.join(dsPath, 'manifest.json');
+      if (!fs.existsSync(manifestFile)) {
+        formatError(`No manifest found for ${id} at ${manifestFile}`);
+        process.exit(1);
+      }
+      const m = JSON.parse(fs.readFileSync(manifestFile, 'utf8'));
+      const current = m.version ?? '0.1.0';
+      const parts = current.split('.').map(Number);
+      if (bump === 'major') parts[0]++; else if (bump === 'minor') parts[1]++; else parts[2]++;
+      m.version = parts.join('.');
+      fs.writeFileSync(manifestFile, JSON.stringify(m, null, 2) + '\n');
+      const r = { id, previousVersion: current, version: m.version };
+      out(r, ds.json);
+      break;
+    }
+
+    case 'changelog': {
+      const id = a1 ?? activeDsId(store);
+      const rt = runtimeFor(paths);
+      const h = rt.history(id);
+      if (ds.json) {
+        formatJson({ id, history: h });
+      } else {
+        if (!h || (Array.isArray(h) && h.length === 0)) {
+          process.stdout.write(`No changelog entries for ${id}. Use --snapshot to create one.\n`);
+        } else {
+          process.stdout.write(`Changelog for ${id}:\n`);
+          for (const entry of (Array.isArray(h) ? h : [h])) {
+            process.stdout.write(`  - ${JSON.stringify(entry)}\n`);
+          }
+        }
+      }
       break;
     }
 
     case 'grade': {
       const id = a1 ?? activeDsId(store);
-      const r = await gradeDesignSystem(paths, id);
-      const report = renderGrade(r);
-      if (ds.json) {
-        formatJson({ grade: r.grade, matchesGrade: r.matchesGrade, report });
-      } else {
-        process.stdout.write(report + '\n');
+      const timeoutIdx = ds.argv.indexOf('--timeout');
+      const timeoutMs = timeoutIdx >= 0 ? Number(ds.argv[timeoutIdx + 1]) : 120_000;
+      const ac = new AbortController();
+      const timer = setTimeout(() => ac.abort(new Error(`grade timed out after ${timeoutMs}ms`)), timeoutMs);
+      try {
+        const r = await gradeDesignSystem(paths, id, { signal: ac.signal });
+        const report = renderGrade(r);
+        if (ds.json) {
+          formatJson({ grade: r.grade, matchesGrade: r.matchesGrade, report });
+        } else {
+          process.stdout.write(report + '\n');
+        }
+        if (ds.gate && !r.matchesGrade) process.exit(1);
+      } finally {
+        clearTimeout(timer);
       }
-      if (ds.gate && !r.matchesGrade) process.exit(1);
+      break;
+    }
+
+    // ── V3: Registry & Search ─────────────────────────────────────────
+    case 'search': {
+      // The first positional that's not a flag
+      const rawArgs = ds.args.filter((a: string) => !a.startsWith('--'));
+      const query = rawArgs[0];
+      const limitIdx = ds.argv.indexOf('--limit');
+      const limit = limitIdx >= 0 ? Number(ds.argv[limitIdx + 1]) : 20;
+      const systems = await searchDesignSystems(query, { limit });
+      if (ds.json) {
+        formatJson({ query, total: systems.length, systems });
+      } else {
+        process.stdout.write(`Search results${query ? ` for "${query}"` : ''} (${systems.length}):\n`);
+        for (const s of systems) {
+          process.stdout.write(`  ${s.id.padEnd(25)} ${s.category.padEnd(15)} ${s.source.padEnd(25)} ${s.tokens} tokens\n`);
+        }
+      }
+      break;
+    }
+
+    case 'info': {
+      const id = a1 ?? activeDsId(store);
+      const info = getDesignSystemInfo(paths, id);
+      if (ds.json) {
+        formatJson(info);
+      } else {
+        process.stdout.write(`═══ ${info.name} ═══\n`);
+        process.stdout.write(`  ID: ${info.id}\n`);
+        process.stdout.write(`  Category: ${info.category}\n`);
+        process.stdout.write(`  Version: ${info.version}\n`);
+        process.stdout.write(`  Description: ${info.description}\n`);
+        process.stdout.write(`  Tokens: ${info.tokens} (missing: ${info.missingRoles.length > 0 ? info.missingRoles.join(', ') : 'none'})\n`);
+        process.stdout.write(`  Primitives: ${info.primitives.length > 0 ? info.primitives.join(', ') : 'none'}\n`);
+        process.stdout.write(`  Lint preset: ${info.preset}\n`);
+        process.stdout.write(`  Blueprints: ${info.blueprints.length}\n`);
+      }
+      break;
+    }
+
+    case 'import': {
+      const importSrc = a1; // awesome | git | vendor | npm | url
+      const importId = a2;
+      if (!importSrc || !importId) {
+        formatError('usage: emdesign ds import <awesome|git|vendor> <id> [--name <name>] [--ref <branch>] [--path <dir>]');
+        process.exit(1);
+      }
+      const importNameIdx = ds.argv.indexOf('--name');
+      const importName = importNameIdx >= 0 ? ds.argv[importNameIdx + 1] : undefined;
+      if (importSrc === 'awesome') {
+        const r = await importAwesomeDesign(paths, importId, { name: importName });
+        out(r, ds.json);
+      } else if (importSrc === 'git') {
+        const ref = ds.argv.includes('--ref') ? ds.argv[ds.argv.indexOf('--ref') + 1] : undefined;
+        const subPath = ds.argv.includes('--path') ? ds.argv[ds.argv.indexOf('--path') + 1] : undefined;
+        const r = await importGitDesign(paths, importId, { ref, path: subPath, name: importName });
+        out(r, ds.json);
+      } else if (importSrc === 'vendor') {
+        // Reuse existing --mode import
+        const fromBase = `open-design/${importId}`;
+        const r = createDesignSystem(paths, { id: importName ?? importId, mode: 'import', from: fromBase });
+        out(r, ds.json);
+      } else {
+        formatError(`Unknown import source: ${importSrc}. Use: awesome, git, vendor`);
+        process.exit(1);
+      }
+      break;
+    }
+
+    // ── V3: Lint Rules ─────────────────────────────────────────────────
+    case 'lint-rules': {
+      const ruleSub = a1;
+      const ruleId = a2 ?? activeDsId(store);
+      if (ruleSub === 'list' || !ruleSub) {
+        const rules = getLintRules(paths, ruleId);
+        if (ds.json) {
+          formatJson(rules);
+        } else {
+          process.stdout.write(`Lint rules for ${ruleId} (preset: ${rules.preset}):\n`);
+          process.stdout.write(`  Applies (${rules.applies.length}): ${rules.applies.join(', ') || 'none'}\n`);
+          process.stdout.write(`  Exemptions (${rules.exemptions.length}): ${rules.exemptions.join(', ') || 'none'}\n`);
+        }
+      } else if (ruleSub === 'set') {
+        const ruleName = a3;
+        const severity = ds.args[3]; // fourth positional
+        if (!ruleName || !severity) {
+          formatError('usage: emdesign ds lint-rules set <id> <rule> <P0|P1|P2|off>');
+          process.exit(1);
+        }
+        const r = setLintRule(paths, ruleId, ruleName, severity);
+        out(r, ds.json);
+      } else if (ruleSub === 'preset') {
+        const presetName = a3;
+        if (!presetName || !LINT_RULE_PRESETS[presetName]) {
+          formatError(`usage: emdesign ds lint-rules preset <id> <${Object.keys(LINT_RULE_PRESETS).join('|')}>`);
+          process.exit(1);
+        }
+        const r = applyLintPreset(paths, ruleId, presetName);
+        out(r, ds.json);
+      } else {
+        formatError('usage: emdesign ds lint-rules list|set|preset ...');
+        process.exit(1);
+      }
+      break;
+    }
+
+    // ── V3: Blocks ─────────────────────────────────────────────────────
+    case 'block': {
+      const blockSub = a1;
+      if (blockSub === 'list' || !blockSub) {
+        const tag = ds.argv.includes('--tags') ? ds.argv[ds.argv.indexOf('--tags') + 1] : undefined;
+        const blocks = listBlocks(tag);
+        if (ds.json) {
+          formatJson({ total: blocks.length, blocks });
+        } else {
+          process.stdout.write(`Building blocks (${blocks.length}):\n`);
+          for (const b of blocks) {
+            process.stdout.write(`  ${b.id.padEnd(20)} variants: ${b.variants.padEnd(30)} states: ${b.states || '—'}\n`);
+          }
+        }
+      } else {
+        formatError('usage: emdesign ds block list [--tags form,data,navigation]');
+        process.exit(1);
+      }
+      break;
+    }
+
+    // ── V3: Blueprints ─────────────────────────────────────────────────
+    case 'blueprint': {
+      const bpSub = a1;
+      const bpId = a2;
+      if (bpSub === 'list' || !bpSub) {
+        const cat = ds.argv.includes('--category') ? ds.argv[ds.argv.indexOf('--category') + 1] : undefined;
+        const bps = listBlueprints(cat);
+        if (ds.json) {
+          formatJson({ total: bps.length, blueprints: bps });
+        } else {
+          process.stdout.write(`Blueprints (${bps.length}):\n`);
+          for (const b of bps) {
+            process.stdout.write(`  ${b.id.padEnd(20)} ${b.description.padEnd(50)} [${b.composes.join(', ')}]\n`);
+          }
+        }
+      } else if (bpSub === 'apply') {
+        if (!bpId || !a3) {
+          formatError('usage: emdesign ds blueprint apply <blueprint-id> <target-name>');
+          process.exit(1);
+        }
+        const r = applyBlueprint(paths, bpId, a3, { dir: paths.generatedDir });
+        out(r, ds.json);
+      } else {
+        formatError('usage: emdesign ds blueprint list|apply ...');
+        process.exit(1);
+      }
+      break;
+    }
+
+    case 'context':
+    case 'prompt': {
+      const compName = a1 ?? 'Component';
+      const instruction = a2 ?? '(describe the component)';
+      const id = activeDsId(store);
+      const designSystem = resolveDesignSystem(paths, id);
+      let graphContext: string | undefined;
+      try {
+        const g = loadOrBuild(paths, id);
+        const nodeId = g.has(`art/${compName}`) ? `art/${compName}` : g.has(`${id}/${compName}`) ? `${id}/${compName}` : null;
+        if (nodeId) {
+          graphContext = JSON.stringify(getContext(g, nodeId), null, 2);
+        } else {
+          graphContext = JSON.stringify(consistencyBrief(g, { name: compName, intent: instruction }), null, 2);
+        }
+      } catch { /* graph optional */ }
+      const codegenInstructions = effectiveAdapter(paths).codegenInstructions(designSystem);
+      const prompt = composePrompt({ ds: designSystem, componentName: compName, instruction, graphContext, codegenInstructions });
+      if (ds.json) {
+        formatJson({ prompt, designSystem: { id: designSystem.name ?? id, tokens: designSystem.declaredTokens?.length ?? 0 } });
+      } else {
+        process.stdout.write(prompt + '\n');
+      }
       break;
     }
 
     case 'scaffold': {
       if (!a1) {
-        formatError('usage: emdesign ds scaffold <id> [--from <base>]');
+        formatError('usage: emdesign ds scaffold <id> [--from <base>] [--blocks Button,Card,...]');
         process.exit(1);
+      }
+      // If --blocks is specified, scaffold specific blocks
+      if (ds.argv.includes('--blocks')) {
+        const blocks = ds.argv[ds.argv.indexOf('--blocks') + 1].split(',').map((b: string) => b.trim());
+        const r = scaffoldBlocks(paths, a1, blocks);
+        if (ds.json) {
+          formatJson(r);
+        } else {
+          process.stdout.write(`${r.note}: ${r.blocks.join(', ')}\n`);
+        }
+        break;
       }
       const fromIdx = ds.argv.indexOf('--from');
       const from = fromIdx >= 0 ? ds.argv[fromIdx + 1] : undefined;
-      const { scaffoldPrimitives } = await import('@emdesign/backend');
-      const ok = scaffoldPrimitives(paths, a1, from);
+      const { scaffoldPrimitives: sp } = await import('@emdesign/backend');
+      const ok = sp(paths, a1, from);
       if (ds.json) {
         formatJson({ id: a1, scaffolded: ok });
       } else {
         process.stdout.write(ok ? `Scaffolded primitives into ${a1}/code.\n` : 'Skipped.\n');
       }
+      break;
+    }
+
+    case 'diff':
+    case 'compare': {
+      const id1 = a1 ? normalizeDsRef(a1) : normalizeDsRef(activeDsId(store));
+      const id2 = a2 ? normalizeDsRef(a2) : a1 ? normalizeDsRef(a1) : normalizeDsRef(activeDsId(store));
+      if (!id1 || !id2 || id1 === id2) {
+        formatError('usage: emdesign ds diff <id1> <id2>');
+        process.exit(1);
+      }
+      const r = diffDesignSystems(paths, id1, id2);
+      if (ds.json) {
+        formatJson(r);
+      } else {
+        process.stdout.write(r.note + '\n');
+        if (r.onlyIn1.length > 0) process.stdout.write(`Only in ${id1}: ${r.onlyIn1.join(', ')}\n`);
+        if (r.onlyIn2.length > 0) process.stdout.write(`Only in ${id2}: ${r.onlyIn2.join(', ')}\n`);
+      }
+      break;
+    }
+
+    case 'update': {
+      const id = a1 ?? activeDsId(store);
+      const nameIdx = ds.argv.indexOf('--name');
+      const name = nameIdx >= 0 ? ds.argv[nameIdx + 1] : undefined;
+      const descIdx = ds.argv.indexOf('--description');
+      const description = descIdx >= 0 ? ds.argv[descIdx + 1] : undefined;
+      if (!name && !description) {
+        formatError('usage: emdesign ds update <id> [--name <name>] [--description <text>]');
+        process.exit(1);
+      }
+      const r = updateDesignSystem(paths, id, { name, description });
+      out(r, ds.json);
       break;
     }
 
@@ -113,20 +469,29 @@ export async function cmdDs(ds: DsArgs, paths: RepoPaths, store: Store): Promise
 
     case 'customize': {
       if (!a1) {
-        formatError('usage: emdesign ds customize <id> [--name <name>] [--color <hex>] [--font <family>]');
+        formatError('usage: emdesign ds customize <id> [--name <name>] [--color <hex>] [--font <family>] [--brand <name>] [--primary <hex>] [--secondary <hex>] [--body-font <font>] [--spacing <px>]');
         process.exit(1);
       }
       const { customizeDesignSystem } = await import('@emdesign/backend');
       const nameIdx = ds.argv.indexOf('--name');
       const colorIdx = ds.argv.indexOf('--color');
       const fontIdx = ds.argv.indexOf('--font');
+      const idIdx = ds.argv.indexOf('--id');
+      // Brand-aware customization: allow --primary, --secondary, --body-font, --spacing
+      const primaryIdx = ds.argv.indexOf('--primary');
+      const secondaryIdx = ds.argv.indexOf('--secondary');
+      const bodyFontIdx = ds.argv.indexOf('--body-font');
+      const spacingIdx = ds.argv.indexOf('--spacing');
       const c = customizeDesignSystem(paths, {
         baseRef: normalizeDsRef(a1),
-        id: ds.argv[ds.argv.indexOf('--id') + 1] ?? a1,
-        name: nameIdx >= 0 ? ds.argv[nameIdx + 1] : undefined,
+        id: idIdx >= 0 ? ds.argv[idIdx + 1] : a1,
+        name: nameIdx >= 0 ? ds.argv[nameIdx + 1] : a1,
         customizations: {
-          seedColor: colorIdx >= 0 ? ds.argv[colorIdx + 1] : undefined,
+          accentColor: colorIdx >= 0 ? ds.argv[colorIdx + 1] : primaryIdx >= 0 ? ds.argv[primaryIdx + 1] : undefined,
           headlineFont: fontIdx >= 0 ? ds.argv[fontIdx + 1] : undefined,
+          bodyFont: bodyFontIdx >= 0 ? ds.argv[bodyFontIdx + 1] : undefined,
+          surfaceColor: secondaryIdx >= 0 ? ds.argv[secondaryIdx + 1] : undefined,
+          spacing: spacingIdx >= 0 ? Number(ds.argv[spacingIdx + 1]) : undefined,
         },
       });
       out(c, ds.json);

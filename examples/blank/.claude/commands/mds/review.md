@@ -1,26 +1,42 @@
 ---
 name: "MDS: Review"
-description: Run the four-source critique once on a component and report scores + concrete where-to-fix (file:line) — no edits.
+description: Full read-only audit of a component — entry-workflow routes to component-audit for deterministic scores, spatial analysis, a11y scan, and prioritized fix list. No edits.
 category: Design
-tags: [design, review, feedback-loop, read-only]
+tags: [design, review, audit, component-audit, read-only]
 ---
 
 # MDS: Review
 
-A one-shot, read-only pass of the full critique on an existing generated component.
+A one-shot, read-only pass of the full critique on an existing component. Routes through the
+**entry-workflow** which classifies it as `audit` and delegates to **component-audit**.
 
-**Input**: a component name (default: the current component). Example: `/mds:review PricingTiers`
+**Input**: a component name. Example: `/mds:review PricingTiers`
 
 ## Workflow
-1. **Programmatic/rule**: MCP `lint_consistency` → findings + mustFix. For each finding, MCP
-   `graph_where_to_fix` → the responsible token/section + exact `file:line`.
-2. **Visual**: MCP `run_visual_test` → pixel-diff status vs baseline.
-3. **Vision**: spawn the `vision-critic` subagent on MCP `screenshot_path` → score + findings.
-4. **LLM**: spawn the `design-reviewer` subagent → score + findings.
-5. **Gate**: MCP `critique_score({ scores, mustFix })` → composite + decision.
-6. Report a compact table: each source's score, the composite + decision, and the P0-first fix list with
-   `file:line`. Do **not** edit anything (use `/mds:refine` to act on it).
+
+1. **Execute:** `Workflow({ name: 'entry-workflow', args: { type: 'audit', target: name } })`
+   - The **component-audit** workflow runs deterministically:
+     - **Score check**: `doctor all --json` → current composite + mustFix
+     - **Deep analysis**:
+       - `render analyze` → semantic DOM tree + coordinates
+       - `spatial audit --grid` → overlap detection + grid adherence
+       - `component a11y` → axe-core violation tree
+     - **Report**: Prioritized fix list (P0 → P1 → P2) with exact file:line locations
+2. **Report.** Present the findings: composite score, mustFix count, spatial overlaps, a11y violations.
+   No edits are made — this is a diagnostic pass.
+
+## Skills
+
+Invoke **`design-review`** for visual audit + fix planning and **`visual-quality`** for deep spatial/a11y analysis.
+
+## Common Intents Routed Here
+
+| Intent Example | Entry-Workflow Route | Layer |
+|----------------|---------------------|-------|
+| "Audit the StatsCard component" | `type: audit` → `component-audit` | Component |
+| "Full review of the dashboard" | `type: audit` → `component-audit` | Component |
+| "Check accessibility issues" | `type: audit` → `component-audit` | Component |
 
 ## Guardrails
-- Read-only. No `edit_component`, no capture.
-- Always derive pass/fail from `critique_score`, never from prose ("looks fine").
+- Read-only — no edits are made during review.
+- The output is a prioritized fix list; use `/mds:craft:update` to apply fixes.

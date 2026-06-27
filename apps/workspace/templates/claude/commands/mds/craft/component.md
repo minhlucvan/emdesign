@@ -1,45 +1,53 @@
 ---
 name: "MDS: Craft Component"
-description: Build a beautiful, on-system, tested component through the multi-feedback craft loop — analyze context, understand intent, build, verify (rule + visual + vision + LLM/human), iterate until the gate passes. Requires an active design system.
+description: Build a beautiful, on-system, tested component through the layered workflow system — entry-workflow routes to component-new for a full build loop. Requires an active design system.
 category: Craft
-tags: [craft, workflow, feedback-loop, component]
+tags: [craft, workflow, component, entry-workflow]
 ---
 
 # MDS: Craft Component
 
-Drive the emdesign closed feedback loop to produce a component that is **beautiful, consistent, testable,
+Drive the emdesign layered workflow to produce a component that is **beautiful, consistent, testable,
 shippable**. **Precondition: an active design system** (`/mds:system:use <id>` or `/mds:system:create`).
 The emdesign server must be running (`emdesign serve`) and Storybook up (`npm run studio`).
 
 **Input**: a natural-language component request, optionally a PascalCase `name`.
-Example: `/mds:craft:component "a testimonial section with three quotes" Testimonials`
+Example: `/mds:craft:component "a stats card with trend indicator" StatsCard`
 
 ## Workflow
 
 1. **Approve scope.** Use `AskUserQuestion` to confirm the component `name`, the active design system, and
    the quality `threshold` (default 0.8). Do not proceed without approval.
-2. **Analyze context.** Call MCP `get_design_context` (it injects the `@emdesign/graph` consistency brief:
-   composable primitives, tokens by kind, governing rules, and the vibe). Read the DESIGN.md sections it
-   points to.
-3. **Understand intent (spec).** Write `design/changes/<slug>/intent.md` (what + why + acceptance) and
-   `brief.md` (the consistency brief). `<slug>` = `kebab(name)`.
-4. **Run the loop** via the workflow engine: `Workflow({ name: 'design-loop', args: { name, instruction, threshold } })`.
-   The engine, each round: builds/edits the component (MCP `create_component`/`edit_component`), then fans
-   out the four feedback sources in parallel —
-   - **programmatic/rule**: MCP `lint_consistency` → findings + mustFix;
-   - **visual**: MCP `run_visual_test` → pixel-diff status;
-   - **vision**: the `vision-critic` subagent Reads MCP `screenshot_path` and returns a 0–1 score + findings;
-   - **LLM**: the `design-reviewer` subagent critiques code + spec + DESIGN.md;
-   then gates with MCP `critique_score` (`composite ≥ threshold && mustFix === 0 && ratchet`). On fail it
-   feeds the P0-first findings + `graph_where_to_fix` (file:line) back into the next `edit_component`.
-   It records each round via `record_evidence`.
-5. **Human checkpoint.** When the gate passes (or after max rounds), present the preview URL + scores and
-   `AskUserQuestion` whether to ship or request changes. Human change-requests re-enter via `/mds:craft:update`.
+2. **Enrich intent.** The `entry-workflow` reads the knowledge graph (`graph context`), design system info
+   (`ds info`), and Storybook health to enrich the request before routing.
+3. **Route to layer.** The `entry-workflow` classifies your intent as `component-new` and delegates to the
+   **component-new** workflow:
+   - Enrich: `ds context` + `graph guidance --intent` + `explore hierarchy`
+   - Build: Generate source + `story auto`
+   - Verify: Progressive cascade — `doctor lint` → `doctor visual` → `doctor spatial` → `doctor all --gate`
+   - Capture: On pass → `capture --baseline` (if human-approved)
+   - Reconcile: `graph impact art/<name>` → check dependents
+4. **Execute:** `Workflow({ name: 'entry-workflow', args: { type: 'component-new', target: name, instruction, payload: { threshold } } })`
+5. **Human checkpoint.** Present the preview URL + scores and `AskUserQuestion` whether to ship.
 6. **Ship** only on approval: run `/mds:ship <name>`.
 
+## Skill
+
+Invoke the **`component-build`** skill for detailed component building guidance. It covers:
+- Composing primitives from `@ds`
+- Using semantic token classes only
+- Writing CSF stories
+- The verify loop
+
+## Common Intents Routed Here
+
+| Intent Example | Entry-Workflow Route | Layer |
+|----------------|---------------------|-------|
+| "Build a new stats card" | `type: component-new` → `component-workflow` | Component |
+| "Create a data table" | `type: component-new` → `component-workflow` | Component |
+| "I need a header component" | `type: component-new` → `component-workflow` | Component |
+
 ## Guardrails
-- Never ship without the `critique_score` gate passing **and** explicit human approval (no self-ship).
-- Reference token roles only; obey the design system's Anti-patterns. The lint gate is authoritative —
-  do not rationalize a P0 away, fix it.
-- Evidence required: every round's scores + screenshot are saved under `design/changes/<slug>/evidence/`.
-- If the build doesn't compile/render, that's `mustFix` — fix before scoring anything else.
+- Never ship without gate passing **and** explicit human approval.
+- Reference token roles only; obey the design system's anti-patterns.
+- Evidence required: every round's scores + screenshot under `design/changes/<slug>/evidence/`.
