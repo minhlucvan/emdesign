@@ -192,11 +192,6 @@ const S = {
     color: css('--foreground'), outline: 'none', boxSizing: 'border-box' as const,
     fontFamily: `"Nunito Sans", -apple-system, ".SFNSText-Regular", "San Francisco", "system-ui", "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif`,
   },
-  header: {
-    display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px',
-    fontSize: 10, fontWeight: 700,
-    textTransform: 'uppercase' as const, letterSpacing: '0.05em', color: css('--muted-foreground'), flexShrink: 0 as const,
-  },
 };
 
 /** A session list item with origin badge. */
@@ -650,15 +645,15 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
 
       {/* ── Header ── */}
       {activeSession && (
-        <div style={S.header}>
-          <button onClick={() => setActiveSessionId(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 12, ...S.muted }}>←</button>
-          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, textTransform: 'none', fontWeight: 400 }}>{activeSession.display}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 8px 4px', flexShrink: 0 }}>
+          <button onClick={() => setActiveSessionId(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 14, color: css('--muted-foreground'), lineHeight: '20px' }}>←</button>
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, fontSize: 13, fontWeight: 400, color: css('--foreground'), lineHeight: '20px' }}>{activeSession.display}</span>
         </div>
       )}
       {pendingNewScope && (
-        <div style={S.header}>
-          <button onClick={() => { setPendingNewScope(null); setMessages([]); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 12, ...S.muted }}>←</button>
-          <span style={{ flex: 1, textTransform: 'none', fontWeight: 400, fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 8px 4px', flexShrink: 0 }}>
+          <button onClick={() => { setPendingNewScope(null); setMessages([]); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 14, color: css('--muted-foreground'), lineHeight: '20px' }}>←</button>
+          <span style={{ flex: 1, fontSize: 13, fontWeight: 400, color: css('--foreground'), overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: '20px' }}>
             {pendingNewScope.scope === 'global' ? '💬 New Project Chat' : `📖 New Story Chat${viewContext ? `: ${viewContext.component}` : ''}`}
           </span>
         </div>
@@ -794,8 +789,8 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
 
           {/* ── Context chip ── */}
           {viewContext && !selectedElement && (
-            <div style={{ padding: '2px 10px', borderTop: `1px solid ${css('--border')}`, background: css('--muted') }}>
-              <div style={{ fontSize: 9, color: css('--muted-foreground'), lineHeight: '22px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div style={{ padding: '2px 8px 2px 10px', borderTop: `1px solid ${css('--border')}`, background: css('--muted') }}>
+              <div style={{ fontSize: 11, color: css('--muted-foreground'), lineHeight: '24px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: `"Nunito Sans", -apple-system, ".SFNSText-Regular", "San Francisco", "system-ui", "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif` }}>
                 👁 Viewing: {viewContext.component} @ {viewContext.viewport.width}×{viewContext.viewport.height}
               </div>
             </div>
@@ -827,9 +822,10 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
                   onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
                   placeholder="Type a message..." rows={1}
                   style={{
-                    flex: 1, resize: 'none', padding: '7px 10px', borderRadius: 'var(--radius)',
-                    border: `1px solid ${css('--input')}`, background: css('--background'),
-                    color: css('--foreground'), fontSize: 12, lineHeight: 1.4, fontFamily: 'inherit',
+                    flex: 1, resize: 'none', padding: '7px 10px', borderRadius: 6,
+                    border: 'none', boxShadow: `0 0 0 1px ${css('--input')} inset`,
+                    background: css('--background'), color: css('--foreground'),
+                    fontSize: 13, lineHeight: 1.4, fontFamily: `"Nunito Sans", -apple-system, ".SFNSText-Regular", "San Francisco", "system-ui", "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif`,
                     outline: 'none', maxHeight: 80, overflow: 'auto',
                   }} />
                 <button type="button" onClick={() => fileInputRef.current?.click()} title="Attach file"
