@@ -54,22 +54,20 @@ const chatCss = `
   }
   /* Chat theme: AI bubbles subtle (near bg), user bubbles distinct accent */
   .emdesign-chat-active .emdesign-chat-root {
-    --background: 210 17% 98% !important;
-    --foreground: 210 11% 20% !important;
-    --primary: 206 100% 50% !important;
-    --primary-foreground: 0 0% 100% !important;
-    --muted: 210 17% 98% !important;
-    --muted-foreground: 208 10% 40% !important;
-    --border: 206 44% 90% !important;
-    --input: 206 44% 90% !important;
-    --destructive: 0 76% 59% !important;
-    --destructive-foreground: 0 0% 100% !important;
+    --background: 200 4.23% 13.92% !important;
+    --foreground: 200 4.23% 90% !important;
+    --primary: 210 30% 40% !important;
+    --primary-foreground: 210 20% 96% !important;
+    --muted: 200 4.23% 18% !important;
+    --muted-foreground: 200 4.23% 60% !important;
+    --border: 200 4.23% 21% !important;
+    --input: 200 4.23% 21% !important;
     background: transparent !important;
   }
   .emdesign-chat-active [class*="sidebar"]::-webkit-scrollbar { width: 6px; }
   .emdesign-chat-active [class*="sidebar"]::-webkit-scrollbar-track { background: transparent; }
-  .emdesign-chat-active [class*="sidebar"]::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 3px; }
-  .emdesign-chat-active [class*="sidebar"]::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.2); }
+  .emdesign-chat-active [class*="sidebar"]::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+  .emdesign-chat-active [class*="sidebar"]::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
 `;
 
 function injectChatCSS(enabled: boolean) {
