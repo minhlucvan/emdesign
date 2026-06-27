@@ -1,9 +1,5 @@
 {
-<<<<<<<< HEAD:apps/workspace/templates/example/package.json
-  "name": "my-emdesign-workspace-__NAME__",
-========
   "name": "my-emdesign-workspace-blank",
->>>>>>>> feat/inital-spec-for-the-project:examples/blank/package.json
   "private": true,
   "type": "module",
   "scripts": {
