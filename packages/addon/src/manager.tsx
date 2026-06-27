@@ -51,11 +51,14 @@ addons.register(ADDON_ID, () => {
   });
 
   addons.add(CHARTERS_TAB_ID, {
-    type: types.TAB,
+    type: types.PANEL,
     title: 'Charters',
-    route: tabRoute(VIEW_MODE_CHARTERS),
-    match: ({ viewMode }) => viewMode === VIEW_MODE_CHARTERS,
-    render: ({ active }) => (active ? <ChartersTab /> : null),
+    match: ({ viewMode }) => viewMode === 'story',
+    render: ({ active }) => (
+      <AddonPanel active={!!active}>
+        <ChartersTab />
+      </AddonPanel>
+    ),
   });
 
   addons.add(CREATE_TAB_ID, {
