@@ -760,8 +760,28 @@ export async function createHttpBridge(store: Store, paths: RepoPaths, orch?: an
     }
 
     // Build system prompt with context
-    const systemPrompt = `You are emdesign's design engineer, connected to a live Storybook instance.${dsContext}\n\nAvailable commands: /mds:craft:component (build component), /mds:craft:update (edit component), /mds:system:update (edit tokens), /mds:review (audit component), emdesign generate, emdesign doctor.`;
-    const enrichedMessage = message; // Context is in system prompt, not appended to message
+    const systemPrompt = `You are emdesign's design engineer, connected to a live Storybook instance on http://localhost:6006. You have FULL Bash tool access and can execute CLI commands.${dsContext}
+
+## Your workflow for a "New Component" request
+1. RUN \`emdesign ds context "${message}"\` to get design context. If that fails, use \`emdesign design "${message}"\`.
+2. RUN \`ls src/components/ src/generated/ 2>/dev/null | head -20\` to see existing components.
+3. BUILD the component: write the React+Tailwind component to src/generated/<Name>.tsx using semantic token classes (bg-surface, text-text, etc.) from the design system.
+4. RUN \`emdesign story auto <Name>\` to auto-generate stories.
+5. RUN \`emdesign doctor all <Name> --gate\` to verify.
+
+## Rules
+- NEVER hardcode hex colors. Only use token classes like bg-surface, text-text, text-accent, border-border, rounded, etc.
+- Write clean, minimal components. Use \`@ds/Button\`, \`@ds/Card\`, etc. from the design system primitives.
+- After building, verify the component passes the gate.
+
+## Design system context${dsContext}
+
+## Task type: ${intentType}
+${intentType === 'create-component' ? 'The user wants to CREATE a new component. Follow the workflow above.' : ''}
+${intentType === 'change-request' ? 'The user wants to CHANGE an existing component. Use emdesign design <name> to get context.' : ''}
+${intentType === 'update-design-system' ? 'The user wants to UPDATE the design system tokens. Use emdesign ds commands.' : ''}
+${intentType === 'chat' ? 'The user wants a general conversation. Answer helpfully.' : ''}`;
+    const enrichedMessage = message;
 
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
