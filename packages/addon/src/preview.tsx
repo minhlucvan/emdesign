@@ -82,6 +82,7 @@ function ToolOverlay({ storyId, component }: { storyId?: string; component?: str
   const modeRef = useRef<ToolMode>('off');
   const composingRef = useRef(false);
   const editingRef = useRef<{ el: HTMLElement; from: string } | null>(null);
+  const placingRef = useRef(false);
   const placeholderIdRef = useRef(0);
 
   const setMode = (m: ToolMode) => {
@@ -242,6 +243,7 @@ function ToolOverlay({ storyId, component }: { storyId?: string; component?: str
         if (placing) return; // already placing
         const detectedZone: PlacementMode = (placeZone as PlacementMode) || 'after';
         setPlacing({ target, box: target.box as Box, zone: detectedZone });
+        placingRef.current = true;
         setText('');
       }
     };
@@ -250,7 +252,12 @@ function ToolOverlay({ storyId, component }: { storyId?: string; component?: str
       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); endEdit(true); }
       else if (e.key === 'Escape') { e.preventDefault(); endEdit(false); }
     };
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !editingRef.current) cancel(); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !editingRef.current) {
+        if (placingRef.current) cancelPlace();
+        else cancel();
+      }
+    };
     document.addEventListener('mousemove', onMove, true);
     document.addEventListener('click', onClick, true);
     document.addEventListener('keydown', onEditKey, true);
@@ -264,7 +271,7 @@ function ToolOverlay({ storyId, component }: { storyId?: string; component?: str
   }, [storyId, component]);
 
   const cancel = () => { composingRef.current = false; setComposing(null); setText(''); };
-  const cancelPlace = () => { setPlacing(null); setText(''); setPlaceZone(null); setHover(null); modeRef.current = 'off'; setModeState('off'); document.body.style.cursor = ''; addons.getChannel().emit(EVT_TOOL_MODE, { mode: 'off' }); };
+  const cancelPlace = () => { setPlacing(null); setText(''); setPlaceZone(null); setHover(null); modeRef.current = 'off'; placingRef.current = false; setModeState('off'); document.body.style.cursor = ''; addons.getChannel().emit(EVT_TOOL_MODE, { mode: 'off' }); };
   const send = () => {
     if (!composing || !text.trim()) return;
     addons.getChannel().emit(EVT_COMMENT_SUBMIT, { target: composing.target, instruction: text.trim() });
