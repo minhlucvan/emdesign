@@ -746,6 +746,7 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
                 <span>Esc Cancel</span>
               </div>
             </div>
+          </div>
           )}
 
           {/* ── Tab filters ── */}
