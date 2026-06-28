@@ -335,7 +335,7 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
         setMessages(prev => [...prev, { id: asstId, role: 'assistant', content: '', createdAt: new Date() }]);
         fetch(`${BACKEND_URL}/api/chat/stream`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: autoText, interactive: true, sessionId: activeSessionId || undefined }),
+          body: JSON.stringify({ message: autoText, intentType: (allSessions.find(s => s.id === activeSessionId) as any)?.emdesignType || 'chat', interactive: true, sessionId: activeSessionId || undefined }),
         }).then(async (res) => {
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const reader = res.body?.getReader();
@@ -348,7 +348,7 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
             const result = await Promise.race([
               reader.read().then(r => ({ ...r, timedOut: false })),
               new Promise<{ done: false; value: undefined; timedOut: true }>(resolve => {
-                idleTimer = setTimeout(() => resolve({ done: false, value: undefined, timedOut: true }), 15000);
+                idleTimer = setTimeout(() => resolve({ done: false, value: undefined, timedOut: true }), 120000);
               }),
             ]);
             if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
@@ -568,7 +568,7 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
         const result = await Promise.race([
           reader.read().then(r => ({ ...r, timedOut: false })),
           new Promise<{ done: false; value: undefined; timedOut: true }>(resolve => {
-            idleTimer = setTimeout(() => resolve({ done: false, value: undefined, timedOut: true }), 15000);
+            idleTimer = setTimeout(() => resolve({ done: false, value: undefined, timedOut: true }), 120000);
           }),
         ]);
         if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
