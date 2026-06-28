@@ -163,7 +163,8 @@ function ToolOverlay({ storyId, component }: { storyId?: string; component?: str
     };
     const onClick = (e: MouseEvent) => {
       const m = modeRef.current;
-      if (m === 'off' || busy()) return;
+      // Placing popup is open — ignore all clicks so the popup handles them
+      if (m === 'off' || busy() || placingRef.current) return;
       const el = e.target as Element | null;
       if (!el || !root.contains(el)) return;
       e.preventDefault();
@@ -240,7 +241,7 @@ function ToolOverlay({ storyId, component }: { storyId?: string; component?: str
         flash(`auto-fix triggered for <${target.tag}>`);
         offAndSync();
       } else if (m === 'place') {
-        if (placing) return; // already placing
+        if (placingRef.current) return; // already placing — use ref to avoid stale closure
         const detectedZone: PlacementMode = (placeZone as PlacementMode) || 'after';
         setPlacing({ target, box: target.box as Box, zone: detectedZone });
         placingRef.current = true;
