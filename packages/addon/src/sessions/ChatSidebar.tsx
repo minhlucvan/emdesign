@@ -2,6 +2,7 @@
  * ChatSidebar — shadcn-chatbot-kit styled. Messages fill available space.
  */
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { addons } from '@storybook/manager-api';
 import { injectShadcnVars, css, MessageList, useAutoScroll, QuestionCard, PromptSuggestions } from '@emdesign/chat-ui';
 import type { Message, Question, PromptSuggestion } from '@emdesign/chat-ui';
@@ -686,9 +687,9 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
             </button>
           </div>
 
-          {/* ── Command palette overlay (full screen) ── */}
-          {showCommandPalette && (
-            <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: '12vh', background: 'rgba(0,0,0,0.5)' }}>
+          {/* ── Command palette overlay (full screen, portaled to body) ── */}
+          {showCommandPalette && createPortal(
+            <div style={{ position: 'fixed', inset: 0, zIndex: 2147483647, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: '12vh', background: 'rgba(0,0,0,0.5)' }}>
               {/* Backdrop click */}
               <div onClick={() => setShowCommandPalette(false)} style={{ position: 'fixed', inset: 0, zIndex: -1 }} />
               <div style={{ width: 'min(560px, 90vw)', display: 'flex', flexDirection: 'column', background: css('--background'), borderRadius: 12, boxShadow: '0 16px 64px rgba(0,0,0,0.35)', overflow: 'hidden', maxHeight: '60vh' }}>
@@ -746,7 +747,8 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
                 <span>Esc Cancel</span>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
           )}
 
           {/* ── Tab filters ── */}
