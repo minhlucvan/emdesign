@@ -692,7 +692,7 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
             <div style={{ position: 'fixed', inset: 0, zIndex: 2147483647, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: '12vh', background: 'rgba(0,0,0,0.5)' }}>
               {/* Backdrop click */}
               <div onClick={() => setShowCommandPalette(false)} style={{ position: 'fixed', inset: 0, zIndex: -1 }} />
-              <div role="dialog" style={{ width: 440, display: 'flex', flexDirection: 'column', background: css('--background'), borderRadius: 8, boxShadow: '0 16px 64px rgba(0,0,0,0.35)', overflow: 'hidden', maxHeight: '60vh', pointerEvents: 'auto' }}>
+              <div role="dialog" style={{ width: 440, display: 'flex', flexDirection: 'column', '--background':'200 4.23% 13.92%', '--foreground':'200 4.23% 90%', '--muted':'200 4.23% 18%', '--muted-foreground':'200 4.23% 60%', '--border':'200 4.23% 21%', '--input':'200 4.23% 21%', '--primary':'210 30% 40%', '--primary-foreground':'210 20% 96%', background: 'hsl(200, 4.23%, 13.92%)', borderRadius: 8, boxShadow: '0 16px 64px rgba(0,0,0,0.35)', overflow: 'hidden', maxHeight: '60vh', pointerEvents: 'auto' }}>
 
                 {/* Header with title + close */}
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '16px 20px 0' }}>
