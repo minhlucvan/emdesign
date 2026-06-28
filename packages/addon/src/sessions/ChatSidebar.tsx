@@ -230,6 +230,7 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [paletteInput, setPaletteInput] = useState('');
   const [paletteSelection, setPaletteSelection] = useState<ChatStartMode>('chat');
+  const [paletteTheme, setPaletteTheme] = useState<'light' | 'dark'>('dark');
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [pendingNewScope, setPendingNewScope] = useState<{ scope: string; origin: string; intentType?: string } | null>(null);
@@ -674,7 +675,20 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
               </div>
               <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Find components" style={{ flex: 1, border: 'none', background: 'transparent', color: css('--foreground'), fontSize: 13, fontFamily: `"Nunito Sans", -apple-system, ".SFNSText-Regular", "San Francisco", "system-ui", "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif`, outline: 'none', padding: 0, lineHeight: '28px', height: 28 }} />
             </div>
-            <button onClick={() => setShowCommandPalette(true)}
+            <button onClick={() => {
+              // Detect theme from sidebar background
+              const sidebar = document.querySelector('.sidebar-container');
+              let isDark = true;
+              if (sidebar) {
+                const bg = getComputedStyle(sidebar).backgroundColor;
+                const rgb = bg.match(/\d+/g);
+                if (rgb && rgb.length >= 3) {
+                  isDark = 0.299 * Number(rgb[0]) + 0.587 * Number(rgb[1]) + 0.114 * Number(rgb[2]) < 128;
+                }
+              }
+              setPaletteTheme(isDark ? 'dark' : 'light');
+              setShowCommandPalette(true);
+            }}
               style={{
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                 padding: '0 7px', borderRadius: 6, height: 32, minHeight: 32,
@@ -692,7 +706,17 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
             <div style={{ position: 'fixed', inset: 0, zIndex: 2147483647, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: '12vh', background: 'rgba(0,0,0,0.5)' }}>
               {/* Backdrop click */}
               <div onClick={() => setShowCommandPalette(false)} style={{ position: 'fixed', inset: 0, zIndex: -1 }} />
-              <div role="dialog" style={{ width: 440, display: 'flex', flexDirection: 'column', '--background':'200 4.23% 13.92%', '--foreground':'200 4.23% 90%', '--muted':'200 4.23% 18%', '--muted-foreground':'200 4.23% 60%', '--border':'200 4.23% 21%', '--input':'200 4.23% 21%', '--primary':'210 30% 40%', '--primary-foreground':'210 20% 96%', background: 'hsl(200, 4.23%, 13.92%)', borderRadius: 8, boxShadow: '0 16px 64px rgba(0,0,0,0.35)', overflow: 'hidden', maxHeight: '60vh', pointerEvents: 'auto' }}>
+              <div role="dialog" style={{ width: 440, display: 'flex', flexDirection: 'column',
+                '--background': paletteTheme === 'dark' ? '200 4.23% 13.92%' : '210 17% 98%',
+                '--foreground': paletteTheme === 'dark' ? '200 4.23% 90%' : '210 11% 20%',
+                '--muted': paletteTheme === 'dark' ? '200 4.23% 18%' : '210 17% 98%',
+                '--muted-foreground': paletteTheme === 'dark' ? '200 4.23% 60%' : '208 10% 40%',
+                '--border': paletteTheme === 'dark' ? '200 4.23% 21%' : '206 44% 90%',
+                '--input': paletteTheme === 'dark' ? '200 4.23% 21%' : '206 44% 90%',
+                '--primary': '206 100% 50%',
+                '--primary-foreground': '0 0% 100%',
+                background: paletteTheme === 'dark' ? 'hsl(200, 4.23%, 13.92%)' : 'hsl(210, 17%, 98%)',
+                borderRadius: 8, boxShadow: '0 16px 64px rgba(0,0,0,0.35)', overflow: 'hidden', maxHeight: '60vh', pointerEvents: 'auto' }}>
 
                 {/* Header with title + close */}
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '16px 20px 0' }}>
