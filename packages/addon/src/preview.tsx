@@ -300,10 +300,8 @@ function ToolOverlay({ storyId, component }: { storyId?: string; component?: str
     const phId = ++placeholderIdRef.current;
     setPlaceholders((p) => [...p, { id: phId, box: placing.box, description, zone: detectedZone, status: 'placing' }]);
 
-    // Emit the trigger — Tool.tsx will create a session + open chat
+    // Emit the trigger — Tool.tsx will create a session + auto-open chat with sessionId
     addons.getChannel().emit(EVT_PLACE_TRIGGER, placePayload);
-    // Also open the chat so user can see the conversation
-    addons.getChannel().emit(EVT_CHAT_MODE, { enabled: true });
     setPins((p) => [...p, { n: p.length + 1, box: placing.box, text: `place ${detectedZone}: ${description}` }]);
     flash(`placing ${detectedZone} <${placing.target.tag}>`);
 
