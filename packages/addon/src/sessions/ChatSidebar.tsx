@@ -300,10 +300,6 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
   // Navigate to a session from an external event (e.g. comment submit → chat session)
   useEffect(() => {
     if (defaultSessionId && defaultSessionId !== activeSessionId) {
-      const session = allSessions.find(s => s.id === defaultSessionId);
-      if (session?.display && session.display.length > 0) {
-        autoSendRef.current = session.display;
-      }
       setActiveSessionId(defaultSessionId);
     }
   }, [defaultSessionId, activeSessionId]);
@@ -315,64 +311,15 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
     setMsgLoading(true);
     api.getSessionConversation(activeSessionId).then((raw: any) => {
       let converted = processMessages(raw as any[]);
-      let autoText = autoSendRef.current;
-      autoSendRef.current = null;
       // If no messages but session has display text, show it as the first user message
       if (converted.length === 0) {
         const session = allSessions.find(s => s.id === activeSessionId);
         if (session?.display && session.display.length > 0 && session.display.length < 500) {
           converted = [{ id: `init-${activeSessionId}`, role: 'user' as const, content: session.display, createdAt: new Date(session.timestamp) }];
-          if (!autoText) autoText = session.display;
         }
       }
       setMessages(converted);
       setMsgLoading(false);
-      // Auto-send the instruction if this session was created from a comment
-      if (autoText && !sending) {
-        setSending(true);
-        setStreaming(true);
-        const asstId = `a-${Date.now()}`;
-        setMessages(prev => [...prev, { id: asstId, role: 'assistant', content: '', createdAt: new Date() }]);
-        fetch(`${BACKEND_URL}/api/chat/stream`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: autoText, intentType: (allSessions.find(s => s.id === activeSessionId) as any)?.emdesignType || 'chat', sessionId: activeSessionId || undefined }),
-        }).then(async (res) => {
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          const reader = res.body?.getReader();
-          if (!reader) throw new Error('No response body');
-          const decoder = new TextDecoder();
-          let buffer = '', assistantText = '';
-          let streamDone = false;
-          let idleTimer: ReturnType<typeof setTimeout> | null = null;
-          while (!streamDone) {
-            const result = await Promise.race([
-              reader.read().then(r => ({ ...r, timedOut: false })),
-              new Promise<{ done: false; value: undefined; timedOut: true }>(resolve => {
-                idleTimer = setTimeout(() => resolve({ done: false, value: undefined, timedOut: true }), 120000);
-              }),
-            ]);
-            if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
-            if (result.timedOut) { streamDone = true; setStreaming(false); setSending(false); break; }
-            if (result.done) { streamDone = true; setStreaming(false); setSending(false); break; }
-            buffer += decoder.decode(result.value, { stream: true });
-            const lines = buffer.split('\n');
-            buffer = lines.pop() || '';
-            for (const line of lines) {
-              if (!line.startsWith('data: ')) continue;
-              try {
-                const data = JSON.parse(line.slice(6));
-                if (data.type === 'text') { assistantText += data.text; setMessages(prev => prev.map(m => m.id === asstId ? { ...m, content: assistantText } : m)); }
-                else if (data.type === 'question') {
-                  setPendingQuestion({ questions: data.questions, state: 'interactive', sessionId: activeSessionId || '' });
-                } else if (data.type === 'question_timeout') {
-                  setPendingQuestion(prev => prev ? { ...prev, state: 'expired' } : null);
-                } else if (data.type === 'done') { streamDone = true; setStreaming(false); break; }
-              } catch { /* skip */ }
-            }
-          }
-          if (!assistantText) setMessages(prev => prev.map(m => m.id === asstId ? { ...m, content: '(no response)' } : m));
-        }).catch(() => {}).finally(() => { setStreaming(false); setSending(false); });
-      }
     }).catch(() => setMsgLoading(false));
   }, [activeSessionId, allSessions]);
 
