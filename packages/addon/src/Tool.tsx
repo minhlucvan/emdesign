@@ -83,6 +83,14 @@ export function Tool() {
           component: p.target.component,
           sessionId: session.id,
         }).catch(() => {});
+        // Queue a change request for the agent to process
+        await api.submitIntent({
+          type: 'change-request',
+          instruction: prompt,
+          target: p.target,
+          payload: { sessionId: session.id },
+        });
+        // Open chat so user sees the conversation — unlike placement, comments are explicit
         emit(EVT_CHAT_MODE, { enabled: true, sessionId: session.id });
       } catch { /* backend down */ }
     },
