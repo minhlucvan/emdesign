@@ -735,12 +735,16 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
                   <input value={paletteInput} onChange={e => setPaletteInput(e.target.value)}
                     onKeyDown={e => {
                       if (e.key === 'Escape') setShowCommandPalette(false);
-                      if (e.key === 'Enter' && paletteInput.trim()) {
+                      if (e.key === 'Enter') {
                         const text = paletteInput.trim();
-                        if (text) autoSendRef.current = text;
+                        const mode = CHAT_MODES.find(m => m.id === paletteSelection);
+                        const prompts: Record<string, string> = { 'new-component':'Build a new component following the design system', 'new-story':'Create a new story for the current component', 'change-request':'Request a design change', 'update-design-system':'Update the design system', 'create-design-system':'Create a new design system' };
+                        const instruction = text || (mode ? prompts[mode.id] || '' : '');
+                        skipConversationLoadRef.current = false;
+                        if (instruction) autoSendRef.current = instruction;
                         setShowCommandPalette(false);
                         setPaletteInput('');
-                        handleCreateSession(paletteSelection);
+                        if (mode) handleCreateSession(mode.id);
                       }
                     }}
                     placeholder="Describe what to build..." autoFocus
@@ -768,9 +772,22 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
                         'update-design-system': 'Update Design System',
                         'create-design-system': 'Import Design System',
                       }[m.id];
+                      // Build the instruction text
+                      const instruction = text || (() => {
+                        const prompts = {
+                          'chat': '',
+                          'new-component': 'Build a new component following the design system',
+                          'new-story': 'Create a new story for the current component',
+                          'change-request': 'Request a design change',
+                          'update-design-system': 'Update the design system',
+                          'create-design-system': 'Create a new design system',
+                        };
+                        return prompts[m.id] || '';
+                      })();
                       return (
                       <button key={m.id} onClick={() => {
-                        if (text) autoSendRef.current = text;
+                        skipConversationLoadRef.current = false;
+                        if (instruction) autoSendRef.current = instruction;
                         setShowCommandPalette(false);
                         setPaletteInput('');
                         handleCreateSession(m.id);
