@@ -548,7 +548,7 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: text + extra + contextSuffix,
-          interactive: true,
+          intentType: (allSessions.find(s => s.id === activeSessionId) as any)?.emdesignType || 'chat',
           sessionId: activeSessionId || undefined,
         }),
       });
