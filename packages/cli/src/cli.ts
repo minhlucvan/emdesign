@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
+import path from 'node:path';
 import type { RepoPaths, Store } from '@emdesign/backend';
 import {
   resolveRepoPaths,
@@ -40,6 +41,22 @@ function positional(argv: string[], offset = 0): string | undefined {
     if (idx++ === offset) return a;
   }
   return undefined;
+}
+
+/**
+ * Check if `dir` looks like the emdesign monorepo root (as opposed to a consumer workspace).
+ * The monorepo root has `package.json` with `name: "emdesign"` and workspaces including `packages/*`.
+ * This is used to prevent accidentally running workspace commands from the wrong directory.
+ */
+function detectMonorepoRoot(dir: string): boolean {
+  try {
+    const pkg = JSON.parse(fs.readFileSync(path.join(dir, 'package.json'), 'utf8'));
+    return pkg.name === 'emdesign'
+      && Array.isArray(pkg.workspaces)
+      && pkg.workspaces.includes('packages/*');
+  } catch {
+    return false;
+  }
 }
 
 async function main() {
@@ -95,6 +112,18 @@ complete -F _emdesign_completions emdesign
     return;
   }
   const [cmd = 'help', ...rest] = argv;
+
+  // Guard: detect accidental usage inside the emdesign monorepo root.
+  // Commands that are always valid (init, attach, help) bypass this check.
+  if (cmd !== 'init' && cmd !== 'attach' && cmd !== 'help' && detectMonorepoRoot(process.cwd())) {
+    console.error('[emdesign] This looks like the emdesign monorepo root.');
+    console.error('  To develop the emdesign SDK itself, run commands from an app directory:');
+    console.error('    cd apps/workspace-react/');
+    console.error('  To use emdesign as a consumer, run from an example directory:');
+    console.error('    cd examples/ledger-console/');
+    process.exit(1);
+  }
+
   const paths = resolveRepoPaths(process.cwd());
   const store = new StoreClass(paths);
 
