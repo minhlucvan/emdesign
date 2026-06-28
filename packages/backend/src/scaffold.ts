@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { ensureDir, normalizeDsRef, type RepoPaths } from './paths.js';
+import { ensureDir, normalizeDsRef, setActiveDesignSystem, type RepoPaths } from './paths.js';
 import { parseDeclaredTokens, resolveDesignSystem } from './designContext.js';
 import { buildAndSave } from './graph.js';
 import { SEMANTIC_TOKEN_ROLES } from '@emdesign/dsr';
@@ -444,8 +444,8 @@ export interface ApplyResult {
 }
 
 /**
- * Select a design system and rewire the workspace: rebind the tokens.css import + the `@ds` marker and
- * rebuild the graph. Shared by the MCP `apply_design_system` tool and the CLI `ds use`.
+ * Wire the design system into the workspace: rebind the tokens.css import, rebuild the graph,
+ * and record it as the active DS in config. Called during init/import (not as a runtime switch).
  */
 export function applyDesignSystem(paths: RepoPaths, id: string): ApplyResult {
   resolveDesignSystem(paths, id); // throws if missing
@@ -457,9 +457,8 @@ export function applyDesignSystem(paths: RepoPaths, id: string): ApplyResult {
   fs.writeFileSync(cssFile, `/* active design system */\n@import "${rel}";\n`);
   wired.push(cssFile);
 
-  ensureDir(paths.emdesignDir);
-  fs.writeFileSync(path.join(paths.emdesignDir, 'active-ds'), id);
-  wired.push(path.join(paths.emdesignDir, 'active-ds'));
+  // Record in config (canonical source of truth)
+  setActiveDesignSystem(paths.root, id);
 
   let graphRebuilt = false;
   try { buildAndSave(paths, id); graphRebuilt = true; } catch { /* may be mid-authoring */ }

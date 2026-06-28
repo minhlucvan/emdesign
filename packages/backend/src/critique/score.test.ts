@@ -12,6 +12,8 @@ function tmpPaths(): RepoPaths {
     root,
     framework: 'react-tailwind',
     plugins: ['react', 'css', 'tailwind'],
+    activeDesignSystem: 'atelier',
+    configPath: path.join(root, 'emdesign.config.json'),
     storybookUrl: 'http://localhost:6006',
     emdesignDir: path.join(root, '.emdesign'),
     stateFile: path.join(root, '.emdesign', 'state.json'),

@@ -10,6 +10,8 @@ export interface MedesignConfig {
   framework: string;
   /** Ordered plugin stack, e.g. ["react","tailwind","shadcn"]. If absent, derived from `framework`. */
   plugins?: string[];
+  /** The workspace's single design system (set at init/import time, not switched at runtime). */
+  activeDesignSystem?: string;
   storybookUrl: string;
   generatedDir: string;
   componentsDir: string;
@@ -49,6 +51,10 @@ export interface RepoPaths {
   framework: string;
   /** Resolved ordered plugin stack (from config.plugins, else derived from framework). */
   plugins: string[];
+  /** The workspace's single design system — resolved from config, state (back-compat), or auto-detected. */
+  activeDesignSystem: string;
+  /** Path to emdesign.config.json. */
+  configPath: string;
   storybookUrl: string;
   /** Where the emdesign state store + run artifacts live. */
   emdesignDir: string;
@@ -69,10 +75,31 @@ export function resolveRepoPaths(root = process.cwd()): RepoPaths {
   const cfg = readConfig(root);
   const abs = (p: string) => path.resolve(root, p);
   const emdesignDir = path.join(root, '.emdesign');
+
+  // Resolve the single active design system: config → state (back-compat) → auto-detect → fallback
+  let activeDesignSystem = cfg.activeDesignSystem;
+  if (!activeDesignSystem) {
+    try {
+      const state = JSON.parse(fs.readFileSync(path.join(emdesignDir, 'state.json'), 'utf8'));
+      if (state.activeDesignSystem) activeDesignSystem = state.activeDesignSystem;
+    } catch { /* no state file yet */ }
+  }
+  if (!activeDesignSystem) {
+    try {
+      const dsDir = abs(cfg.designSystemsDir);
+      const first = fs.readdirSync(dsDir, { withFileTypes: true })
+        .find(e => e.isDirectory() && !e.name.startsWith('_') && fs.existsSync(path.join(dsDir, e.name, 'DESIGN.md')));
+      if (first) activeDesignSystem = first.name;
+    } catch { /* no design systems dir yet */ }
+  }
+  if (!activeDesignSystem) activeDesignSystem = 'atelier';
+
   return {
     root,
     framework: cfg.framework,
     plugins: cfg.plugins?.length ? cfg.plugins : frameworkToStack(cfg.framework),
+    activeDesignSystem,
+    configPath: path.join(root, 'emdesign.config.json'),
     storybookUrl: cfg.storybookUrl,
     emdesignDir,
     stateFile: path.join(emdesignDir, 'state.json'),
@@ -86,6 +113,22 @@ export function resolveRepoPaths(root = process.cwd()): RepoPaths {
 
 export function ensureDir(dir: string): void {
   fs.mkdirSync(dir, { recursive: true });
+}
+
+/**
+ * Set the workspace's active design system by writing it to emdesign.config.json.
+ * This is the canonical source of truth — called during init/import, not as a runtime switch.
+ */
+export function setActiveDesignSystem(root: string, id: string): void {
+  const configFile = path.join(root, 'emdesign.config.json');
+  let cfg: MedesignConfig;
+  try {
+    cfg = JSON.parse(fs.readFileSync(configFile, 'utf8'));
+  } catch {
+    cfg = { ...DEFAULT_CONFIG };
+  }
+  cfg.activeDesignSystem = id;
+  fs.writeFileSync(configFile, JSON.stringify(cfg, null, 2) + '\n');
 }
 
 /**

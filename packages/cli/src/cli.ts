@@ -71,7 +71,7 @@ async function main() {
   if (argv.includes('--completion')) {
     const shellIdx = argv.indexOf('--completion');
     const shell = shellIdx >= 0 && shellIdx + 1 < argv.length && !argv[shellIdx + 1].startsWith('--') ? argv[shellIdx + 1] : 'bash';
-    const commands = ['init','attach','update','serve','up','health','use','ds','design','generate','doctor','vision','capture','capture-baseline','discover','doc','graph','explore','compose','help'];
+    const commands = ['init','attach','update','serve','up','health','ds','design','generate','doctor','vision','capture','capture-baseline','discover','doc','graph','explore','compose','help'];
     const dsSubs = ['list','create','use','validate','grade','scaffold','customize','update','diff','compare','conflicts','history','bases','base-detail','context','prompt'];
     if (shell === 'zsh') {
       process.stdout.write(`#compdef emdesign
@@ -127,10 +127,6 @@ complete -F _emdesign_completions emdesign
 
   const paths = resolveRepoPaths(process.cwd());
   const store = new StoreClass(paths);
-
-  if (!store.get().activeDesignSystem) {
-    store.update({ activeDesignSystem: 'atelier' });
-  }
 
   const json = rest.includes('--json');
   const gate = rest.includes('--gate');
@@ -248,18 +244,6 @@ complete -F _emdesign_completions emdesign
     }
 
     // ── Design system ────────────────────────────────────────────────────
-    case 'use': {
-      const id = positional(rest);
-      if (!id) { formatError('usage: emdesign use <design-system-id>'); process.exit(1); }
-      const { resolveDesignSystem, applyDesignSystem } = await import('@emdesign/backend');
-      resolveDesignSystem(paths, id);
-      const r = applyDesignSystem(paths, id);
-      store.update({ activeDesignSystem: id });
-      if (json) process.stdout.write(JSON.stringify(r, null, 2) + '\n');
-      else console.error(`[emdesign] active design system → ${id}`);
-      break;
-    }
-
     case 'ds': {
       const [subcommand = 'list', ...dsArgs] = rest;
       await cmdDs({ subcommand, args: dsArgs, argv: rest, json, gate }, paths, store);

@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import type { Store } from '@emdesign/backend';
 import type { RepoPaths } from '@emdesign/backend';
 
@@ -37,6 +39,20 @@ async function post<T>(route: string, body: unknown): Promise<T> {
   return r.json() as Promise<T>;
 }
 
-export function activeDsId(store: Store): string {
-  return store.get().activeDesignSystem ?? 'atelier';
+/**
+ * Resolve the single active design system ID. Reads from emdesign.config.json, falls back to
+ * scanning design-systems/, then defaults to 'atelier'. Kept for back-compat; prefer
+ * paths.activeDesignSystem directly in new code.
+ */
+export function activeDsId(store: Store, _paths?: RepoPaths): string {
+  // Fast path: if paths provided, use the resolved value
+  if (_paths) return _paths.activeDesignSystem;
+
+  // Fall back to state file (written by old versions)
+  const cwd = process.cwd();
+  try {
+    const state = JSON.parse(fs.readFileSync(path.join(cwd, '.emdesign', 'state.json'), 'utf8'));
+    if (state.activeDesignSystem) return state.activeDesignSystem;
+  } catch { /* no state */ }
+  return 'atelier';
 }

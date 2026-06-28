@@ -1,42 +1,22 @@
 // app-workflow.js
 // Full application build/update orchestrator.
-// Top-level: DS setup → decompose into screens → build screens → verify → reconcile.
-// Delegates to ds-layer-workflow, screen-workflow, reconcile-workflow.
+// The workspace has a single default design system (set in emdesign.config.json).
+// Decomposes into screens → builds in parallel → verifies → reconciles.
 //
-// Usage: workflow('app-workflow', { name, ds?: {id, mode}, screens: [{name, route, sections}], instruction? })
+// Usage: workflow('app-workflow', { name, screens: [{name, route, sections}] })
 export const meta = {
   name: 'app-workflow',
-  description: 'Full app build/update. DS setup → screen decomposition → parallel screen builds → verification → reconciliation.',
-  phases: [{ title: 'DS Setup' }, { title: 'Decompose' }, { title: 'Build Screens' }, { title: 'Verify' }, { title: 'Reconcile' }],
+  description: 'Full app build/update. Screen decomposition → parallel screen builds → verification → reconciliation.',
+  phases: [{ title: 'Decompose' }, { title: 'Build Screens' }, { title: 'Verify' }, { title: 'Reconcile' }],
 }
 
-const { name, ds, screens = [] } = args
+const { name, screens = [] } = args
 
-phase('DS Setup')
 log(`[app] Setting up application: ${name}`)
 
-// 1. Design system setup
-let dsResult = null
-if (ds) {
-  if (ds.mode === 'import' || ds.mode === 'create') {
-    dsResult = await workflow('ds-layer-workflow', { id: ds.id, intent: ds.mode === 'import' ? 'import design system' : 'create design system', changes: ds.changes ?? {} })
-    log(`[app] DS setup: ${dsResult.layer} layer, ${dsResult.changed?.length ?? 0} changes`)
-  }
-}
-
-// 2. Activate DS
-if (ds?.id) {
-  try {
-    await $`emdesign use ${ds.id} 2>/dev/null`
-    log(`[app] Active DS: ${ds.id}`)
-  } catch (e) {
-    log(`[app] DS activation failed: ${e.message}`)
-  }
-}
-
-// 3. Validate and compile
+// Validate the workspace DS (set at init time, not per-invocation)
 try {
-  await $`emdesign ds validate ${ds?.id ?? 'atelier'} --strict 2>/dev/null`
+  await $`emdesign ds validate --strict 2>/dev/null`
 } catch { /* optional */ }
 
 phase('Decompose')
@@ -88,7 +68,7 @@ if (reused.length > 0) {
 // Validate DS after all screens
 let dsValid = false
 try {
-  const result = await $`emdesign ds validate ${ds?.id ?? 'atelier'} --strict --json 2>/dev/null`
+  const result = await $`emdesign ds validate --strict --json 2>/dev/null`
   const parsed = JSON.parse(result)
   dsValid = parsed.ok && parsed.data?.ok
   log(`[app] DS validate: ${dsValid ? '✅' : '❌'}`)
@@ -103,7 +83,6 @@ const reconcileResult = await workflow('reconcile-workflow', {
 return {
   name,
   screens: screens.map(s => s.name),
-  dsSetup: dsResult?.verified ?? true,
   screenResults: built.length,
   screenFailures: failed.length,
   sharedComponents: reused.map(([c]) => c),

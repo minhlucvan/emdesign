@@ -36,7 +36,6 @@ import {
 } from '@emdesign/backend';
 import { getContext, consistencyBrief } from "@emdesign/graph";
 import { formatJson, formatError } from '../lib/format.js';
-import { activeDsId } from '../lib/resolve.js';
 
 export interface DsArgs {
   subcommand: string;
@@ -64,6 +63,8 @@ export async function cmdDs(ds: DsArgs, paths: RepoPaths, store: Store): Promise
       const descIdx = ds.argv.indexOf('--description');
       const description = descIdx >= 0 ? ds.argv[descIdx + 1] : undefined;
       const result = createDesignSystem(paths, { id: a1, mode, from, name, description });
+      // Auto-apply: wire CSS import, rebuild graph, set in config
+      try { applyDesignSystem(paths, a1); } catch { /* may be mid-authoring */ }
       out(result, ds.json);
       break;
     }
@@ -74,19 +75,8 @@ export async function cmdDs(ds: DsArgs, paths: RepoPaths, store: Store): Promise
       break;
     }
 
-    case 'use': {
-      if (!a1) {
-        formatError('usage: emdesign ds use <id>');
-        process.exit(1);
-      }
-      const r = applyDesignSystem(paths, a1);
-      store.update({ activeDesignSystem: a1 });
-      out(r, ds.json);
-      break;
-    }
-
     case 'validate': {
-      const id = a1 ? normalizeDsRef(a1) : normalizeDsRef(activeDsId(store));
+      const id = paths.activeDesignSystem;
       const tokenCheck = validateDesignSystem(paths, id);
       const dsrCheck = runtimeFor(paths).validate(id);
       const enriched = {
@@ -116,7 +106,7 @@ export async function cmdDs(ds: DsArgs, paths: RepoPaths, store: Store): Promise
     }
 
     case 'compile': {
-      const id = a1 ?? activeDsId(store);
+      const id = paths.activeDesignSystem;
       const r = compileDesignSystem(paths, id);
       const outDir = ds.argv.includes('--out') ? ds.argv[ds.argv.indexOf('--out') + 1] : undefined;
       if (outDir) {
@@ -137,7 +127,7 @@ export async function cmdDs(ds: DsArgs, paths: RepoPaths, store: Store): Promise
     }
 
     case 'export': {
-      const id = a1 ?? activeDsId(store);
+      const id = paths.activeDesignSystem;
       const outDir = ds.argv.includes('--out') ? ds.argv[ds.argv.indexOf('--out') + 1] : undefined;
       const r = exportDesignSystem(paths, id, outDir);
       out(r, ds.json);
@@ -145,12 +135,12 @@ export async function cmdDs(ds: DsArgs, paths: RepoPaths, store: Store): Promise
     }
 
     case 'version': {
-      const id = a1 ?? activeDsId(store);
-      const bump = a2 as 'major' | 'minor' | 'patch' | undefined;
+      const bump = a1 as 'major' | 'minor' | 'patch' | undefined;
       if (!bump || !['major', 'minor', 'patch'].includes(bump)) {
-        formatError('usage: emdesign ds version <id> <major|minor|patch>');
+        formatError('usage: emdesign ds version <major|minor|patch>');
         process.exit(1);
       }
+      const id = paths.activeDesignSystem;
       // Read manifest from the design system directory
       const dsPath = path.join(process.cwd(), 'design-systems', ...normalizeDsRef(id).split('/'));
       const manifestFile = path.join(dsPath, 'manifest.json');
@@ -170,7 +160,7 @@ export async function cmdDs(ds: DsArgs, paths: RepoPaths, store: Store): Promise
     }
 
     case 'changelog': {
-      const id = a1 ?? activeDsId(store);
+      const id = paths.activeDesignSystem;
       const rt = runtimeFor(paths);
       const h = rt.history(id);
       if (ds.json) {
@@ -189,7 +179,7 @@ export async function cmdDs(ds: DsArgs, paths: RepoPaths, store: Store): Promise
     }
 
     case 'grade': {
-      const id = a1 ?? activeDsId(store);
+      const id = paths.activeDesignSystem;
       const timeoutIdx = ds.argv.indexOf('--timeout');
       const timeoutMs = timeoutIdx >= 0 ? Number(ds.argv[timeoutIdx + 1]) : 120_000;
       const ac = new AbortController();
@@ -229,7 +219,7 @@ export async function cmdDs(ds: DsArgs, paths: RepoPaths, store: Store): Promise
     }
 
     case 'info': {
-      const id = a1 ?? activeDsId(store);
+      const id = paths.activeDesignSystem;
       const info = getDesignSystemInfo(paths, id);
       if (ds.json) {
         formatJson(info);
@@ -279,7 +269,7 @@ export async function cmdDs(ds: DsArgs, paths: RepoPaths, store: Store): Promise
     // ── V3: Lint Rules ─────────────────────────────────────────────────
     case 'lint-rules': {
       const ruleSub = a1;
-      const ruleId = a2 ?? activeDsId(store);
+      const ruleId = a2 ?? paths.activeDesignSystem;
       if (ruleSub === 'list' || !ruleSub) {
         const rules = getLintRules(paths, ruleId);
         if (ds.json) {
@@ -293,7 +283,7 @@ export async function cmdDs(ds: DsArgs, paths: RepoPaths, store: Store): Promise
         const ruleName = a3;
         const severity = ds.args[3]; // fourth positional
         if (!ruleName || !severity) {
-          formatError('usage: emdesign ds lint-rules set <id> <rule> <P0|P1|P2|off>');
+          formatError('usage: emdesign ds lint-rules set <rule> <P0|P1|P2|off>');
           process.exit(1);
         }
         const r = setLintRule(paths, ruleId, ruleName, severity);
@@ -301,7 +291,7 @@ export async function cmdDs(ds: DsArgs, paths: RepoPaths, store: Store): Promise
       } else if (ruleSub === 'preset') {
         const presetName = a3;
         if (!presetName || !LINT_RULE_PRESETS[presetName]) {
-          formatError(`usage: emdesign ds lint-rules preset <id> <${Object.keys(LINT_RULE_PRESETS).join('|')}>`);
+          formatError(`usage: emdesign ds lint-rules preset  <${Object.keys(LINT_RULE_PRESETS).join('|')}>`);
           process.exit(1);
         }
         const r = applyLintPreset(paths, ruleId, presetName);
@@ -367,7 +357,7 @@ export async function cmdDs(ds: DsArgs, paths: RepoPaths, store: Store): Promise
     case 'prompt': {
       const compName = a1 ?? 'Component';
       const instruction = a2 ?? '(describe the component)';
-      const id = activeDsId(store);
+      const id = paths.activeDesignSystem;
       const designSystem = resolveDesignSystem(paths, id);
       let graphContext: string | undefined;
       try {
@@ -391,13 +381,13 @@ export async function cmdDs(ds: DsArgs, paths: RepoPaths, store: Store): Promise
 
     case 'scaffold': {
       if (!a1) {
-        formatError('usage: emdesign ds scaffold <id> [--from <base>] [--blocks Button,Card,...]');
+        formatError('usage: emdesign ds scaffold [--from <base>] [--blocks Button,Card,...]');
         process.exit(1);
       }
       // If --blocks is specified, scaffold specific blocks
       if (ds.argv.includes('--blocks')) {
         const blocks = ds.argv[ds.argv.indexOf('--blocks') + 1].split(',').map((b: string) => b.trim());
-        const r = scaffoldBlocks(paths, a1, blocks);
+        const r = scaffoldBlocks(paths, paths.activeDesignSystem, blocks);
         if (ds.json) {
           formatJson(r);
         } else {
@@ -408,21 +398,21 @@ export async function cmdDs(ds: DsArgs, paths: RepoPaths, store: Store): Promise
       const fromIdx = ds.argv.indexOf('--from');
       const from = fromIdx >= 0 ? ds.argv[fromIdx + 1] : undefined;
       const { scaffoldPrimitives: sp } = await import('@emdesign/backend');
-      const ok = sp(paths, a1, from);
+      const ok = sp(paths, paths.activeDesignSystem, from);
       if (ds.json) {
-        formatJson({ id: a1, scaffolded: ok });
+        formatJson({ id: paths.activeDesignSystem, scaffolded: ok });
       } else {
-        process.stdout.write(ok ? `Scaffolded primitives into ${a1}/code.\n` : 'Skipped.\n');
+        process.stdout.write(ok ? `Scaffolded primitives into ${paths.activeDesignSystem}/code.\n` : 'Skipped.\n');
       }
       break;
     }
 
     case 'diff':
     case 'compare': {
-      const id1 = a1 ? normalizeDsRef(a1) : normalizeDsRef(activeDsId(store));
-      const id2 = a2 ? normalizeDsRef(a2) : a1 ? normalizeDsRef(a1) : normalizeDsRef(activeDsId(store));
+      const id1 = a1 ? normalizeDsRef(a1) : normalizeDsRef(paths.activeDesignSystem);
+      const id2 = a2 ? normalizeDsRef(a2) : a1 ? normalizeDsRef(a1) : normalizeDsRef(paths.activeDesignSystem);
       if (!id1 || !id2 || id1 === id2) {
-        formatError('usage: emdesign ds diff <id1> <id2>');
+        formatError('usage: emdesign ds diff — removed in single-DS mode');
         process.exit(1);
       }
       const r = diffDesignSystems(paths, id1, id2);
@@ -437,13 +427,13 @@ export async function cmdDs(ds: DsArgs, paths: RepoPaths, store: Store): Promise
     }
 
     case 'update': {
-      const id = a1 ?? activeDsId(store);
+      const id = paths.activeDesignSystem;
       const nameIdx = ds.argv.indexOf('--name');
       const name = nameIdx >= 0 ? ds.argv[nameIdx + 1] : undefined;
       const descIdx = ds.argv.indexOf('--description');
       const description = descIdx >= 0 ? ds.argv[descIdx + 1] : undefined;
       if (!name && !description) {
-        formatError('usage: emdesign ds update <id> [--name <name>] [--description <text>]');
+        formatError('usage: emdesign ds update [--name <name>] [--description <text>]');
         process.exit(1);
       }
       const r = updateDesignSystem(paths, id, { name, description });
@@ -452,14 +442,14 @@ export async function cmdDs(ds: DsArgs, paths: RepoPaths, store: Store): Promise
     }
 
     case 'conflicts': {
-      const id = a1 ?? activeDsId(store);
+      const id = paths.activeDesignSystem;
       const r = runtimeFor(paths).conflicts(normalizeDsRef(id));
       out(r, ds.json);
       break;
     }
 
     case 'history': {
-      const id = a1 ?? activeDsId(store);
+      const id = paths.activeDesignSystem;
       const rt = runtimeFor(paths);
       if (ds.argv.includes('--snapshot')) rt.snapshot(id);
       const h = rt.history(id);
@@ -468,10 +458,6 @@ export async function cmdDs(ds: DsArgs, paths: RepoPaths, store: Store): Promise
     }
 
     case 'customize': {
-      if (!a1) {
-        formatError('usage: emdesign ds customize <id> [--name <name>] [--color <hex>] [--font <family>] [--brand <name>] [--primary <hex>] [--secondary <hex>] [--body-font <font>] [--spacing <px>]');
-        process.exit(1);
-      }
       const { customizeDesignSystem } = await import('@emdesign/backend');
       const nameIdx = ds.argv.indexOf('--name');
       const colorIdx = ds.argv.indexOf('--color');

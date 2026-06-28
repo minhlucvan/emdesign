@@ -27,22 +27,12 @@ describe('Store — readState/writeState round-trip', () => {
     const { Store } = await import('../state.js');
     const store = new Store(repoPaths);
     const state = store.get();
-    expect(state.activeDesignSystem).toBeNull();
     expect(state.changeRequests).toEqual([]);
     expect(state.currentComponent).toBeNull();
     expect(state.lastDiff).toBeNull();
     expect(state.lintPassing).toBeNull();
     expect(state.lastCritique).toBeNull();
     expect(state.comments).toEqual({});
-  });
-
-  it('persists state and reads it back', async () => {
-    const { Store } = await import('../state.js');
-    const store = new Store(repoPaths);
-    store.update({ activeDesignSystem: 'atelier' });
-    // Read from a fresh Store instance (simulating a new process)
-    const store2 = new Store(repoPaths);
-    expect(store2.get().activeDesignSystem).toBe('atelier');
   });
 
   it('persists state.json to disk at the correct path', async () => {
@@ -118,13 +108,6 @@ describe('Store — queue management', () => {
 });
 
 describe('Store — active system and critiques', () => {
-  it('get/set activeDesignSystem persists', async () => {
-    const { Store } = await import('../state.js');
-    const store = new Store(repoPaths);
-    store.update({ activeDesignSystem: 'atelier' });
-    expect(store.get().activeDesignSystem).toBe('atelier');
-  });
-
   it('lastCritique stores composite, decision, mustFix', async () => {
     const { Store } = await import('../state.js');
     const store = new Store(repoPaths);
@@ -147,8 +130,8 @@ describe('Store — cross-process sync', () => {
   it('reloads state when underlying file changes', async () => {
     const { Store } = await import('../state.js');
     const store = new Store(repoPaths);
-    store.update({ activeDesignSystem: 'atelier' });
-
+    // Write initial state so the file exists
+    store.update({ currentComponent: 'Test' });
     // Simulate another process modifying the file (the MCP agent)
     const filePath = repoPaths.stateFile;
     const raw = JSON.parse(fs.readFileSync(filePath, 'utf8'));

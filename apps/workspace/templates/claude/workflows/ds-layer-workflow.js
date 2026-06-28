@@ -1,24 +1,24 @@
 // ds-layer-workflow.js
-// Determines which design system layer to modify based on user intent.
-// Layers: Token → Primitive → Element (Blueprint) → Component → Composition
-// Verifies layer-appropriately and reconciles affected downstream artifacts.
+// Applies changes to the workspace design system at the appropriate layer:
+// token → primitive → lint-rule → compile.
+// The workspace has a single design system (configured in emdesign.config.json).
 //
-// Usage: workflow('ds-layer-workflow', { id, intent, changes? })
+// Usage: workflow('ds-layer-workflow', { intent, changes? })
 export const meta = {
   name: 'ds-layer-workflow',
-  description: 'Determine which DS layer to change: token, primitive, element, component, or composition. Layer-appropriate gate + reconciliation.',
+  description: 'Apply changes to the workspace design system: token, primitive, lint-rule, or compile. Layer-appropriate gate + reconciliation.',
   phases: [{ title: 'Analyze Intent' }, { title: 'Determine Layer' }, { title: 'Apply Change' }, { title: 'Verify & Reconcile' }],
 }
 
-const { id, intent = '', changes = {} } = args
+const { intent = '', changes = {} } = args
 
 phase('Analyze Intent')
-log(`[ds-layer] Analyzing intent for ${id}: ${intent}`)
+log(`[ds-layer] Analyzing intent: ${intent}`)
 
-// Enrich with DS info
+// Enrich with DS info (no id needed — always the workspace DS)
 let dsInfo = null
 try {
-  const result = await $`emdesign ds info ${id} --json`
+  const result = await $`emdesign ds info --json`
   const parsed = JSON.parse(result)
   if (parsed.ok) dsInfo = parsed.data
   log(`[ds-layer] DS: ${dsInfo?.name} (${dsInfo?.tokens} tokens, ${dsInfo?.primitives?.length ?? 0} primitives)`)
@@ -29,7 +29,7 @@ try {
 // Get current rules
 let lintRules = null
 try {
-  const result = await $`emdesign ds lint-rules list ${id} --json`
+  const result = await $`emdesign ds lint-rules list --json`
   const parsed = JSON.parse(result)
   if (parsed.ok) lintRules = parsed.data
   log(`[ds-layer] Lint preset: ${lintRules?.preset}`)
@@ -60,7 +60,7 @@ if (intentLower.includes('token') || intentLower.includes('color') || intentLowe
 } else {
   // Check if it's about an existing component
   try {
-    const result = await $`emdesign explore components ${id} --json 2>/dev/null`
+    const result = await $`emdesign explore overview --json 2>/dev/null`
     const parsed = JSON.parse(result)
     if (parsed.ok && parsed.data?.length > 0) {
       layer = 'component'
@@ -71,22 +71,22 @@ if (intentLower.includes('token') || intentLower.includes('color') || intentLowe
 log(`[ds-layer] Layer determined: ${layer}`)
 
 phase('Apply Change')
-log(`[ds-layer] Applying ${layer}-layer change to ${id}`)
+log(`[ds-layer] Applying ${layer}-layer change`)
 
 let changed = []
 switch (layer) {
   case 'token': {
     // Token value change
     if (changes.primary) {
-      await $`emdesign ds customize ${id} --primary ${changes.primary} 2>/dev/null`
+      await $`emdesign ds customize --primary ${changes.primary} 2>/dev/null`
       changed.push(`--color-accent: ${changes.primary}`)
     }
     if (changes.font) {
-      await $`emdesign ds customize ${id} --body-font "${changes.font}" 2>/dev/null`
+      await $`emdesign ds customize --body-font "${changes.font}" 2>/dev/null`
       changed.push(`--font-sans: ${changes.font}`)
     }
     if (changes.spacing) {
-      await $`emdesign ds customize ${id} --spacing ${changes.spacing} 2>/dev/null`
+      await $`emdesign ds customize --spacing ${changes.spacing} 2>/dev/null`
       changed.push(`--space-unit: ${changes.spacing}px`)
     }
     log(`[ds-layer] Token changes: ${changed.join(', ') || 'none'}`)
@@ -95,7 +95,7 @@ switch (layer) {
   case 'primitive': {
     // Scaffold blocks
     if (changes.blocks) {
-      await $`emdesign ds scaffold ${id} --blocks ${changes.blocks} 2>/dev/null`
+      await $`emdesign ds scaffold --blocks ${changes.blocks} 2>/dev/null`
       changed = changes.blocks.split(',')
       log(`[ds-layer] Scaffolded blocks: ${changed.join(', ')}`)
     }
@@ -103,20 +103,20 @@ switch (layer) {
   }
   case 'lint-rule': {
     if (changes.preset) {
-      await $`emdesign ds lint-rules preset ${id} ${changes.preset} 2>/dev/null`
+      await $`emdesign ds lint-rules preset ${changes.preset} 2>/dev/null`
       changed.push(`preset: ${changes.preset}`)
       log(`[ds-layer] Applied lint preset: ${changes.preset}`)
     }
     if (changes.rule && changes.severity) {
-      await $`emdesign ds lint-rules set ${id} ${changes.rule} ${changes.severity} 2>/dev/null`
+      await $`emdesign ds lint-rules set ${changes.rule} ${changes.severity} 2>/dev/null`
       changed.push(`${changes.rule} → ${changes.severity}`)
     }
     break
   }
   case 'compile': {
-    await $`emdesign ds compile ${id} 2>/dev/null`
+    await $`emdesign ds compile 2>/dev/null`
     changed.push('compiled types')
-    log(`[ds-layer] Compiled ${id} tokens`)
+    log(`[ds-layer] Compiled tokens`)
     break
   }
   default: {
@@ -132,7 +132,7 @@ let verified = false
 switch (layer) {
   case 'token':
   case 'lint-rule': {
-    const result = await $`emdesign ds validate ${id} --strict --json`
+    const result = await $`emdesign ds validate --strict --json`
     const parsed = JSON.parse(result)
     verified = parsed.ok && parsed.data?.ok
     log(`[ds-layer] Validate: ${verified ? '✅' : '❌'} (${parsed.data?.declared ?? 0} tokens)`)
@@ -147,7 +147,7 @@ switch (layer) {
     break
   }
   case 'compile': {
-    const result = await $`emdesign ds export ${id} --json`
+    const result = await $`emdesign ds export --json`
     const parsed = JSON.parse(result)
     verified = parsed.ok
     log(`[ds-layer] Export: ${verified ? '✅' : '❌'}`)
@@ -163,7 +163,7 @@ let affectedCount = 0
 let regressions = 0
 if (layer === 'token' || layer === 'lint-rule') {
   try {
-    const impact = await $`emdesign graph impact ${id} --json 2>/dev/null`
+    const impact = await $`emdesign graph impact --json 2>/dev/null`
     const parsed = JSON.parse(impact)
     if (parsed.ok && Array.isArray(parsed.data)) {
       affectedCount = parsed.data.length
@@ -183,7 +183,6 @@ if (layer === 'token' || layer === 'lint-rule') {
 
 log(`[ds-layer] Done: ${changed.length} changes, ${regressions} regressions`)
 return {
-  id,
   layer,
   changed,
   verified,

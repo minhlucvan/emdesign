@@ -77,7 +77,7 @@ export interface Critique {
 }
 
 export interface StudioState {
-  activeDesignSystem: string | null;
+  /** Runtime-only state — the canonical active design system lives in emdesign.config.json (RepoPaths.activeDesignSystem). */
   currentComponent: string | null;
   changeRequests: ChangeRequest[];
   lastDiff: DiffResult | null;
@@ -89,7 +89,6 @@ export interface StudioState {
 }
 
 const EMPTY: StudioState = {
-  activeDesignSystem: null,
   currentComponent: null,
   changeRequests: [],
   lastDiff: null,

@@ -28,7 +28,6 @@ import {
   validateDesignSystem,
   listDesignSystems,
   listBases,
-  applyDesignSystem,
   runtimeFor,
   gradeDesignSystem,
   renderSnapshot,
@@ -45,10 +44,6 @@ function text(s: string) {
   return { content: [{ type: 'text' as const, text: s }] };
 }
 
-function activeDsId(store: Store): string {
-  return store.get().activeDesignSystem ?? 'atelier';
-}
-
 function writeGenerated(paths: RepoPaths, name: string, source: string, story?: string): void {
   ensureDir(paths.generatedDir);
   const a = effectiveAdapter(paths);
@@ -57,7 +52,7 @@ function writeGenerated(paths: RepoPaths, name: string, source: string, story?: 
 }
 
 function lintSource(paths: RepoPaths, store: Store, source: string) {
-  const ds = resolveDesignSystem(paths, activeDsId(store));
+  const ds = resolveDesignSystem(paths, paths.activeDesignSystem);
   const findings = effectiveAdapter(paths).lint(source, {
     declaredTokens: ds.declaredTokens,
     exemptions: ds.exemptions,
@@ -67,7 +62,7 @@ function lintSource(paths: RepoPaths, store: Store, source: string) {
 }
 
 function graphWithCurrent(store: Store, paths: RepoPaths) {
-  const id = activeDsId(store);
+  const id = paths.activeDesignSystem;
   const g = loadOrBuild(paths, id);
   const current = store.get().currentComponent;
   if (current && fs.existsSync(path.join(paths.generatedDir, `${current}.tsx`))) {
@@ -89,7 +84,7 @@ export async function createMcpServer(store: Store, paths: RepoPaths, _orch?: an
       instruction: z.string().optional().describe('What the component should do, for tailored context'),
     },
   }, async ({ instruction, componentName }) => {
-    const id = activeDsId(store);
+    const id = paths.activeDesignSystem;
     const ds = resolveDesignSystem(paths, id);
     const name = componentName ?? 'Component';
     let graphContext: string | undefined;
@@ -196,7 +191,7 @@ export async function createMcpServer(store: Store, paths: RepoPaths, _orch?: an
       const srcPath = path.join(paths.generatedDir, `${component}.tsx`);
       let source: string | undefined;
       try { source = fs.readFileSync(srcPath, 'utf8'); } catch { /* not generated yet */ }
-      const ds = resolveDesignSystem(paths, activeDsId(store));
+      const ds = resolveDesignSystem(paths, paths.activeDesignSystem);
       const collected = await collectScores(paths, {
         component,
         source,
@@ -227,11 +222,11 @@ export async function createMcpServer(store: Store, paths: RepoPaths, _orch?: an
 
   // ── 6. Manage design system ──────────────────────────────────
   server.registerTool('manage_design_system', {
-    description: 'Unified tool for all design system operations: create a new DS, switch the active DS, validate the token contract, grade quality, scaffold primitives, find conflicts, view version history, or list available systems/bases.',
+    description: 'Unified tool for all design system operations: create, validate, grade, scaffold, conflicts, history, or list. The workspace has a single active DS configured in emdesign.config.json.',
     inputSchema: {
-      action: z.enum(['create', 'apply', 'validate', 'grade', 'scaffold', 'conflicts', 'history', 'list', 'list_bases'])
+      action: z.enum(['create', 'validate', 'grade', 'scaffold', 'conflicts', 'history', 'list', 'list_bases'])
         .describe('What to do: create (new DS), apply (switch active), validate (check contract), grade (quality score), scaffold (copy primitives), conflicts (find issues), history (snapshots), list (available DS), list_bases (prebuilt templates)'),
-      id: z.string().optional().describe('Design system ID (required for create, apply, validate, grade, scaffold, conflicts, history)'),
+      id: z.string().optional().describe('Design system ID (required for create)'),
       name: z.string().optional().describe('Display name (for create)'),
       mode: z.enum(['blank', 'brief', 'import', 'extract']).optional().describe('Creation mode (for create)'),
       from: z.string().optional().describe('Source base/template (for create/import or scaffold)'),
@@ -242,21 +237,18 @@ export async function createMcpServer(store: Store, paths: RepoPaths, _orch?: an
       case 'create':
         if (!id) return text('id is required for create');
         return text(JSON.stringify(createDesignSystem(paths, { id, name, mode, from }), null, 2));
-      case 'apply':
-        if (!id) return text('id is required for apply');
-        { const r = applyDesignSystem(paths, id); store.update({ activeDesignSystem: id }); return text(`Active → ${id}. ${r.graphRebuilt ? 'graph rebuilt; ' : ''}${r.note}`); }
       case 'validate':
-        return text(JSON.stringify(runtimeFor(paths).validate(normalizeDsRef(id ?? activeDsId(store))), null, 2));
+        return text(JSON.stringify(runtimeFor(paths).validate(normalizeDsRef(paths.activeDesignSystem)), null, 2));
       case 'grade':
-        return text(JSON.stringify(await gradeDesignSystem(paths, normalizeDsRef(id ?? activeDsId(store))), null, 2));
+        return text(JSON.stringify(await gradeDesignSystem(paths, normalizeDsRef(paths.activeDesignSystem)), null, 2));
       case 'scaffold':
-        return text(scaffoldPrimitives(paths, id ?? activeDsId(store), from) ? `Scaffolded primitives into ${id}/code.` : 'Skipped.');
+        return text(scaffoldPrimitives(paths, paths.activeDesignSystem, from) ? `Scaffolded primitives.` : 'Skipped.');
       case 'conflicts':
-        return text(JSON.stringify(runtimeFor(paths).conflicts(normalizeDsRef(id ?? activeDsId(store))), null, 2));
+        return text(JSON.stringify(runtimeFor(paths).conflicts(normalizeDsRef(paths.activeDesignSystem)), null, 2));
       case 'history': {
-        const rt = runtimeFor(paths); const dsId = id ?? activeDsId(store);
-        if (snapshot) rt.snapshot(dsId);
-        return text(JSON.stringify(rt.history(dsId), null, 2));
+        const rt = runtimeFor(paths);
+        if (snapshot) rt.snapshot(paths.activeDesignSystem);
+        return text(JSON.stringify(rt.history(paths.activeDesignSystem), null, 2));
       }
       case 'list':
         return text(JSON.stringify(runtimeFor(paths).list(), null, 2));
@@ -313,9 +305,8 @@ export async function createMcpServer(store: Store, paths: RepoPaths, _orch?: an
   // ── 8. Rebuild graph ─────────────────────────────────────────
   server.registerTool('rebuild_graph', {
     description: 'Rebuild the design system knowledge graph from scratch. Run after adding new components, tokens, or primitives. Shows graph statistics (nodes, edges, artifacts).',
-    inputSchema: { id: z.string().optional().describe('Design system ID (default: active)') },
-  }, async ({ id }) => {
-    const dsId = id ?? activeDsId(store);
+    inputSchema: {},
+  }, async () => {
     const g = buildAndSave(paths, dsId);
     return text(`Rebuilt graph: ${JSON.stringify(g.stats())}`);
   });
@@ -342,7 +333,7 @@ export async function createMcpServer(store: Store, paths: RepoPaths, _orch?: an
     try { await runVisualTest(paths, component); } catch { /* non-fatal */ }
     const critiqueMode = mode === 'compare' ? 'reference' as const : 'standard' as const;
     const result = await standardCritique(
-      { root: paths.root, screenshotsDir: paths.screenshotsDir, designSystemsDir: paths.designSystemsDir, activeDsId: store.get().activeDesignSystem ?? undefined },
+      { root: paths.root, screenshotsDir: paths.screenshotsDir, designSystemsDir: paths.designSystemsDir, activeDsId: paths.activeDesignSystem },
       {
         component,
         mode: critiqueMode,
@@ -439,7 +430,7 @@ export async function createMcpServer(store: Store, paths: RepoPaths, _orch?: an
       target: z.string().describe('Component name (PascalCase) or story ID (e.g. "generated-button--default")'),
     },
   }, async ({ target }) => {
-    const id = activeDsId(store);
+    const id = paths.activeDesignSystem;
     const ds = resolveDesignSystem(paths, id);
     const isStoryId = target.includes('--');
     const name = isStoryId ? target.split('--')[0]!.replace(/^(generated|components)-/i, '') : target.replace(/^generated-/i, '');
@@ -629,7 +620,7 @@ export async function createMcpServer(store: Store, paths: RepoPaths, _orch?: an
       id: z.string().optional().describe('Design system ID (defaults to active)'),
     },
   }, async ({ id }) => {
-    const dsId = id ?? activeDsId(store);
+    const dsId = id ?? paths.activeDesignSystem;
     const ds = resolveDesignSystem(paths, dsId);
     const adapter = effectiveAdapter(paths);
     const [file] = adapter.emitConfig(ds, paths);

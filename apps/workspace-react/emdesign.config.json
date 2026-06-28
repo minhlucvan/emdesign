@@ -1,5 +1,6 @@
 {
   "framework": "react-tailwind",
+  "activeDesignSystem": "atelier",
   "storybookUrl": "http://localhost:6006",
   "generatedDir": "src/generated",
   "componentsDir": "src/components",

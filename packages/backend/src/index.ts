@@ -19,7 +19,7 @@ export { captureComponent, captureWithBaseline } from './capture.js';
 export { buildAndSave, loadOrBuild, overlayGenerated } from './graph.js';
 export { createDesignSystem, scaffoldPrimitives, validateDesignSystem, updateDesignSystem, diffDesignSystems, compileDesignSystem, exportDesignSystem, listDesignSystems, listBases, listBaseCategories, baseDetail, basePreviewHtml, customizeDesignSystem, applyDesignSystem, manifestJson, designMdSkeleton, baseTokensCss, searchDesignSystems, importAwesomeDesign, importGitDesign, getDesignSystemInfo, getLintRules, setLintRule, applyLintPreset, LINT_RULE_PRESETS, listBlocks, scaffoldBlocks, listBlueprints, applyBlueprint } from './scaffold.js';
 export type { CreateMode, CreateResult, ValidateResult, UpdateResult, DiffResult as DsDiffResult, CompileResult, TokenInfo, TokenCategory, ApplyResult, DesignSystemBase, DesignSystemSource, ManifestOpts, BaseDetail, RegistrySystem, DsInfo, BlockInfo, BlueprintInfo } from './scaffold.js';
-export { normalizeDsRef } from './paths.js';
+export { normalizeDsRef, setActiveDesignSystem } from './paths.js';
 export { runtimeFor } from './runtime.js';
 export { gradeDesignSystem, renderGrade } from './doctor.js';
 export type { GradeReport, GradeOptions } from './doctor.js';

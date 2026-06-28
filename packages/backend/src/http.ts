@@ -67,7 +67,7 @@ const SURFACE_TTL_MS = 5_000;
 
 function computeSurface(store: Store, paths: RepoPaths): SurfaceData {
   const state = store.get();
-  const ds = state.activeDesignSystem ? resolveDesignSystem(paths, state.activeDesignSystem) : null;
+  const ds = resolveDesignSystem(paths, paths.activeDesignSystem);
 
   // Read composition from generated components directory
   let compositionTree: string[] = [];
@@ -116,7 +116,7 @@ function computeSurface(store: Store, paths: RepoPaths): SurfaceData {
   return {
     activeComponent: state.currentComponent,
     activeStory: null,
-    activeDesignSystem: state.activeDesignSystem,
+    activeDesignSystem: paths.activeDesignSystem,
     viewport: null,
     compositionTree,
     tokenUsage,
@@ -181,7 +181,7 @@ export async function createHttpBridge(store: Store, paths: RepoPaths, orch?: an
       ok: true,
       name: 'emdesign',
       version: '0.0.0',
-      activeDesignSystem: s.activeDesignSystem,
+      activeDesignSystem: paths.activeDesignSystem,
       currentComponent: s.currentComponent,
       lintPassing: s.lintPassing,
       paths: { root: paths.root, designSystems: paths.designSystemsDir, generated: paths.generatedDir },
@@ -250,7 +250,7 @@ export async function createHttpBridge(store: Store, paths: RepoPaths, orch?: an
   // Programmatic/rule feedback for a generated component (used by the CLI + lint gate).
   app.post('/api/lint', (req, res) => {
     const name = String(req.body?.component ?? store.get().currentComponent ?? '').trim();
-    const dsId = store.get().activeDesignSystem ?? 'atelier';
+    const dsId = paths.activeDesignSystem;
     try {
       const source = fs.readFileSync(path.join(paths.generatedDir, `${name}.tsx`), 'utf8');
       const ds = resolveDesignSystem(paths, dsId);
@@ -271,7 +271,7 @@ export async function createHttpBridge(store: Store, paths: RepoPaths, orch?: an
   // results are merged in client-side (tier `component` is returned empty here).
   app.post('/api/charters', async (req, res) => {
     const name = String(req.body?.component ?? store.get().currentComponent ?? '').trim();
-    const dsId = store.get().activeDesignSystem ?? 'atelier';
+    const dsId = paths.activeDesignSystem;
     const render = req.body?.render;
 
     type TierItem = { id: string; title: string; severity: 'P0' | 'P1' | 'P2'; pass: boolean; message?: string; fix?: string; target?: string };
@@ -497,7 +497,7 @@ export async function createHttpBridge(store: Store, paths: RepoPaths, orch?: an
   // Design-system management (read + switch) — for the panel's System tab.
   app.get('/api/design-systems', (_req, res) => {
     try {
-      res.json({ active: store.get().activeDesignSystem, systems: runtimeFor(paths).list() });
+      res.json({ active: paths.activeDesignSystem, systems: runtimeFor(paths).list() });
     } catch (e) {
       res.status(500).json({ error: (e as Error).message });
     }
@@ -587,7 +587,6 @@ export async function createHttpBridge(store: Store, paths: RepoPaths, orch?: an
     if (!id) return res.status(400).json({ error: 'id required' });
     try {
       const r = applyDesignSystem(paths, id);
-      store.update({ activeDesignSystem: id });
       res.json(r);
     } catch (e) {
       res.status(500).json({ error: (e as Error).message });
@@ -669,7 +668,7 @@ export async function createHttpBridge(store: Store, paths: RepoPaths, orch?: an
           root: paths.root,
           screenshotsDir: paths.screenshotsDir,
           designSystemsDir: paths.designSystemsDir,
-          activeDsId: store.get().activeDesignSystem ?? undefined,
+          activeDsId: paths.activeDesignSystem,
         },
         { component, provider: req.body?.provider, mode: req.body?.mode },
       );
@@ -687,7 +686,7 @@ export async function createHttpBridge(store: Store, paths: RepoPaths, orch?: an
           root: paths.root,
           screenshotsDir: paths.screenshotsDir,
           designSystemsDir: paths.designSystemsDir,
-          activeDsId: store.get().activeDesignSystem ?? undefined,
+          activeDsId: paths.activeDesignSystem,
         },
         { component, mode: 'reference', provider: req.body?.provider, referenceImagePath: req.body?.referenceImagePath },
       );
@@ -750,7 +749,7 @@ export async function createHttpBridge(store: Store, paths: RepoPaths, orch?: an
     // Build context from current state + view
     const state = store.get();
     let viewContext = '';
-    if (state.activeDesignSystem) viewContext += `\nActive design system: ${state.activeDesignSystem}`;
+    viewContext += `\nActive design system: ${paths.activeDesignSystem}`;
     if (state.currentComponent) viewContext += `\nCurrent component: ${state.currentComponent}`;
 
     // Format prompt: intent → /mds: command, no intent → raw prompt with context

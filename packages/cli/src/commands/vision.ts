@@ -33,7 +33,7 @@ export async function cmdVision(args: VisionArgs, paths: RepoPaths, store: Store
       root: paths.root,
       screenshotsDir: paths.screenshotsDir,
       designSystemsDir: paths.designSystemsDir,
-      activeDsId: store.get().activeDesignSystem ?? undefined,
+      activeDsId: paths.activeDesignSystem,
     },
     {
       component: name,

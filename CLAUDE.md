@@ -36,11 +36,11 @@ The thin client the agent, `/mds:*` commands, and gates invoke. Dev-invoke it wi
 
 **Workspace:** `init <framework>` | `attach` | `update` | `serve [--port]` | `up` | `health`
 
-**Design System Registry:** `ds create` | `ds import awesome|git|vendor` | `ds search <query>` | `ds info [id]` | `ds list` | `ds bases`
+**Design System Registry:** `ds create` | `ds import awesome|git|vendor` | `ds info` | `ds list` | `ds bases`
 
-**Design System Management:** `ds use <id>` | `ds customize <id> --primary --font` | `ds update` | `ds validate [--strict]` | `ds grade [--timeout]` | `ds diff <a> <b>` | `ds conflicts` | `ds history`
+**Design System Management:** `ds customize --primary --font` | `ds update` | `ds validate [--strict]` | `ds grade [--timeout]` | `ds conflicts` | `ds history`
 
-**DS Compilation:** `ds compile <id>` | `ds export <id>` | `ds version <id> <bump>` | `ds changelog` | `ds validate --strict`
+**DS Compilation:** `ds compile` | `ds export` | `ds version <bump>` | `ds changelog` | `ds validate --strict`
 
 **DS Lint Rules:** `ds lint-rules list` | `ds lint-rules set <rule> <severity>` | `ds lint-rules preset <name>`
 
@@ -113,17 +113,20 @@ Phase 0 ships (a).
 ## Core invariants
 
 - **Token binding, never raw values.** Components reference semantic roles (`bg-surface`, `text-accent`,
-  `rounded`, `@ds` primitives), so swapping the design system re-skins everything. Generated/captured
+  `rounded`, `@ds` primitives). Every value traces back to the design system's `tokens.css` — there is one
+  design system per workspace, declared in `emdesign.config.json`. Generated/captured
   code that hardcodes hex colors, off-token values, or invented spacing will fail the consistency lint.
 - **The critique gate is dual.** A component passes only when `composite ≥ threshold && mustFix === 0`
   (plus a per-component ratchet) — a high average never overrides a blocking (P0/mustFix) issue.
-- **Design system is the source of quality.** Every project starts from a `design-systems/<id>/`
-  (`DESIGN.md` 9-section contract + `tokens.css` + `code/` primitives + `graph.json`). Build against
-  the contract; don't invent visual decisions outside it.
+- **The design system is the source of quality.** Each workspace has one design system at
+  `design-systems/<id>/` (`DESIGN.md` 9-section contract + `tokens.css` + `code/` primitives +
+  `graph.json`), declared in `emdesign.config.json`. Build against the contract; don't invent visual
+  decisions outside it.
 
 ## Agent workspace (`.claude` / `apps/workspace/templates/claude`)
-The `/mds:*` commands drive the loop: `/mds:system:create|update|use`, `/mds:craft:component|view|story|update`,
-and shared `/mds:review`, `/mds:vision`, `/mds:ship`. Critic subagents: `vision-critic` (reads the
+The `/mds:*` commands drive the loop: `/mds:system:create|update`, `/mds:craft:component|view|story|update`,
+and shared `/mds:review`, `/mds:vision`, `/mds:ship`. The workspace has one design system (set in
+`emdesign.config.json`); there is no runtime switching. Critic subagents: `vision-critic` (reads the
 screenshot), `design-reviewer` (LLM critique), `consistency-auditor`. The four feedback sources the gate
 weighs are **rule** (lint + token contract), **visual** (pixel regression), **vision** (subagent reads
 the screenshot), and **LLM** (`design-reviewer`), plus **human** change requests. See

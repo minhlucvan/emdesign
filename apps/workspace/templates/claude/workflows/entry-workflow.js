@@ -27,6 +27,13 @@ function classifyIntent(type, target, instruction, payload) {
   const i = (instruction || '').toLowerCase()
   const combined = `${t} ${i}`
 
+  // Auto-fix / magic wand (multi-probe diagnostic + fix with user confirmation)
+  if (t.includes('auto-fix') || t.includes('wand') || t.includes('magic-wand') || combined.includes('auto fix') || combined.includes('fix this') || combined.includes('fix component')) {
+    const mode = payload.mode || (t.includes('guided') || combined.includes('guided') ? 'guided' : 'auto')
+    const vision = payload.vision || t.includes('vision') || combined.includes('--vision')
+    return { layer: 'element', workflow: 'auto-fix-workflow', args: { name: target, mode, vision } }
+  }
+
   // Element-level (fastest: lint-only or simple fix)
   if (t.includes('token') || t.includes('lint') || combined.includes('token violation') || combined.includes('lint error')) {
     return { layer: 'element', workflow: 'token-fix', args: { name: target, finding: payload.finding || t } }
@@ -47,20 +54,6 @@ function classifyIntent(type, target, instruction, payload) {
   }
   if (t.includes('audit') || t.includes('review') || t.includes('inspect') || combined.includes('full audit')) {
     return { layer: 'component', workflow: 'component-audit', args: { name: target } }
-  }
-
-  // DS-level (design system operations)
-  if (t.includes('ds-create') || t.includes('import') || t.includes('ds-import') || combined.includes('create design system') || combined.includes('import design system')) {
-    return { layer: 'ds', workflow: 'ds-layer-workflow', args: { id: target || payload.id, intent: instruction, changes: payload.changes || {} } }
-  }
-  if (t.includes('ds-update') || t.includes('customize') || t.includes('ds-customize') || combined.includes('update design system') || combined.includes('customize')) {
-    return { layer: 'ds', workflow: 'ds-layer-workflow', args: { id: target || payload.id, intent: instruction, changes: payload.changes || {} } }
-  }
-  if (t.includes('compile') || t.includes('export') || t.includes('version')) {
-    return { layer: 'ds', workflow: 'ds-layer-workflow', args: { id: target || payload.id, intent: 'compile', changes: {} } }
-  }
-  if (t.includes('rule') || t.includes('lint-rule') || t.includes('preset') || combined.includes('lint rule') || combined.includes('preset')) {
-    return { layer: 'ds', workflow: 'ds-layer-workflow', args: { id: target || payload.id, intent: 'lint-rule', changes: { preset: payload.preset, rule: payload.rule, severity: payload.severity } } }
   }
 
   // Screen-level (complex: multi-component composition)
@@ -89,29 +82,7 @@ log(`[entry] Classified as: ${classification.layer}/${classification.workflow}`)
 phase('Enrich Context')
 log(`[entry] Enriching context for ${classification.layer} layer`)
 
-// Enrich with workspace overview
-let workspaceOverview = null
-try {
-  const result = await $`emdesign explore overview --json 2>/dev/null || echo '{"ok":false}'`
-  const parsed = JSON.parse(result)
-  if (parsed.ok) {
-    workspaceOverview = parsed.data
-    log(`[entry] Workspace: ${parsed.data?.activeDesignSystem ?? 'unknown'}`)
-  }
-} catch { /* optional */ }
-
-// Enrich with DS info
-let dsInfo = null
-try {
-  const result = await $`emdesign ds info --json 2>/dev/null || echo '{"ok":false}'`
-  const parsed = JSON.parse(result)
-  if (parsed.ok) {
-    dsInfo = parsed.data
-    log(`[entry] DS: ${dsInfo?.name} (${dsInfo?.tokens} tokens)`)
-  }
-} catch { /* optional */ }
-
-// Enrich with Storybook health
+// Enrich with Storybook health (lightweight, always useful)
 let storybookHealth = null
 try {
   const result = await $`emdesign storybook health --json 2>/dev/null || echo '{"data":{"status":"unknown"}}'`
@@ -119,7 +90,7 @@ try {
   log(`[entry] Storybook: ${storybookHealth?.status ?? 'unknown'}`)
 } catch { /* optional */ }
 
-// Enrich with graph context for component-level work
+// Enrich with graph context for component/element work (targeted, not bulk)
 let graphContext = null
 if (classification.layer === 'component' || classification.layer === 'element') {
   try {
@@ -132,7 +103,12 @@ if (classification.layer === 'component' || classification.layer === 'element') 
 
 const enrichedArgs = {
   ...classification.args,
-  _context: { workspaceOverview, dsInfo, storybookHealth, graphContext, originalIntent: { type, target, instruction, payload } },
+  _context: {
+    storybookHealth,
+    graphContext,
+    // DS info is resolved downstream by each workflow via CLI commands targeting the one DS
+    originalIntent: { type, target, instruction, payload },
+  },
 }
 
 phase('Route & Execute')
@@ -170,7 +146,6 @@ return {
   result,
   error,
   context: {
-    dsName: dsInfo?.name,
     storybookStatus: storybookHealth?.status,
     graphAvailable: !!graphContext,
   },

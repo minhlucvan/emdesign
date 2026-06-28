@@ -103,10 +103,6 @@ export class ProcessManager {
     const { startHttpBridge } = await import('@emdesign/backend');
     const port = Number(process.env.EMDESIGN_PORT ?? 4321);
 
-    if (!this.store.get().activeDesignSystem) {
-      this.store.update({ activeDesignSystem: 'atelier' });
-    }
-
     const server = await startHttpBridge(this.store, this.paths, port);
 
     this.setStatus('http-bridge', 'running', { port, pid: process.pid });
