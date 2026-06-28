@@ -51,7 +51,7 @@ describe('Store — queue management', () => {
     const { Store } = await import('../state.js');
     const store = new Store(repoPaths);
     const cr = store.enqueueIntent({ instruction: 'Create a Button component' });
-    expect(cr.status).toBe('queued');
+    expect(cr.status).toBe('pending');
     expect(cr.instruction).toBe('Create a Button component');
     expect(cr.id).toBeDefined();
     expect(cr.createdAt).toBeDefined();
@@ -80,7 +80,7 @@ describe('Store — queue management', () => {
     const store = new Store(repoPaths);
     store.enqueueChangeRequest('Test request');
     const next = store.nextQueued();
-    expect(next!.status).toBe('queued');
+    expect(next!.status).toBe('pending');
     // After polling, the agent marks it in-flight
     store.setChangeRequestStatus(next!.id, 'in_progress');
     const state = store.get();
@@ -135,7 +135,7 @@ describe('Store — cross-process sync', () => {
     // Simulate another process modifying the file (the MCP agent)
     const filePath = repoPaths.stateFile;
     const raw = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-    raw.changeRequests = [{ id: 'external_1', instruction: 'External request', status: 'queued', createdAt: new Date().toISOString() }];
+    raw.changeRequests = [{ id: 'external_1', instruction: 'External request', status: 'pending', createdAt: new Date().toISOString() }];
     // Ensure mtime will be different
     await new Promise((r) => setTimeout(r, 10));
     fs.writeFileSync(filePath, JSON.stringify(raw, null, 2));
@@ -157,7 +157,7 @@ describe('poll_change_request behavior', () => {
     store.enqueueChangeRequest('Change the button color');
     const next = store.nextQueued();
     expect(next).toBeDefined();
-    expect(next!.status).toBe('queued');
+    expect(next!.status).toBe('pending');
   });
 
   // R26 edge case: empty queue returns empty (no error)

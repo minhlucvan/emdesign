@@ -1,4 +1,12 @@
-# Atelier Minimal (Test Fixture)
+---
+name: Atelier Minimal
+category: Test
+surface: web
+description: A stripped-down design system fixture for testing.
+version: 0.1.0
+---
+
+# Atelier Minimal
 
 > A stripped-down design system fixture for testing. Matches the real atelier
 > structure but with minimal tokens for fast test runs.

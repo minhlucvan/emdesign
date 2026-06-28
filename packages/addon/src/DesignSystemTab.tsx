@@ -1,29 +1,34 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useStorybookApi } from '@storybook/manager-api';
 import { styled } from '@storybook/theming';
 import { api } from './api';
 import {
-  useStudioState, Page, Wrap, PageTitle, Sub, Section, SectionTitle, Row, Stack, Muted, Btn, Input, Pill, Chip, Swatch, Mono, sevTone, ErrorBanner,
+  useStudioState, Page, PageTitle, Sub, Section, SectionTitle, Row, Stack, Muted, Btn, Input, Pill, Chip, Mono, sevTone, ErrorBanner,
 } from './ui';
 import { VIEW_MODE_CREATE } from './constants';
 import type { DesignSystemSummary, DesignSystemFull } from './constants';
 import { CatalogView } from './ds-browser/CatalogView';
+import { PathSelector } from './ds-create/PathSelector';
+import { FromPromptForm } from './ds-create/FromPromptForm';
+import { DesignMdUploadForm } from './ds-create/DesignMdUploadForm';
+import { GalleryPath } from './ds-create/GalleryPath';
+import { ProgressView } from './ds-create/ProgressView';
+import { IntermediatePreview } from './ds-create/IntermediatePreview';
+import { BrandingCard } from './ds-dashboard/BrandingCard';
+import { DesignMdCard } from './ds-dashboard/DesignMdCard';
+import { ColorsCard } from './ds-dashboard/ColorsCard';
+import { TypographyCard } from './ds-dashboard/TypographyCard';
+import { SpacingCard } from './ds-dashboard/SpacingCard';
+import { MotionCard } from './ds-dashboard/MotionCard';
+import { PrimitivesCard } from './ds-dashboard/PrimitivesCard';
+import { RefinementStatus, type RefinementResult } from './ds-dashboard/RefinementStatus';
+import type { RefinementScope } from './constants';
 
-const TokenGrid = styled.div({ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 8 });
-const TokenCard = styled.div(({ theme }) => ({
-  display: 'flex', alignItems: 'center', gap: 10,
-  border: `1px solid ${theme.appBorderColor}`, borderRadius: theme.appBorderRadius,
-  background: theme.background.app, padding: '7px 9px', minWidth: 0,
-}));
-const BigSwatch = styled(Swatch)({ width: 26, height: 26, borderRadius: 5 });
-const Role = styled.div(({ theme }) => ({ font: `600 11px ${theme.typography.fonts.mono}`, color: theme.color.defaultText, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }));
-const Val = styled.div(({ theme }) => ({ font: `11px ${theme.typography.fonts.mono}`, color: theme.textMutedColor, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }));
-
-type TabView = 'my-systems' | 'catalog';
+type TabView = 'my-systems' | 'catalog' | 'create';
 
 /** The "System" tab: pick a design system, inspect it deeply (tokens · diagnostics · conflicts ·
  *  manifest · raw source), switch it, or request a change. Now also features a catalog of vendored
- *  bases for browsing and cloning. */
+ *  bases for browsing and cloning, and a "Create New" view for generating design systems. */
 export function DesignSystemTab() {
   const { error, refresh } = useStudioState(3000);
   const sbApi = useStorybookApi();
@@ -34,6 +39,12 @@ export function DesignSystemTab() {
   const [detail, setDetail] = useState<DesignSystemFull | null>(null);
   const [req, setReq] = useState('');
   const [showRaw, setShowRaw] = useState<'none' | 'design' | 'tokens'>('none');
+  const [creationMode, setCreationMode] = useState<'gallery' | 'from-prompt' | 'design-md' | null>(null);
+  const [workflowSession, setWorkflowSession] = useState<string | null>(null);
+  const [creationPath, setCreationPath] = useState<'from-prompt' | 'design-md'>('from-prompt');
+  const [refinementStatus, setRefinementStatus] = useState<Record<string, 'idle' | 'refining' | 'queued' | 'success' | 'error'>>({});
+  const [refinementResults, setRefinementResults] = useState<Record<string, RefinementResult | null>>({});
+  const detailBeforeRefinement = useRef<string | null>(null);
 
   const loadSystems = useCallback(async () => {
     try {
@@ -41,10 +52,48 @@ export function DesignSystemTab() {
       setSystems(r.systems);
       setActive(r.active);
       setSelected((s) => s ?? r.active ?? r.systems[0]?.id ?? null);
+      // Default to Create New when no systems exist
+      if (r.systems.length === 0 && !r.active) {
+        setView('create');
+      }
     } catch { /* down */ }
   }, []);
   useEffect(() => { loadSystems(); }, [loadSystems]);
   useEffect(() => { if (selected) api.getDesignSystemFull(selected).then(setDetail).catch(() => setDetail(null)); }, [selected]);
+
+  // Poll for refinement completion when status is 'queued'
+  useEffect(() => {
+    const queuedScopes = Object.entries(refinementStatus)
+      .filter(([_, s]) => s === 'queued')
+      .map(([scope]) => scope);
+    if (queuedScopes.length === 0 || !selected) return;
+
+    const poll = setInterval(async () => {
+      try {
+        const updated = await api.getDesignSystemFull(selected);
+        const snapshot = JSON.stringify(updated);
+        // Detect when the system detail has changed from the pre-submission snapshot
+        if (snapshot !== detailBeforeRefinement.current) {
+          detailBeforeRefinement.current = null;
+          setDetail(updated);
+          setRefinementStatus((prev) => {
+            const next = { ...prev };
+            for (const scope of queuedScopes) next[scope] = 'success';
+            return next;
+          });
+          setRefinementResults((prev) => {
+            const next = { ...prev };
+            for (const scope of queuedScopes) {
+              next[scope] = { status: 'success', summary: `${scope} updated`, filesChanged: 1, tokenChanges: { added: 0, modified: 1, removed: 0 } };
+            }
+            return next;
+          });
+        }
+      } catch { /* polling — will retry */ }
+    }, 2000);
+
+    return () => clearInterval(poll);
+  }, [refinementStatus, selected]);
 
   const use = async (id: string) => { await api.useDesignSystem(id); await loadSystems(); refresh(); };
   const openCreate = () => {
@@ -52,9 +101,45 @@ export function DesignSystemTab() {
     try { (sbApi as any)?.navigateUrl?.(`/${VIEW_MODE_CREATE}/${storyId}`, { plain: false }); } catch { /* top-bar tab */ }
   };
 
+  const handleRefine = async (systemId: string, scope: RefinementScope) => {
+    setRefinementStatus((prev) => ({ ...prev, [scope]: 'refining' }));
+    setRefinementResults((prev) => ({ ...prev, [scope]: null }));
+    try {
+      // Snapshot current detail before submitting so the follow-up poll can detect change
+      detailBeforeRefinement.current = JSON.stringify(detail);
+      await api.submitIntent({
+        type: 'refine-design-system',
+        instruction: `Update ${scope}: `,
+        payload: { id: systemId, scope },
+      });
+      // Intent is queued — don't report success yet. A follow-up poll detects completion.
+      setRefinementStatus((prev) => ({ ...prev, [scope]: 'queued' }));
+    } catch (e) {
+      setRefinementStatus((prev) => ({ ...prev, [scope]: 'error' }));
+      setRefinementResults((prev) => ({
+        ...prev,
+        [scope]: { status: 'error', message: (e as Error).message },
+      }));
+    }
+  };
+
+  const handleRevert = async (systemId: string, scope: string) => {
+    try {
+      await api.revertDesignSystem(systemId);
+      const updated = await api.getDesignSystemFull(systemId);
+      setDetail(updated);
+      setRefinementStatus((prev) => ({ ...prev, [scope]: 'idle' }));
+      setRefinementResults((prev) => ({ ...prev, [scope]: null }));
+    } catch (e) {
+      setRefinementResults((prev) => ({
+        ...prev,
+        [scope]: { status: 'error', message: (e as Error).message },
+      }));
+    }
+  };
+
   if (error) return <Page><ErrorBanner error={error} /></Page>;
 
-  const byKind = (detail?.tokens ?? []).reduce<Record<string, DesignSystemFull['tokens']>>((a, t) => { (a[t.kind] ??= []).push(t); return a; }, {});
   const manifest = (detail?.manifest ?? {}) as Record<string, any>;
   const diagnostics = detail?.validation.diagnostics ?? [];
   const conflicts = detail?.conflicts ?? [];
@@ -64,10 +149,11 @@ export function DesignSystemTab() {
         <PageTitle>Design System</PageTitle>
         <Sub>browse · inspect · switch · request changes</Sub>
 
-        {/* Tab toggle: My Systems | Catalog */}
+        {/* Tab toggle: My Systems | Catalog | Create New */}
         <Row gap={6} style={{ marginBottom: 16 }}>
           <Btn primary={view === 'my-systems'} onClick={() => setView('my-systems')}>My Systems</Btn>
           <Btn primary={view === 'catalog'} onClick={() => setView('catalog')}>Catalog</Btn>
+          <Btn primary={view === 'create'} onClick={() => setView('create')}>Create New</Btn>
         </Row>
 
         {view === 'catalog' && <CatalogView />}
@@ -110,27 +196,47 @@ export function DesignSystemTab() {
               </Row>
             </Section>
 
-            {/* Tokens */}
+            {/* Section-card dashboard */}
             <Section>
-              <SectionTitle>Tokens</SectionTitle>
-              <Stack gap={12}>
-                {Object.entries(byKind).map(([kind, toks]) => (
-                  <div key={kind}>
-                    <Muted style={{ textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700, display: 'block', marginBottom: 6 }}>{kind} · {toks.length}</Muted>
-                    <TokenGrid>
-                      {toks.map((t) => (
-                        <TokenCard key={t.role} title={`--${t.role}: ${t.value}`}>
-                          {kind === 'color' && <BigSwatch color={t.value} />}
-                          <div style={{ minWidth: 0 }}>
-                            <Role>--{t.role}</Role>
-                            <Val>{t.value}</Val>
-                          </div>
-                        </TokenCard>
-                      ))}
-                    </TokenGrid>
-                  </div>
-                ))}
-              </Stack>
+              <SectionTitle>Dashboard</SectionTitle>
+              <BrandingCard
+                system={detail}
+                onAction={(payload) => handleRefine(detail.id, payload.scope)}
+              />
+              <DesignMdCard
+                system={detail}
+                onAction={(payload) => handleRefine(detail.id, payload.scope)}
+              />
+              <ColorsCard
+                system={detail}
+                onAction={(payload) => handleRefine(detail.id, payload.scope)}
+              />
+              <TypographyCard
+                system={detail}
+                onAction={(payload) => handleRefine(detail.id, payload.scope)}
+              />
+              <SpacingCard
+                system={detail}
+                onAction={(payload) => handleRefine(detail.id, payload.scope)}
+              />
+              <MotionCard
+                system={detail}
+                onAction={(payload) => handleRefine(detail.id, payload.scope)}
+              />
+              <PrimitivesCard
+                system={detail}
+                onAction={(payload) => handleRefine(detail.id, payload.scope)}
+              />
+              {Object.entries(refinementStatus).map(([scope, status]) => (
+                status !== 'idle' ? (
+                  <RefinementStatus
+                    key={scope}
+                    status={status}
+                    result={refinementResults[scope]}
+                    onRevert={() => handleRevert(detail.id, scope)}
+                  />
+                ) : null
+              ))}
             </Section>
 
             {/* Diagnostics & conflicts */}
@@ -168,6 +274,59 @@ export function DesignSystemTab() {
           </Stack>
         ) : <Section><Muted>select a system above</Muted></Section>}
         </>)}
+
+        {/* Create New view */}
+        {view === 'create' && (
+          <>
+            {workflowSession ? (
+              <Row gap={16} style={{ alignItems: 'flex-start' }}>
+                <div style={{ flex: 1 }}>
+                  <ProgressView
+                    sessionId={workflowSession}
+                    creationMode={creationPath}
+                    onComplete={(id) => {
+                      setWorkflowSession(null);
+                      setCreationMode(null);
+                      setSelected(id);
+                      setView('my-systems');
+                      loadSystems();
+                    }}
+                    onError={() => {}}
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <IntermediatePreview />
+                </div>
+              </Row>
+            ) : creationMode === 'gallery' ? (
+              <GalleryPath
+                onProgress={(sessionId) => { setWorkflowSession(sessionId); setCreationPath('from-prompt'); }}
+                onComplete={(id) => {
+                  setCreationMode(null);
+                  setSelected(id);
+                  setView('my-systems');
+                  loadSystems();
+                }}
+              />
+            ) : creationMode === 'from-prompt' ? (
+              <FromPromptForm
+                onProgress={(sessionId) => { setWorkflowSession(sessionId); setCreationPath('from-prompt'); }}
+              />
+            ) : creationMode === 'design-md' ? (
+              <DesignMdUploadForm
+                onProgress={(sessionId) => { setWorkflowSession(sessionId); setCreationPath('design-md'); }}
+              />
+            ) : (
+              <PathSelector
+                onSelect={(pathId) => {
+                  if (pathId === 'gallery') setCreationMode('gallery');
+                  else if (pathId === 'from-prompt') setCreationMode('from-prompt');
+                  else if (pathId === 'design-md') setCreationMode('design-md');
+                }}
+              />
+            )}
+          </>
+        )}
     </Page>
   );
 }

@@ -1,0 +1,23 @@
+# Coverage — design-system-creation-experience
+
+## TypeScript (packages/backend)
+
+coverage not captured — `@vitest/coverage-v8` not installed in project dependencies. Attempted with `c8` but it cannot instrument vitest's on-the-fly TypeScript transform pipeline (all source files reported at 0%).
+
+## TypeScript (packages/addon)
+
+coverage not captured — `@vitest/coverage-v8` not installed in project dependencies.
+
+## TypeScript (tests/ integration)
+
+coverage not captured — `@vitest/coverage-v8` not installed in project dependencies.
+
+---
+
+## Python (uv)
+
+Not applicable — no Python code in this change.
+
+## Go
+
+Not applicable — no Go code in this change.

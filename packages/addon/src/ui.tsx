@@ -1,7 +1,35 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { styled } from '@storybook/theming';
+import { styled, keyframes } from '@storybook/theming';
 import { api } from './api';
 import type { StudioState } from './constants';
+
+// ── Skeleton loading components ────────────────────────────────────────────
+
+const shimmer = keyframes`
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+`;
+
+export const LoadingSkeleton = styled.div<{ width?: string | number; height?: string | number }>(({ theme, width = '100%', height = 16 }) => ({
+  width,
+  height,
+  borderRadius: 4,
+  background: `linear-gradient(90deg, ${theme.background.app} 25%, ${theme.appBorderColor} 50%, ${theme.background.app} 75%)`,
+  backgroundSize: '200% 100%',
+  animation: `${shimmer} 1.5s ease-in-out infinite`,
+}));
+
+export const LoadingCard = () => (
+  <Section>
+    <LoadingSkeleton width="60%" height={14} />
+    <div style={{ height: 8 }} />
+    <LoadingSkeleton height={12} />
+    <div style={{ height: 4 }} />
+    <LoadingSkeleton width="85%" height={12} />
+    <div style={{ height: 4 }} />
+    <LoadingSkeleton width="70%" height={12} />
+  </Section>
+);
 
 /** Shared 1.5s poll of the backend state, used by the panel + tab + tool. */
 export function useStudioState(pollMs = 1500) {
@@ -83,11 +111,24 @@ export const Pill = styled.span<{ tone?: 'ok' | 'warn' | 'bad' | 'muted' }>(({ t
   border: `1px solid ${theme.appBorderColor}`,
 }));
 
-export const ErrorBanner = ({ error }: { error: string }) => (
-  <Section style={{ borderColor: '#c0392b' }}>
-    <Muted>Backend not reachable ({error}). Start it with <code>emdesign serve</code>.</Muted>
-  </Section>
-);
+export const ErrorBanner = ({ error, onRetry, variant }: { error: string; onRetry?: () => void; variant?: 'error' | 'timeout' }) => {
+  const msg = variant === 'timeout'
+    ? `Request timed out: ${error}`
+    : `Backend not reachable (${error}). Start it with \`emdesign serve\`.`;
+  return (
+    <Section style={{ borderColor: '#c0392b' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <Muted style={{ flex: 1 }}>{msg}</Muted>
+        {onRetry && <Btn onClick={onRetry} style={{ flexShrink: 0 }}>Retry</Btn>}
+      </div>
+    </Section>
+  );
+};
+
+export const FormError = ({ error }: { error: string | null }) =>
+  error ? (
+    <Muted style={{ color: '#c0392b', marginTop: 4, display: 'block' }}>{error}</Muted>
+  ) : null;
 
 // ---- full-page tab primitives ----
 

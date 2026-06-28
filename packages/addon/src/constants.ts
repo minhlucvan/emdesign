@@ -229,3 +229,31 @@ export interface SessionListResponse {
   claudeSessions: SessionSummary[];
   emdesignSessions: SessionSummary[];
 }
+
+// ── Workflow / creation types ──────────────────────────────────────────
+
+export type WorkflowStageStatus = 'pending' | 'running' | 'done' | 'error';
+
+export interface WorkflowStage {
+  id: number;
+  name: string;
+  status: WorkflowStageStatus;
+  startedAt?: number;
+  detail?: string;
+}
+
+export interface WorkflowSession {
+  id: string;
+  status: 'running' | 'completed' | 'failed' | 'cancelled';
+  stages: WorkflowStage[];
+  createdAt: string;
+}
+
+export type RefinementScope = 'branding' | 'design-md' | 'colors' | 'typography' | 'spacing' | 'motion' | 'primitives' | 'all';
+
+export interface CreateOption {
+  mode: string;
+  label: string;
+  description: string;
+  icon: string;
+}

@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import { ensureDir, type RepoPaths } from './paths.js';
 
-export type ChangeRequestStatus = 'queued' | 'in_progress' | 'done' | 'error';
+export type ChangeRequestStatus = 'queued' | 'pending' | 'in_progress' | 'done' | 'error';
 
 /** The kinds of work the browser can request; the agent routes each via /mds:inbox. */
 export type IntentType =
@@ -12,7 +12,8 @@ export type IntentType =
   | 'create-story'
   | 'create-view'
   | 'create-design-system'
-  | 'update-design-system';
+  | 'update-design-system'
+  | 'refine-design-system';
 
 /** A pointed-at element captured by the preview overlay (for `comment` intents). */
 export interface CommentTarget {
@@ -144,7 +145,7 @@ export class Store {
       id: `cr_${Date.now()}_${this.seq++}`,
       type: intent.type ?? 'change-request',
       instruction: intent.instruction,
-      status: 'queued',
+      status: 'pending',
       createdAt: new Date().toISOString(),
       ...(intent.target ? { target: intent.target } : {}),
       ...(intent.payload ? { payload: intent.payload } : {}),
@@ -170,6 +171,6 @@ export class Store {
   /** The next request the agent should act on, if any. */
   nextQueued(): ChangeRequest | undefined {
     this.get(); // sync cross-process writes (HTTP bridge may have enqueued intents)
-    return this.state.changeRequests.find((cr) => cr.status === 'queued');
+    return this.state.changeRequests.find((cr) => cr.status === 'pending');
   }
 }

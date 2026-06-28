@@ -60,6 +60,7 @@ interface SurfaceData {
     scores: Record<string, number>;
   } | null;
   cachedAt: number;
+  dsWorkflowStatus: string;
 }
 
 let surfaceCache: { data: SurfaceData | null; expiresAt: number } = { data: null, expiresAt: 0 };
@@ -128,6 +129,7 @@ function computeSurface(store: Store, paths: RepoPaths): SurfaceData {
       scores: state.lastCritique.scores,
     } : null,
     cachedAt: Date.now(),
+    dsWorkflowStatus: 'idle',
   };
 }
 
@@ -241,9 +243,12 @@ export async function createHttpBridge(store: Store, paths: RepoPaths, orch?: an
     try {
       const { baseRef, id, name, customizations } = req.body;
       if (!baseRef || !id) return res.status(400).json({ error: 'baseRef and id are required.' });
+      if (customizations?.seedColor && !/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(customizations.seedColor)) {
+        return res.status(400).json({ error: `Invalid seedColor: '${customizations.seedColor}' (must be hex)` });
+      }
       const result = customizeDesignSystem(paths, { baseRef, id, name: name ?? id, customizations: customizations ?? {} });
       const apply = applyDesignSystem(paths, id);
-      res.json({ ...result, apply });
+      res.json({ id: result.id, note: result.note, apply, active: true });
     } catch (e) { res.status(500).json({ error: (e as Error).message }); }
   });
 
@@ -489,9 +494,9 @@ export async function createHttpBridge(store: Store, paths: RepoPaths, orch?: an
     const type = String(req.body?.type ?? 'change-request') as IntentType;
     const instruction = String(req.body?.instruction ?? '').trim();
     if (!instruction) return res.status(400).json({ error: 'instruction required' });
-    store.enqueueIntent({ type, instruction, target: req.body?.target as CommentTarget | undefined, payload: req.body?.payload });
+    const cr = store.enqueueIntent({ type, instruction, target: req.body?.target as CommentTarget | undefined, payload: req.body?.payload });
     surfaceCache.expiresAt = 0; // invalidate surface cache
-    res.json(store.get());
+    res.json({ ok: true, changeRequestId: cr.id, ...store.get() });
   });
 
   // Design-system management (read + switch) — for the panel's System tab.
@@ -831,6 +836,14 @@ export async function createHttpBridge(store: Store, paths: RepoPaths, orch?: an
     } catch {
       // @emdesign/session not available — skip session routes
     }
+  }
+
+  // Mount the workflow API router (design-system creation workflow endpoints)
+  try {
+    const { workflowApiRouter: wfRouter } = await import('./workflow-api.js');
+    app.use('/api', wfRouter);
+  } catch {
+    // workflow-api not available — skip workflow routes
   }
 
   return app;

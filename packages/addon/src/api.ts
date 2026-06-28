@@ -101,6 +101,39 @@ export const api = {
     tiers: Record<string, Array<{ id: string; title: string; severity: 'P0' | 'P1' | 'P2'; pass: boolean; message?: string; fix?: string; target?: string }>>;
   }>,
 
+  // ── Design system token / refinement operations ──────────────────────
+  updateTokens: (id: string, tokens: Array<{ role: string; kind: string; value: string }>) =>
+    post(`/api/design-systems/${id}/tokens`, { tokens }) as Promise<{ ok: boolean }>,
+
+  revertDesignSystem: (id: string) =>
+    post(`/api/design-systems/${id}/revert`, {}) as Promise<{ ok: boolean; snapshotId?: string }>,
+
   // ── Platform status ─────────────────────────────────────────────────
   getPlatformStatus: () => json<PlatformState>('/api/platform/status'),
 };
+
+// ── Standalone workflow API functions (used by ds-create components) ──
+
+export function createFromPrompt(prompt: string, name?: string, id?: string) {
+  return post('/api/design-systems/from-prompt', { prompt, name, id }) as Promise<{ sessionId: string }>;
+}
+
+export function createFromDesignMd(content: string, name?: string, id?: string) {
+  return post('/api/design-systems/from-design-md', { content, name, id }) as Promise<{ sessionId: string }>;
+}
+
+export function getWorkflowStatus(sessionId: string) {
+  return json<{ id: string; status: string; stages: unknown[] }>(`/api/design-systems/${sessionId}/workflow-status`);
+}
+
+export function getWorkflowStreamUrl(sessionId: string) {
+  return `${BACKEND_URL}/api/design-systems/${sessionId}/workflow-stream`;
+}
+
+export function cancelWorkflow(sessionId: string) {
+  return post(`/api/workflows/${sessionId}/cancel`, {}) as Promise<{ ok: boolean }>;
+}
+
+export function createOptions() {
+  return json<{ modes: Array<{ id: string; label: string; description: string; icon: string }> }>('/api/design-systems/create-options');
+}

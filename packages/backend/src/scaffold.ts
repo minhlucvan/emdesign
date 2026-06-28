@@ -611,17 +611,22 @@ export function basePreviewHtml(
 /** Customize a base: clone + modify tokens. */
 export function customizeDesignSystem(
   paths: RepoPaths,
-  opts: { baseRef: string; id: string; name: string; customizations: { accentColor?: string; headlineFont?: string; bodyFont?: string; surfaceColor?: string; roundness?: string; spacing?: number } },
+  opts: { baseRef: string; id: string; name: string; customizations: { accentColor?: string; headlineFont?: string; bodyFont?: string; surfaceColor?: string; roundness?: string; spacing?: number; labelFont?: string; colorMode?: string; colorVariant?: string; seedColor?: string } },
 ) {
   const createResult = createDesignSystem(paths, { id: opts.id, name: opts.name, mode: 'import', from: opts.baseRef });
   const tokensFile = path.join(dsDir(paths, opts.id), 'tokens.css');
   if (fs.existsSync(tokensFile)) {
     let css = fs.readFileSync(tokensFile, 'utf8');
     const c = opts.customizations;
-    if (c.accentColor) { css = css.replace(/(--color-accent-hover:\s*).+?;/g, '$1#1d4ed8;'); css = css.replace(/(--color-accent:\s*).+?;/g, `$1${c.accentColor};`); }
+    if (c.accentColor || c.seedColor) {
+      const color = c.accentColor || c.seedColor || '#2563eb';
+      css = css.replace(/(--color-accent-hover:\s*).+?;/g, '$1#1d4ed8;');
+      css = css.replace(/(--color-accent:\s*).+?;/g, `$1${color};`);
+    }
     if (c.surfaceColor) { css = css.replace(/(--color-surface:\s*).+?;/g, `$1${c.surfaceColor};`); css = css.replace(/(--color-surface-raised:\s*).+?;/g, `$1${c.surfaceColor};`); }
     if (c.headlineFont) css = css.replace(/(--font-display:\s*).+?;/g, `$1"${c.headlineFont}", system-ui, sans-serif;`);
     if (c.bodyFont) css = css.replace(/(--font-sans:\s*).+?;/g, `$1"${c.bodyFont}", system-ui, sans-serif;`);
+    if (c.labelFont) css = css.replace(/(--font-sans:\s*).+?;/g, `$1"${c.labelFont}", system-ui, sans-serif;`);
     if (c.roundness) css = css.replace(/(--radius:\s*).+?;/g, `$1${c.roundness};`);
     if (c.spacing) css = css.replace(/(--space-unit:\s*).+?;/g, `$1${c.spacing}px;`);
     fs.writeFileSync(tokensFile, css);
