@@ -687,66 +687,71 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
             </button>
           </div>
 
-          {/* ── Command palette overlay (full screen, portaled to body) ── */}
+          {/* ── Command palette overlay (full screen dialog, portaled to body) ── */}
           {showCommandPalette && createPortal(
             <div style={{ position: 'fixed', inset: 0, zIndex: 2147483647, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: '12vh', background: 'rgba(0,0,0,0.5)' }}>
               {/* Backdrop click */}
               <div onClick={() => setShowCommandPalette(false)} style={{ position: 'fixed', inset: 0, zIndex: -1 }} />
-              <div style={{ width: 'min(560px, 90vw)', display: 'flex', flexDirection: 'column', background: css('--background'), borderRadius: 12, boxShadow: '0 16px 64px rgba(0,0,0,0.35)', overflow: 'hidden', maxHeight: '60vh' }}>
+              <div role="dialog" style={{ width: 440, display: 'flex', flexDirection: 'column', background: css('--background'), borderRadius: 8, boxShadow: '0 16px 64px rgba(0,0,0,0.35)', overflow: 'hidden', maxHeight: '60vh', pointerEvents: 'auto' }}>
 
-              {/* Input area */}
-              <div style={{ padding: '12px', borderBottom: `1px solid ${css('--border')}` }}>
-                <input value={paletteInput} onChange={e => setPaletteInput(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Escape') setShowCommandPalette(false);
-                    if (e.key === 'Enter' && paletteInput.trim()) {
-                      const text = paletteInput.trim();
-                      if (text) autoSendRef.current = text;
-                      setShowCommandPalette(false);
-                      setPaletteInput('');
-                      handleCreateSession(paletteSelection);
-                    }
-                  }}
-                  placeholder="Describe what to build..." autoFocus
-                  style={{ width: '100%', padding: '10px 12px', borderRadius: 6, fontSize: 14, border: `1px solid ${css('--input')}`, background: css('--muted'), color: css('--foreground'), fontFamily: `"Nunito Sans",-apple-system,".SFNSText-Regular","San Francisco","system-ui","Segoe UI","Helvetica Neue",Helvetica,Arial,sans-serif`, outline: 'none', boxSizing: 'border-box' }} />
-              </div>
+                {/* Header with title + close */}
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '16px 20px 0' }}>
+                  <div style={{ flex: 1 }}>
+                    <h2 style={{ margin: 0, fontSize: 13, fontWeight: 700, color: css('--foreground'), lineHeight: '18px' }}>New conversation</h2>
+                    <p style={{ margin: '2px 0 0', fontSize: 11, color: css('--muted-foreground'), lineHeight: '16px' }}>Choose an intent to get started</p>
+                  </div>
+                  <button onClick={() => setShowCommandPalette(false)} style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:26, height:26, borderRadius:4, border:'none', background:'transparent', color:css('--muted-foreground'), cursor:'pointer', flexShrink:0 }}>
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1.854 1.146a.5.5 0 10-.708.708L6.293 7l-5.147 5.146a.5.5 0 00.708.708L7 7.707l5.146 5.147a.5.5 0 00.708-.708L7.707 7l5.147-5.146a.5.5 0 00-.708-.708L7 6.293 1.854 1.146z" fill="currentColor"/></svg>
+                  </button>
+                </div>
 
-              {/* Suggestions */}
-              <div style={{ flex: 1, overflow: 'auto', padding: '8px' }}>
-                <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1.76px', color: css('--muted-foreground'), marginBottom: 6, padding: '0 4px' }}>Intent</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  {CHAT_MODES.filter(m => !paletteInput.trim() || m.label.toLowerCase().includes(paletteInput.toLowerCase())).map(m => (
-                    <button key={m.id} onClick={() => {
-                      const text = paletteInput.trim();
-                      if (text) autoSendRef.current = text;
-                      setShowCommandPalette(false);
-                      setPaletteInput('');
-                      handleCreateSession(m.id);
+                {/* Search input */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '10px 20px 0', padding: '0 12px', borderRadius: 6, background: css('--muted'), border: `1px solid ${css('--input')}` }}>
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0, color: css('--muted-foreground') }}><path fill-rule="evenodd" clip-rule="evenodd" d="M9.544 10.206a5.5 5.5 0 11.662-.662.5.5 0 01.148.102l3 3a.5.5 0 01-.708.708l-3-3a.5.5 0 01-.102-.148zM10.5 6a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" fill="currentColor"/></svg>
+                  <input value={paletteInput} onChange={e => setPaletteInput(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Escape') setShowCommandPalette(false);
+                      if (e.key === 'Enter' && paletteInput.trim()) {
+                        const text = paletteInput.trim();
+                        if (text) autoSendRef.current = text;
+                        setShowCommandPalette(false);
+                        setPaletteInput('');
+                        handleCreateSession(paletteSelection);
+                      }
                     }}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 4,
-                        fontSize: 12, fontWeight: paletteSelection === m.id ? 600 : 400, cursor: 'pointer', textAlign: 'left',
-                        border: 'none', background: paletteSelection === m.id ? `${css('--primary')}22` : 'transparent',
-                        color: css('--foreground'), fontFamily: 'inherit',
-                        transition: 'all 0.08s',
+                    placeholder="./components/**/*.tsx" autoFocus
+                    style={{ flex: 1, border: 'none', background: 'transparent', color: css('--foreground'), fontSize: 13, fontFamily: `"Nunito Sans",-apple-system,".SFNSText-Regular","San Francisco","system-ui","Segoe UI","Helvetica Neue",Helvetica,Arial,sans-serif`, outline: 'none', padding: '8px 0', lineHeight: '20px' }} />
+                </div>
+
+                {/* Intent options */}
+                <div style={{ flex: 1, overflow: 'auto', padding: '8px 12px 12px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    {CHAT_MODES.filter(m => !paletteInput.trim() || m.label.toLowerCase().includes(paletteInput.toLowerCase())).map(m => (
+                      <button key={m.id} onClick={() => {
+                        const text = paletteInput.trim();
+                        if (text) autoSendRef.current = text;
+                        setShowCommandPalette(false);
+                        setPaletteInput('');
+                        handleCreateSession(m.id);
                       }}
-                      onMouseEnter={e => { if (paletteSelection !== m.id) (e.currentTarget as HTMLElement).style.background = css('--muted'); }}
-                      onMouseLeave={e => { if (paletteSelection !== m.id) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
-                      onFocus={() => setPaletteSelection(m.id)}>
-                      <span style={{ fontSize: 16, lineHeight: 1, width: 20, textAlign: 'center' }}>{m.icon}</span>
-                      <span style={{ flex: 1 }}>{m.label}</span>
-                      <span style={{ fontSize: 10, color: css('--muted-foreground'), opacity: 0.6 }}>{m.description}</span>
-                    </button>
-                  ))}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 8, padding: '7px 8px', borderRadius: 4,
+                          fontSize: 12, cursor: 'pointer', textAlign: 'left', fontWeight: 400,
+                          border: 'none', background: 'transparent',
+                          color: css('--foreground'), fontFamily: 'inherit',
+                        }}
+                        onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = css('--muted')}
+                        onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}>
+                        <span style={{ fontSize: 15, lineHeight: 1, width: 20, textAlign: 'center' }}>{m.icon}</span>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 12, fontWeight: 500 }}>{m.label}</div>
+                          <div style={{ fontSize: 10, color: css('--muted-foreground'), opacity: 0.7, lineHeight: '14px' }}>{m.description}</div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
-
-              {/* Footer with hint */}
-              <div style={{ padding: '6px 12px', borderTop: `1px solid ${css('--border')}`, fontSize: 10, color: css('--muted-foreground'), opacity: 0.5, display: 'flex', gap: 12 }}>
-                <span>↵ Send</span>
-                <span>Esc Cancel</span>
-              </div>
-            </div>
           </div>,
           document.body
           )}
