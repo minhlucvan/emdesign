@@ -686,11 +686,12 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
             </button>
           </div>
 
-          {/* ── Command palette overlay ── */}
+          {/* ── Command palette overlay (full screen) ── */}
           {showCommandPalette && (
-            <div style={{ position: 'absolute', inset: 0, zIndex: 100, display: 'flex', flexDirection: 'column', background: css('--background'), borderRadius: 8, boxShadow: '0 8px 32px rgba(0,0,0,0.3)', overflow: 'hidden' }}>
+            <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: '12vh', background: 'rgba(0,0,0,0.5)' }}>
               {/* Backdrop click */}
-              <div onClick={() => setShowCommandPalette(false)} style={{ position: 'absolute', inset: 0, zIndex: -1 }} />
+              <div onClick={() => setShowCommandPalette(false)} style={{ position: 'fixed', inset: 0, zIndex: -1 }} />
+              <div style={{ width: 'min(560px, 90vw)', display: 'flex', flexDirection: 'column', background: css('--background'), borderRadius: 12, boxShadow: '0 16px 64px rgba(0,0,0,0.35)', overflow: 'hidden', maxHeight: '60vh' }}>
 
               {/* Input area */}
               <div style={{ padding: '12px', borderBottom: `1px solid ${css('--border')}` }}>
