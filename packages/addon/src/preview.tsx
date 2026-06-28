@@ -77,10 +77,12 @@ function ToolOverlay({ storyId, component }: { storyId?: string; component?: str
   const [placing, setPlacing] = useState<{ target: CommentTarget; box: Box; zone: PlacementMode } | null>(null);
   const [text, setText] = useState('');
   const [pins, setPins] = useState<Pin[]>([]);
+  const [placeholders, setPlaceholders] = useState<Array<{ id: number; box: Box; description: string; zone: string; status: 'placing' | 'done' | 'error' }>>([]);
   const [toast, setToast] = useState<string | null>(null);
   const modeRef = useRef<ToolMode>('off');
   const composingRef = useRef(false);
   const editingRef = useRef<{ el: HTMLElement; from: string } | null>(null);
+  const placeholderIdRef = useRef(0);
 
   const setMode = (m: ToolMode) => {
     modeRef.current = m;
@@ -273,6 +275,7 @@ function ToolOverlay({ storyId, component }: { storyId?: string; component?: str
   const sendPlace = () => {
     if (!placing || !text.trim()) return;
     const detectedZone = placing.zone;
+    const description = text.trim();
     const placePayload: PlaceTriggerPayload = {
       tag: placing.target.tag || '',
       text: placing.target.text || '',
@@ -282,11 +285,25 @@ function ToolOverlay({ storyId, component }: { storyId?: string; component?: str
       computedStyles: {},
       storyId,
       placementMode: detectedZone,
-      selectedComponent: text.trim(),
+      selectedComponent: description,
     };
+
+    // Create a visual placeholder immediately
+    const phId = ++placeholderIdRef.current;
+    setPlaceholders((p) => [...p, { id: phId, box: placing.box, description, zone: detectedZone, status: 'placing' }]);
+
+    // Emit the trigger — Tool.tsx will create a session + open chat
     addons.getChannel().emit(EVT_PLACE_TRIGGER, placePayload);
-    setPins((p) => [...p, { n: p.length + 1, box: placing.box, text: `place ${detectedZone}: ${text.trim()}` }]);
+    // Also open the chat so user can see the conversation
+    addons.getChannel().emit(EVT_CHAT_MODE, { enabled: true });
+    setPins((p) => [...p, { n: p.length + 1, box: placing.box, text: `place ${detectedZone}: ${description}` }]);
     flash(`placing ${detectedZone} <${placing.target.tag}>`);
+
+    // Placeholder auto-clears after 10s or when story re-renders (HMR)
+    setTimeout(() => {
+      setPlaceholders((prev) => prev.filter((ph) => ph.id !== phId));
+    }, 15000);
+
     cancelPlace();
   };
 
@@ -304,9 +321,35 @@ function ToolOverlay({ storyId, component }: { storyId?: string; component?: str
             boxShadow: '0 1px 4px rgba(0,0,0,.4)', cursor: p.sessionId ? 'pointer' : 'default' }}>{p.n}</div>
       ))}
 
-      {(active || toast) && (
+      {/* Placeholder overlays — pulsing skeleton where component will be inserted */}
+      {placeholders.map((ph) => (
+        <div key={`ph-${ph.id}`}
+          style={{
+            position: 'fixed', top: ph.box.y, left: ph.box.x,
+            width: ph.box.width, height: Math.max(ph.box.height, 48),
+            zIndex: 99997, pointerEvents: 'none',
+            border: '2px dashed #22c55e',
+            borderRadius: 8,
+            background: 'rgba(34,197,94,0.08)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            gap: 8,
+            animation: 'none', // inline keyframes via boxShadow pulse
+            boxShadow: '0 0 0 0 rgba(34,197,94,0.4)',
+          }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            background: 'rgba(0,0,0,0.7)', padding: '6px 12px', borderRadius: 6, fontSize: 12,
+          }}>
+            <span style={{ display: 'inline-block', width: 14, height: 14, borderRadius: 999, border: '2px solid #22c55e', borderTopColor: 'transparent', animation: 'none', transform: 'rotate(0deg)' }}></span>
+            <span style={{ color: '#22c55e', fontWeight: 600 }}>{ph.zone}</span>
+            <span style={{ color: '#ccc' }}>{ph.description.slice(0, 40)}</span>
+          </div>
+        </div>
+      ))}
+
+      {(active || toast || placeholders.length > 0) && (
         <div style={{ position: 'fixed', top: 8, left: '50%', transform: 'translateX(-50%)', zIndex: 99999, background: '#111', color: '#fff', font: '12px sans-serif', padding: '5px 10px', borderRadius: 6, pointerEvents: 'none', boxShadow: '0 2px 8px rgba(0,0,0,.4)' }}>
-          {toast ?? (composing ? 'emdesign: type your comment' : placing ? `emdesign: describe what to place ${placing.zone}` : HINTS[mode])}
+          {toast ?? (composing ? 'emdesign: type your comment' : placing ? `emdesign: describe what to place ${placing.zone}` : placeholders.length > 0 ? `✨ placing ${placeholders.length} component(s)...` : HINTS[mode])}
         </div>
       )}
 
