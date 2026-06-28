@@ -30,9 +30,9 @@ const TOOLS: Array<{ mode: Exclude<ToolMode, 'off'>; title: string; label: strin
   },
   {
     mode: 'text',
-    title: 'emdesign: edit text inline (pen)',
+    title: 'emdesign: edit text inline',
     label: 'Edit text',
-    icon: <path d="M9.5 3.5l3 3L6 13l-3.2.6L3.4 10l6.1-6.5Zm0 0l1.6-1.6a1 1 0 0 1 1.4 0l1.6 1.6a1 1 0 0 1 0 1.4L12.5 6.5" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />,
+    icon: <path d="M2.5 2.5h11M8 2.5v11" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />,
   },
   {
     mode: 'wand',
@@ -124,7 +124,7 @@ export function Tool() {
       try {
         const session = await api.createSession({
           type: 'place',
-          instruction: `Place component "${p.selectedComponent}" ${p.placementMode} ${p.selector} (<${p.tag}>) in story "${p.storyId || component}"`,
+          instruction: `Place component "${p.selectedComponent}" ${p.placementMode} ${p.selector} (<${p.tag}>)`,
           scope: p.storyId ? `story:${p.storyId}` : 'global',
           origin: 'place',
           elementContext: {

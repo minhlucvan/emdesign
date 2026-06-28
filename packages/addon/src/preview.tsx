@@ -74,6 +74,7 @@ function ToolOverlay({ storyId, component }: { storyId?: string; component?: str
   const [hoverEl, setHoverEl] = useState<Element | null>(null);
   const [placeZone, setPlaceZone] = useState<PlaceZone>(null);
   const [composing, setComposing] = useState<{ target: CommentTarget; box: Box } | null>(null);
+  const [placing, setPlacing] = useState<{ target: CommentTarget; box: Box; zone: PlacementMode } | null>(null);
   const [text, setText] = useState('');
   const [pins, setPins] = useState<Pin[]>([]);
   const [toast, setToast] = useState<string | null>(null);
@@ -84,7 +85,7 @@ function ToolOverlay({ storyId, component }: { storyId?: string; component?: str
   const setMode = (m: ToolMode) => {
     modeRef.current = m;
     setModeState(m);
-    if (m === 'off') { setHover(null); setPlaceZone(null); setHoverEl(null); composingRef.current = false; setComposing(null); setText(''); }
+    if (m === 'off') { setHover(null); setPlaceZone(null); setHoverEl(null); composingRef.current = false; setComposing(null); setPlacing(null); setText(''); }
     document.body.style.cursor = m === 'off' ? '' : (m === 'wand' || m === 'place') ? 'copy' : 'crosshair';
   };
   const offAndSync = () => { setMode('off'); addons.getChannel().emit(EVT_TOOL_MODE, { mode: 'off' }); };
@@ -236,32 +237,10 @@ function ToolOverlay({ storyId, component }: { storyId?: string; component?: str
         flash(`auto-fix triggered for <${target.tag}>`);
         offAndSync();
       } else if (m === 'place') {
-        // Collect computed styles
-        const computedStyles: Record<string, string> = {};
-        try {
-          const cs = getComputedStyle(el);
-          for (const key of ['color', 'backgroundColor', 'fontSize', 'fontWeight', 'marginTop', 'marginRight', 'marginBottom', 'marginLeft', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'borderRadius', 'boxShadow', 'display', 'position']) {
-            computedStyles[key] = cs.getPropertyValue(key);
-          }
-        } catch { /* cross-origin iframe */ }
-        // Use the detected insertion zone (before/after/into/replace based on mouse position)
+        if (placing) return; // already placing
         const detectedZone: PlacementMode = (placeZone as PlacementMode) || 'after';
-        const emdesignComponent = el.closest('[data-emdesign-component]')?.getAttribute('data-emdesign-component') || undefined;
-        const placePayload: PlaceTriggerPayload = {
-          tag: target.tag || '',
-          text: target.text || '',
-          selector: target.selector,
-          component: emdesignComponent || component || target.component || '',
-          rect: { x: target.box?.x ?? 0, y: target.box?.y ?? 0, width: target.box?.width ?? 0, height: target.box?.height ?? 0 },
-          computedStyles,
-          storyId,
-          placementMode: detectedZone,
-          selectedComponent: '',
-        };
-        addons.getChannel().emit(EVT_PLACE_TRIGGER, placePayload);
-        setPins((p) => [...p, { n: p.length + 1, box: target.box as Box, text: `place ${detectedZone} <${target.tag}>` }]);
-        flash(`${detectedZone} <${target.tag}> — choose a component to place`);
-        offAndSync();
+        setPlacing({ target, box: target.box as Box, zone: detectedZone });
+        setText('');
       }
     };
     const onEditKey = (e: KeyboardEvent) => {
@@ -283,12 +262,32 @@ function ToolOverlay({ storyId, component }: { storyId?: string; component?: str
   }, [storyId, component]);
 
   const cancel = () => { composingRef.current = false; setComposing(null); setText(''); };
+  const cancelPlace = () => { setPlacing(null); setText(''); offAndSync(); };
   const send = () => {
     if (!composing || !text.trim()) return;
     addons.getChannel().emit(EVT_COMMENT_SUBMIT, { target: composing.target, instruction: text.trim() });
     setPins((p) => [...p, { n: p.length + 1, box: composing.box, text: text.trim() }]);
     cancel();
     offAndSync();
+  };
+  const sendPlace = () => {
+    if (!placing || !text.trim()) return;
+    const detectedZone = placing.zone;
+    const placePayload: PlaceTriggerPayload = {
+      tag: placing.target.tag || '',
+      text: placing.target.text || '',
+      selector: placing.target.selector,
+      component: component || placing.target.component || '',
+      rect: { x: placing.box.x, y: placing.box.y, width: placing.box.width, height: placing.box.height },
+      computedStyles: {},
+      storyId,
+      placementMode: detectedZone,
+      selectedComponent: text.trim(),
+    };
+    addons.getChannel().emit(EVT_PLACE_TRIGGER, placePayload);
+    setPins((p) => [...p, { n: p.length + 1, box: placing.box, text: `place ${detectedZone}: ${text.trim()}` }]);
+    flash(`placing ${detectedZone} <${placing.target.tag}>`);
+    cancelPlace();
   };
 
   const popLeft = composing ? Math.min(composing.box.x, window.innerWidth - 300) : 0;
@@ -307,7 +306,7 @@ function ToolOverlay({ storyId, component }: { storyId?: string; component?: str
 
       {(active || toast) && (
         <div style={{ position: 'fixed', top: 8, left: '50%', transform: 'translateX(-50%)', zIndex: 99999, background: '#111', color: '#fff', font: '12px sans-serif', padding: '5px 10px', borderRadius: 6, pointerEvents: 'none', boxShadow: '0 2px 8px rgba(0,0,0,.4)' }}>
-          {toast ?? (composing ? 'emdesign: type your comment' : HINTS[mode])}
+          {toast ?? (composing ? 'emdesign: type your comment' : placing ? `emdesign: describe what to place ${placing.zone}` : HINTS[mode])}
         </div>
       )}
 
@@ -357,11 +356,25 @@ function ToolOverlay({ storyId, component }: { storyId?: string; component?: str
         <>
           <div style={{ position: 'fixed', top: composing.box.y, left: composing.box.x, width: composing.box.width, height: composing.box.height, outline: `2px solid ${ACCENT}`, background: 'rgba(37,99,235,0.12)', zIndex: 99998, pointerEvents: 'none' }} />
           <div style={{ position: 'fixed', top: popTop, left: popLeft, width: 280, zIndex: 100000, background: '#1c1c1f', color: '#fff', border: '1px solid #333', borderRadius: 8, padding: 10, boxShadow: '0 6px 24px rgba(0,0,0,.5)', font: '13px sans-serif' }}>
-            <div style={{ opacity: 0.7, fontSize: 11, marginBottom: 6 }}>&lt;{composing.target.tag}&gt; {composing.target.text ? `“${composing.target.text.slice(0, 32)}”` : ''}</div>
+            <div style={{ opacity: 0.7, fontSize: 11, marginBottom: 6 }}>&lt;{composing.target.tag}&gt; {composing.target.text ? '“' + composing.target.text.slice(0, 32) + '”' : ''}</div>
             <textarea autoFocus value={text} onChange={(e) => setText(e.target.value)} placeholder="what should change here?" rows={3} style={{ width: '100%', boxSizing: 'border-box', background: '#0f0f10', color: '#fff', border: '1px solid #333', borderRadius: 4, padding: 6, font: '13px sans-serif', resize: 'vertical' }} onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) send(); }} />
             <div style={{ display: 'flex', gap: 8, marginTop: 8, justifyContent: 'flex-end' }}>
               <button onClick={cancel} style={{ cursor: 'pointer', background: 'transparent', color: '#aaa', border: '1px solid #444', borderRadius: 4, padding: '4px 10px' }}>Cancel</button>
               <button onClick={send} disabled={!text.trim()} style={{ cursor: 'pointer', background: ACCENT, color: '#fff', border: 0, borderRadius: 4, padding: '4px 12px', opacity: text.trim() ? 1 : 0.5 }}>Send (⌘↵)</button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {placing && (
+        <>
+          <div style={{ position: 'fixed', top: placing.box.y, left: placing.box.x, width: placing.box.width, height: placing.box.height, outline: `2px solid #22c55e`, background: 'rgba(34,197,94,0.10)', zIndex: 99998, pointerEvents: 'none' }} />
+          <div style={{ position: 'fixed', top: Math.min(placing.box.y + placing.box.height + 8, window.innerHeight - 130), left: Math.min(placing.box.x, window.innerWidth - 300), width: 300, zIndex: 100000, background: '#1c1c1f', color: '#fff', border: '1px solid #333', borderRadius: 8, padding: 10, boxShadow: '0 6px 24px rgba(0,0,0,.5)', font: '13px sans-serif' }}>
+            <div style={{ opacity: 0.7, fontSize: 11, marginBottom: 4 }}>&lt;{placing.target.tag}&gt; {placing.target.text ? `"${placing.target.text.slice(0, 32)}"` : ''} — <span style={{ color: '#22c55e', fontWeight: 700 }}>{placing.zone}</span></div>
+            <textarea autoFocus value={text} onChange={(e) => setText(e.target.value)} placeholder={`what component to place ${placing.zone} here? e.g. "a stats card with trend indicator"`} rows={2} style={{ width: '100%', boxSizing: 'border-box', background: '#0f0f10', color: '#fff', border: '1px solid #333', borderRadius: 4, padding: 6, font: '13px sans-serif', resize: 'vertical' }} onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) sendPlace(); }} />
+            <div style={{ display: 'flex', gap: 8, marginTop: 8, justifyContent: 'flex-end' }}>
+              <button onClick={cancelPlace} style={{ cursor: 'pointer', background: 'transparent', color: '#aaa', border: '1px solid #444', borderRadius: 4, padding: '4px 10px' }}>Cancel</button>
+              <button onClick={sendPlace} disabled={!text.trim()} style={{ cursor: 'pointer', background: '#22c55e', color: '#fff', border: 0, borderRadius: 4, padding: '4px 12px', opacity: text.trim() ? 1 : 0.5 }}>Place (⌘↵)</button>
             </div>
           </div>
         </>
