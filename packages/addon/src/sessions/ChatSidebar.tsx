@@ -408,6 +408,7 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
   // Create a new session from a mode pill click
   const handleCreateSession = useCallback(async (startMode: ChatStartMode) => {
     const mode = CHAT_MODES.find(m => m.id === startMode)!;
+    const instructionText = autoSendRef.current;
     setCreateError(null);
     setCreating(true);
     try {
@@ -417,6 +418,7 @@ export function ChatSidebar({ onClose, defaultSessionId }: { onClose?: () => voi
         : 'global';
       const session = await api.createSession({
         type: mode.intentType ?? 'chat',
+        instruction: instructionText || undefined,
         scope,
         origin: 'chat',
       });
