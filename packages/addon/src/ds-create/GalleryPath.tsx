@@ -98,42 +98,39 @@ export function GalleryPath({ onProgress, onComplete }: GalleryPathProps) {
     return true;
   });
 
-  // When selecting an awesome entry, create a chat session to run the import
+  // When selecting an awesome entry, import via backend with workflow session
+  // AND create a background chat session for record keeping
   const handleSelectAwesome = useCallback(async (entry: RegistrySystem) => {
     setSelectedAwesome(entry);
     try {
       const brand = entry.source.replace('awesome/', '');
-      const brandName = entry.name || brand;
-      // Create a chat session for the import
-      const session = await api.createSession({
-        type: 'chat',
-        scope: `design-system-import:${brand}`,
-        origin: 'gallery',
-      });
-      if (session?.id) {
-        // Open the chat panel with this session
-        addons.getChannel().emit(EVT_CHAT_MODE, { enabled: true, sessionId: session.id });
-        // Send the import message to the chat stream
-        fetch(`${BACKEND_URL}/api/chat/stream`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            message: `Import the "${brandName}" design system from awesome-design-md and scaffold it into a complete design system with tokens, primitives, and preview. Create the design system at design-systems/${brand}/`,
-            intentType: 'create-design-system',
-            sessionId: session.id,
-          }),
-        }).catch(() => {});
-      } else {
-        // Fallback: direct import
-        const res = await fetch(`${BACKEND_URL}/api/design-systems/import-awesome`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ brand, name: entry.name }),
+      let chatSessionId: string | undefined;
+      // Create a background chat session first (user sees it later)
+      try {
+        const session = await api.createSession({
+          type: 'chat',
+          scope: `design-system-import:${brand}`,
+          origin: 'gallery',
         });
-        if (res.ok) onComplete?.(brand);
+        if (session?.id) chatSessionId = session.id;
+      } catch { /* chat session optional */ }
+
+      // Direct import for ProgressView stages
+      const res = await fetch(`${BACKEND_URL}/api/design-systems/import-awesome`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ brand, name: entry.name, chatSessionId }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.sessionId) {
+          onProgress?.(data.sessionId);
+        } else {
+          onComplete?.(data.id);
+        }
       }
     } catch { /* */ }
-  }, [onComplete]);
+  }, [onComplete, onProgress]);
 
   // Show detail page for a gallery entry
   if (selectedEntry) {
