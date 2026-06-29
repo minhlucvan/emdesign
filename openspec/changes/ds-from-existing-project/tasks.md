@@ -37,10 +37,10 @@
 
 ## 6. CLI
 
-- [ ] 6.1 Add `else if (importSrc === 'project')` branch to `cmdDs` and `importProjectDesign(paths, projectPath, opts)` in `scaffold.ts` driving the orchestrator in-process
-- [ ] 6.2 Print stage progress; on completion emit the adoption report (`--json` structured / default human summary)
-- [ ] 6.3 Honor `--gate`: non-zero exit when validation fails or any component is `needs-manual-fix`; error clearly on an invalid/unsupported project path
-- [ ] 6.4 Document `ds import project <path>` in `docs/cli-commands.md`
+- [x] 6.1 Add `else if (importSrc === 'project')` branch to `cmdDs` and `importProjectDesign(paths, projectPath, opts)` in `scaffold.ts` driving the orchestrator in-process
+- [x] 6.2 Print stage progress; on completion emit the adoption report (`--json` structured / default human summary)
+- [x] 6.3 Honor `--gate`: non-zero exit when validation fails or any component is `needs-manual-fix`; error clearly on an invalid/unsupported project path
+- [x] 6.4 Document `ds import project <path>` in `docs/cli-commands.md`
 
 ## 7. Frontend (addon)
 
