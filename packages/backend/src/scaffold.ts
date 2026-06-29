@@ -594,19 +594,253 @@ export function baseDetail(paths: RepoPaths, id: string): BaseDetail | null {
   return { ...base, hasPreview: fs.existsSync(path.join(basesDir, 'reference-example.html')), tokens, fonts: fontRoles, accentColor };
 }
 
-/** Read the reference-example.html for a base, optionally injecting CSS overrides. */
+/** Read the reference-example.html for a base, optionally injecting CSS overrides.
+ *  Checks both the vendored base directory and the design system's own directory. */
 export function basePreviewHtml(
   paths: RepoPaths, id: string,
   cssOverrides?: Record<string, string>,
 ): string | null {
-  const htmlFile = path.join(paths.designSystemsDir, VENDOR_BASES_DIR, id, 'reference-example.html');
-  if (!fs.existsSync(htmlFile)) return null;
+  // Check vendor bases first
+  const vendorFile = path.join(paths.designSystemsDir, VENDOR_BASES_DIR, id, 'reference-example.html');
+  if (fs.existsSync(vendorFile)) return readAndInjectPreview(vendorFile, cssOverrides);
+  // Check design system directory
+  const dsFile = path.join(paths.designSystemsDir, id, 'reference-example.html');
+  if (fs.existsSync(dsFile)) return readAndInjectPreview(dsFile, cssOverrides);
+  return null;
+}
+
+function readAndInjectPreview(htmlFile: string, cssOverrides?: Record<string, string>): string {
   let html = fs.readFileSync(htmlFile, 'utf8');
   if (cssOverrides && Object.keys(cssOverrides).length > 0) {
     const css = Object.entries(cssOverrides).map(([k, v]) => `  --${k}: ${v};`).join('\n');
     html = html.replace('</head>', `\n<style id="emdesign-overrides">\n:root {\n${css}\n}\n</style>\n</head>`);
   }
   return html;
+}
+
+/** Options for generatePreviewHtml. */
+export interface PreviewHtmlOptions {
+  name: string;
+  description?: string;
+  category?: string;
+  /** Pre-import: colors from YAML frontmatter (key → hex). */
+  colors?: Record<string, string>;
+  /** Pre-import: font families. */
+  fonts?: { display?: string; body?: string; mono?: string };
+  /** Pre-import: spacing unit (e.g. "8px"). */
+  spacing?: string;
+  /** Post-import: parsed tokens from tokens.css. */
+  tokens?: Array<{ role: string; kind: string; value: string }>;
+  /** Accent color for the preview chrome. */
+  accentColor?: string;
+  /** Surface/background color. */
+  surface?: string;
+}
+
+/**
+ * Generate a rich, self-contained preview.html for a design system.
+ * Output matches the quality of getdesign.md previews: color palette,
+ * typography samples, spacing scale, shadow cards, full tokens table.
+ *
+ * Works in two modes:
+ *  - Pre-import: pass colors/fonts/spacing from YAML frontmatter
+ *  - Post-import: pass tokens array parsed from tokens.css
+ */
+export function generatePreviewHtml(opts: PreviewHtmlOptions): string {
+  const { name, description, category, colors, fonts, spacing, tokens, accentColor, surface } = opts;
+  const accent = accentColor || '#6366f1';
+  const bg = surface || '#ffffff';
+  const textColor = '#111111';
+  const mutedColor = '#6a6a6a';
+  const borderColor = '#e5e5e5';
+  const sectionBg = '#f7f7f7';
+  const headingFont = fonts?.display || fonts?.body || 'Inter, system-ui, sans-serif';
+  const bodyFont = fonts?.body || 'Inter, system-ui, sans-serif';
+  const monoFont = fonts?.mono || "'JetBrains Mono', 'SF Mono', monospace";
+  const now = new Date().toISOString().slice(0, 10);
+
+  // Build color swatches
+  const colorSwatches = colors
+    ? Object.entries(colors).map(([role, value]) => {
+        const hex = value.startsWith('#') ? value : `#${value}`;
+        return `<div class="swatch"><div class="swatch-color" style="background:${hex}"></div><div class="swatch-info"><span class="swatch-hex">${hex}</span><span class="swatch-role">${role}</span></div></div>`;
+      }).join('\n        ')
+    : tokens?.filter(t => t.kind === 'color').map(t => {
+        return `<div class="swatch"><div class="swatch-color" style="background:${t.value}"></div><div class="swatch-info"><span class="swatch-hex">${t.value}</span><span class="swatch-role">${t.role}</span></div></div>`;
+      }).join('\n        ') || '<div class="empty-section">No color tokens defined</div>';
+
+  // Build typography section
+  const typoSections = [];
+  if (fonts?.display || headingFont) {
+    typoSections.push(`
+      <div class="type-block">
+        <div class="type-label">Display — ${fonts?.display || 'Inter'}</div>
+        <div class="type-display" style="font-family:${headingFont}">The quick brown fox jumps over the lazy dog</div>
+      </div>`);
+  }
+  if (fonts?.body || bodyFont) {
+    typoSections.push(`
+      <div class="type-block">
+        <div class="type-label">Body — ${fonts?.body || 'Inter'}</div>
+        <div class="type-body" style="font-family:${bodyFont}">The five boxing wizards jump quickly. Design tokens bridge the gap between designers and developers, creating a shared language for visual consistency across every surface of your product.</div>
+      </div>`);
+  }
+  if (monoFont) {
+    typoSections.push(`
+      <div class="type-block">
+        <div class="type-label">Mono — ${fonts?.mono || 'JetBrains Mono'}</div>
+        <div class="type-mono" style="font-family:${monoFont}">console.log('Design System Preview — ${now}');</div>
+      </div>`);
+  }
+  const typoHtml = typoSections.join('');
+
+  // Build spacing scale
+  const spacingValues = spacing
+    ? [{ label: 'xs', value: spacing }, { label: 'sm', value: `calc(${spacing} * 2)` }, { label: 'md', value: `calc(${spacing} * 4)` }, { label: 'lg', value: `calc(${spacing} * 6)` }, { label: 'xl', value: `calc(${spacing} * 8)` }, { label: '2xl', value: `calc(${spacing} * 12)` }]
+    : tokens?.filter(t => t.kind === 'spacing').slice(0, 8).map(t => ({ label: t.role, value: t.value })).filter(Boolean) || [];
+
+  const spacingHtml = spacingValues.length > 0
+    ? spacingValues.map((s, i) => {
+        const pct = Math.min(10 + i * 15, 100);
+        return `<div class="spacing-row"><span class="spacing-label">${s.label}</span><div class="spacing-track"><div class="spacing-bar" style="width:${pct}%;background:${accent}"></div></div><span class="spacing-value">${s.value}</span></div>`;
+      }).join('\n        ')
+    : '<div class="empty-section">No spacing tokens defined</div>';
+
+  // Build shadow cards
+  const shadows = tokens?.filter(t => t.kind === 'shadow') || [];
+  const shadowHtml = shadows.length > 0
+    ? shadows.map(s => `<div class="shadow-card" style="box-shadow:${s.value}"><span class="shadow-label">${s.role}</span></div>`).join('\n        ')
+    : '';
+
+  // Build tokens table
+  const tokenRows = tokens && tokens.length > 0
+    ? tokens.map(t => {
+        const isColor = t.kind === 'color';
+        return `<tr><td class="token-var"><span class="token-preview" style="background:${isColor ? t.value : 'transparent'}"></span>--${t.role}</td><td class="token-val">${t.value}</td><td><span class="token-kind">${t.kind}</span></td></tr>`;
+      }).join('\n          ')
+    : '';
+
+  // Check if design system has dark surface
+  const isDark = bg.toLowerCase() === '#000' || bg === '#000000' || bg === '#0a0a0a' || bg === '#1a1a2e' || false;
+  const pageBg = isDark ? bg : '#ffffff';
+  const pageText = isDark ? '#ededed' : textColor;
+  const pageMuted = isDark ? '#a0a0a0' : mutedColor;
+  const pageBorder = isDark ? '#2a2a3e' : borderColor;
+  const pageSectionBg = isDark ? '#1a1a2e' : sectionBg;
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${escapeHtml(name)} — Design System Preview</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', ${bodyFont}, system-ui, sans-serif; background: ${pageBg}; color: ${pageText}; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+  .ds-wrap { max-width: 1100px; margin: 0 auto; padding: 48px 24px; }
+
+  .hero { margin-bottom: 48px; }
+  .hero h1 { font-family: 'Inter', ${headingFont}, sans-serif; font-size: clamp(32px, 4vw, 48px); font-weight: 800; letter-spacing: -0.02em; line-height: 1.1; margin-bottom: 12px; color: ${pageText}; }
+  .hero-meta { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .hero-category { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; background: ${accent}20; color: ${accent}; }
+  .hero-desc { font-size: 16px; color: ${pageMuted}; max-width: 600px; }
+  .hero-accent { margin-top: 24px; height: 4px; width: 80px; border-radius: 2px; background: ${accent}; }
+
+  .section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: ${pageMuted}; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid ${pageBorder}; }
+  .section { margin-bottom: 40px; }
+
+  .empty-section { font-size: 13px; color: ${pageMuted}; font-style: italic; padding: 16px; background: ${pageSectionBg}; border-radius: 8px; text-align: center; }
+
+  .color-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+  .swatch { border-radius: 8px; overflow: hidden; border: 1px solid ${pageBorder}; background: ${pageBg}; }
+  .swatch-color { height: 80px; }
+  .swatch-info { padding: 8px 10px; }
+  .swatch-hex { font-family: 'SF Mono', 'JetBrains Mono', ${monoFont}, monospace; font-size: 12px; font-weight: 600; color: ${pageText}; display: block; }
+  .swatch-role { font-size: 10px; color: ${pageMuted}; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
+
+  .type-block { margin-bottom: 24px; }
+  .type-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: ${pageMuted}; margin-bottom: 8px; }
+  .type-display { font-size: 48px; font-weight: 800; line-height: 1.1; letter-spacing: -0.02em; padding: 8px 0; color: ${pageText}; }
+  .type-body { font-size: 18px; line-height: 1.7; padding: 8px 0; color: ${pageText}; font-weight: 400; }
+  .type-mono { font-family: 'SF Mono', 'JetBrains Mono', ${monoFont}, monospace; font-size: 14px; line-height: 1.8; padding: 8px 0; color: ${pageText}; }
+
+  .spacing-grid { display: flex; flex-direction: column; gap: 8px; }
+  .spacing-row { display: flex; align-items: center; gap: 12px; }
+  .spacing-label { font-family: 'SF Mono', 'JetBrains Mono', monospace; font-size: 11px; color: ${pageMuted}; min-width: 40px; font-weight: 600; }
+  .spacing-track { flex: 1; max-width: 400px; background: ${pageSectionBg}; border-radius: 4px; height: 16px; display: flex; align-items: center; }
+  .spacing-bar { height: 8px; border-radius: 4px; opacity: 0.7; }
+  .spacing-value { font-family: 'SF Mono', 'JetBrains Mono', monospace; font-size: 11px; color: ${pageMuted}; min-width: 80px; }
+
+  .shadow-grid { display: flex; gap: 16px; flex-wrap: wrap; }
+  .shadow-card { width: 180px; height: 100px; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: ${pageBg}; border: 1px solid ${pageBorder}; }
+  .shadow-label { font-size: 10px; color: ${pageMuted}; text-transform: uppercase; letter-spacing: 0.05em; }
+
+  .token-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .token-table th { text-align: left; padding: 8px 10px; border-bottom: 2px solid ${pageBorder}; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: ${pageMuted}; }
+  .token-table td { padding: 6px 10px; border-bottom: 1px solid ${pageBorder}; }
+  .token-var { font-family: 'SF Mono', 'JetBrains Mono', ${monoFont}, monospace; font-size: 12px; display: flex; align-items: center; gap: 6px; }
+  .token-preview { display: inline-block; width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+  .token-val { font-family: 'SF Mono', 'JetBrains Mono', monospace; font-size: 12px; color: ${pageMuted}; }
+  .token-kind { font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: ${pageMuted}; background: ${pageSectionBg}; padding: 1px 6px; border-radius: 3px; }
+
+  .footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid ${pageBorder}; font-size: 11px; color: ${pageMuted}; display: flex; justify-content: space-between; }
+</style>
+</head>
+<body>
+<div class="ds-wrap">
+
+  <!-- Hero -->
+  <header class="hero">
+    <h1>${escapeHtml(name)}</h1>
+    <div class="hero-meta">
+      ${category ? `<span class="hero-category">${escapeHtml(category)}</span>` : ''}
+      ${description ? `<span class="hero-desc">${escapeHtml(description)}</span>` : ''}
+    </div>
+    <div class="hero-accent"></div>
+  </header>
+
+  <!-- Color Palette -->
+  <section class="section">
+    <h2 class="section-title">Colors</h2>
+    <div class="color-grid">
+      ${colorSwatches}
+    </div>
+  </section>
+
+  <!-- Typography -->
+  <section class="section">
+    <h2 class="section-title">Typography</h2>
+    ${typoHtml || '<div class="empty-section">No typography tokens defined</div>'}
+  </section>
+
+  <!-- Spacing Scale -->
+  <section class="section">
+    <h2 class="section-title">Spacing</h2>
+    <div class="spacing-grid">
+      ${spacingHtml}
+    </div>
+  </section>
+
+  <!-- Shadows -->
+  ${shadowHtml ? `<section class="section"><h2 class="section-title">Shadows</h2><div class="shadow-grid">${shadowHtml}</div></section>` : ''}
+
+  <!-- Design Tokens Table -->
+  ${tokenRows ? `<section class="section"><h2 class="section-title">All Design Tokens</h2><table class="token-table"><thead><tr><th>CSS Variable</th><th>Value</th><th>Category</th></tr></thead><tbody>${tokenRows}</tbody></table></section>` : ''}
+
+  <!-- Footer -->
+  <footer class="footer">
+    <span>Generated by emdesign</span>
+    <span>${now}</span>
+  </footer>
+
+</div>
+</body>
+</html>`;
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 /** Customize a base: clone + modify tokens. */
@@ -790,8 +1024,31 @@ export async function importAwesomeDesign(paths: RepoPaths, brand: string, opts?
   // Scaffold default primitives from atelier
   try { scaffoldPrimitives(paths, id, 'atelier'); } catch { /* optional */ }
 
+  // Generate and save rich preview.html
+  try {
+    const colors = typeof frontmatter.colors === 'object' ? frontmatter.colors : undefined;
+    const previewHtml = generatePreviewHtml({
+      name: opts?.name ?? brand,
+      description: frontmatter.description,
+      category: frontmatter.category ?? 'Brand',
+      colors,
+      fonts: {
+        display: frontmatter.font?.heading || frontmatter.typography?.heading,
+        body: frontmatter.font?.body || frontmatter.typography?.sans,
+        mono: frontmatter.font?.mono,
+      },
+      spacing: frontmatter.spacing?.unit,
+      accentColor: colors?.primary || colors?.accent,
+      surface: colors?.surface || colors?.background,
+    });
+    fs.writeFileSync(path.join(dir, 'reference-example.html'), previewHtml);
+  } catch (e) {
+    // Preview generation is optional — don't fail the import
+    console.warn(`[emdesign] Preview generation skipped for '${brand}': ${e}`);
+  }
+
   const tokens = parseDeclaredTokens(tokensCss).length;
-  return { id, note: `Imported '${brand}' as '${id}': ${tokens} tokens, primitives scaffolded.` };
+  return { id, note: `Imported '${brand}' as '${id}': ${tokens} tokens, primitives scaffolded, preview generated.` };
 }
 
 export function parseYamlFrontmatter(md: string): Record<string, any> {
