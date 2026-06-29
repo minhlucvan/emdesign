@@ -96,7 +96,7 @@ export function GalleryPath({ onProgress, onComplete }: GalleryPathProps) {
     return true;
   });
 
-  // When selecting an awesome entry, trigger import via backend
+  // When selecting an awesome entry, trigger import via backend with workflow session
   const handleSelectAwesome = useCallback(async (entry: RegistrySystem) => {
     setSelectedAwesome(entry);
     try {
@@ -108,10 +108,14 @@ export function GalleryPath({ onProgress, onComplete }: GalleryPathProps) {
       });
       if (res.ok) {
         const data = await res.json();
-        onComplete?.(data.id);
+        if (data.sessionId) {
+          onProgress?.(data.sessionId);
+        } else {
+          onComplete?.(data.id);
+        }
       }
     } catch { /* */ }
-  }, [onComplete]);
+  }, [onComplete, onProgress]);
 
   // Show detail page for a gallery entry
   if (selectedEntry) {
