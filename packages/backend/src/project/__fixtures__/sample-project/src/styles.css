@@ -1,0 +1,5 @@
+:root {
+  --brand-blue: #2563eb;
+  --color-accent: var(--brand-blue);
+  --radius: 0.5rem;
+}

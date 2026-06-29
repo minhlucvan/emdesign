@@ -1,11 +1,11 @@
 ## 1. Project analysis & extraction (backend)
 
-- [ ] 1.1 Create `packages/backend/src/project/extract.ts` with a deterministic Tailwind config reader (theme/extend: colors, fonts, spacing, radius, shadows) emitting raw observations with `{ file, line }`
-- [ ] 1.2 Add CSS custom-property extraction (scan stylesheets for `--*` declarations + resolved values; flag conflicts with the Tailwind config)
-- [ ] 1.3 Add component-source scanning for raw values (hex, px) and inline utility usage with occurrence counts and provenance
-- [ ] 1.4 Implement clustering: merge near-duplicate values into proposed semantic token roles, each with a confidence score and the merged evidence
-- [ ] 1.5 Fill required roles that have no evidence with documented defaults, marked as `default` (not extracted)
-- [ ] 1.6 Unit-test extraction + clustering against a fixture project (tailwind config + css vars + components) — assert proposed roles, confidence, and provenance
+- [x] 1.1 Create `packages/backend/src/project/extract.ts` with a deterministic Tailwind config reader (theme/extend: colors, fonts, spacing, radius, shadows) emitting raw observations with `{ file, line }`
+- [x] 1.2 Add CSS custom-property extraction (scan stylesheets for `--*` declarations + resolved values; flag conflicts with the Tailwind config)
+- [x] 1.3 Add component-source scanning for raw values (hex, px) and inline utility usage with occurrence counts and provenance
+- [x] 1.4 Implement clustering: merge near-duplicate values into proposed semantic token roles, each with a confidence score and the merged evidence
+- [x] 1.5 Fill required roles that have no evidence with documented defaults, marked as `default` (not extracted)
+- [x] 1.6 Unit-test extraction + clustering against a fixture project (tailwind config + css vars + components) — assert proposed roles, confidence, and provenance
 
 ## 2. Component adoption (backend)
 
