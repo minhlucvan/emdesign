@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { styled } from '@storybook/theming';
+import { addons } from '@storybook/manager-api';
 import { api, BACKEND_URL } from '../api';
+import { EVT_CHAT_MODE } from '../channel';
 import { Row, Stack, Muted, Input, Btn, Pill } from '../ui';
 import { CustomizeForm } from './CustomizeForm';
 import { GalleryDetail } from './GalleryDetail';
@@ -96,26 +98,42 @@ export function GalleryPath({ onProgress, onComplete }: GalleryPathProps) {
     return true;
   });
 
-  // When selecting an awesome entry, trigger import via backend with workflow session
+  // When selecting an awesome entry, create a chat session to run the import
   const handleSelectAwesome = useCallback(async (entry: RegistrySystem) => {
     setSelectedAwesome(entry);
     try {
       const brand = entry.source.replace('awesome/', '');
-      const res = await fetch(`${BACKEND_URL}/api/design-systems/import-awesome`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ brand, name: entry.name }),
+      const brandName = entry.name || brand;
+      // Create a chat session for the import
+      const session = await api.createSession({
+        type: 'chat',
+        scope: `design-system-import:${brand}`,
+        origin: 'gallery',
       });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.sessionId) {
-          onProgress?.(data.sessionId);
-        } else {
-          onComplete?.(data.id);
-        }
+      if (session?.id) {
+        // Open the chat panel with this session
+        addons.getChannel().emit(EVT_CHAT_MODE, { enabled: true, sessionId: session.id });
+        // Send the import message to the chat stream
+        fetch(`${BACKEND_URL}/api/chat/stream`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: `Import the "${brandName}" design system from awesome-design-md and scaffold it into a complete design system with tokens, primitives, and preview. Create the design system at design-systems/${brand}/`,
+            intentType: 'create-design-system',
+            sessionId: session.id,
+          }),
+        }).catch(() => {});
+      } else {
+        // Fallback: direct import
+        const res = await fetch(`${BACKEND_URL}/api/design-systems/import-awesome`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ brand, name: entry.name }),
+        });
+        if (res.ok) onComplete?.(brand);
       }
     } catch { /* */ }
-  }, [onComplete, onProgress]);
+  }, [onComplete]);
 
   // Show detail page for a gallery entry
   if (selectedEntry) {
