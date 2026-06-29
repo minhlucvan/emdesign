@@ -14,7 +14,7 @@ import { resolveDesignSystem } from './designContext.js';
 import { countMustFix } from './lint/index.js';
 import { effectiveAdapter } from './adapters/index.js';
 import { runtimeFor } from './runtime.js';
-import { applyDesignSystem, listBases, listBaseCategories, baseDetail, basePreviewHtml, customizeDesignSystem, searchDesignSystems, importAwesomeDesign, parseYamlFrontmatter } from './scaffold.js';
+import { applyDesignSystem, listBases, listBaseCategories, baseDetail, basePreviewHtml, customizeDesignSystem, searchDesignSystems, importAwesomeDesign, parseYamlFrontmatter, generatePreviewHtml } from './scaffold.js';
 import { loadOrBuild, buildAndSave } from './graph.js';
 import { RULES, RULES_BY_ID } from '@emdesign/graph';
 import { lintFrameworkCharters, lintDesignSystem, lintRendered, mergeReports } from '@emdesign/doctor';
@@ -269,37 +269,56 @@ export async function createHttpBridge(store: Store, paths: RepoPaths, orch?: an
     }
   });
 
-  // Generate a preview HTML for an awesome-design-md entry from its DESIGN.md.
+  // Generate a rich preview HTML for an awesome-design-md entry from its DESIGN.md.
+  // Cache DESIGN.md fetches in-memory for 5 minutes.
+  const previewCache = new Map<string, { data: string; expiry: number }>();
   app.get('/api/bases/awesome/:id/preview', async (req, res) => {
     try {
       const brand = req.params.id;
       const url = `https://raw.githubusercontent.com/voltagent/awesome-design-md/main/design-md/${brand}/DESIGN.md`;
-      const resp = await fetch(url);
-      if (!resp.ok) return res.status(404).json({ error: `DESIGN.md not found for '${brand}'.` });
-      const md = await resp.text();
-      const fm = parseYamlFrontmatter(md);
-      const colors = typeof fm.colors === 'object' ? fm.colors : {};
-      const primary = colors.primary || colors.background || '#667eea';
-      const surface = colors.background || colors.surface || '#ffffff';
-      const textColor = colors.text || '#1a1a2e';
-      const font = fm.font?.heading || fm.typography?.heading || 'system-ui';
 
-      res.type('html').send(`<!DOCTYPE html>
-<html><head><meta charset="utf-8"><style>
-  body { margin: 0; font-family: ${font}, system-ui, sans-serif; background: ${surface}; color: ${textColor}; }
-  .preview { padding: 24px; }
-  .swatch { display: inline-block; width: 28px; height: 28px; border-radius: 6px; margin: 4px; border: 1px solid rgba(0,0,0,0.1); }
-  h3 { margin: 0 0 8px; font-size: 14px; }
-  .grid { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 16px; }
-  .font-sample { font-size: 15px; line-height: 1.5; margin-bottom: 8px; }
-</style></head><body>
-<div class="preview">
-  <h3>Colors</h3>
-  <div class="grid">${Object.entries(colors).map(([k, v]) => `<span class="swatch" style="background:${v}" title="${k}: ${v}"></span>`).join('')}</div>
-  <h3>Typography</h3>
-  <div class="font-sample" style="font-family:'${font}'">The quick brown fox jumps over the lazy dog.</div>
-  <div style="font-size:11px;color:#999;margin-top:16px">${brand} · awesome-design-md</div>
-</div></body></html>`);
+      // Check cache
+      const cached = previewCache.get(brand);
+      let md: string;
+      if (cached && Date.now() < cached.expiry) {
+        md = cached.data;
+      } else {
+        const resp = await fetch(url);
+        if (!resp.ok) return res.status(404).json({ error: `DESIGN.md not found for '${brand}'.` });
+        md = await resp.text();
+        previewCache.set(brand, { data: md, expiry: Date.now() + 300_000 });
+      }
+
+      const fm = parseYamlFrontmatter(md);
+      // Colors are at the top level in the flat YAML parser (not nested under 'colors')
+      const colorKeys = ['primary', 'surface', 'background', 'text', 'accent', 'secondary',
+        'border', 'success', 'warning', 'danger', 'info', 'muted', 'ink', 'body',
+        'hairline', 'canvas', 'error'];
+      const colors: Record<string, string> = {};
+      for (const k of colorKeys) {
+        if (fm[k]) colors[k] = fm[k].replace(/^["']|["']$/g, '');
+      }
+      // Also try fm.colors if it happens to be an object
+      if (typeof fm.colors === 'object' && fm.colors !== null) {
+        Object.assign(colors, fm.colors);
+      }
+
+      const html = generatePreviewHtml({
+        name: fm.name || brand.charAt(0).toUpperCase() + brand.slice(1),
+        description: fm.description,
+        category: fm.category || 'Brand',
+        colors,
+        fonts: {
+          display: fm.font?.heading || fm.typography?.heading,
+          body: fm.font?.body || fm.typography?.sans,
+          mono: fm.font?.mono,
+        },
+        spacing: fm.spacing?.unit,
+        accentColor: colors?.primary || colors?.accent,
+        surface: colors?.surface || colors?.background,
+      });
+
+      res.type('html').send(html);
     } catch (e) { res.status(500).json({ error: (e as Error).message }); }
   });
 
