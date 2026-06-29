@@ -9,12 +9,12 @@
 
 ## 2. Component adoption (backend)
 
-- [ ] 2.1 Create `packages/backend/src/project/adopt.ts` that places discovered components into `componentsDir` (idempotent: diff against already-placed files, no duplicates)
-- [ ] 2.2 Implement safe rebinding: rewrite hardcoded values to a semantic role only when exactly one high-confidence candidate exists; leave ambiguous values untouched
-- [ ] 2.3 Generate a CSF story for any adopted component lacking one
-- [ ] 2.4 Derive per-component readiness by running the existing lint (`countMustFix() === 0 && no off-token-color` ⇒ loop-ready); collect blocking values with locations
-- [ ] 2.5 Build the structured adoption report (per-component status, rebinds before/after + provenance, blocking values)
-- [ ] 2.6 Unit-test adoption: unambiguous rebind applied, ambiguous left + flagged, report classification correct, re-run is idempotent
+- [x] 2.1 Create `packages/backend/src/project/adopt.ts` that places discovered components into `componentsDir` (idempotent: diff against already-placed files, no duplicates)
+- [x] 2.2 Implement safe rebinding: rewrite hardcoded values to a semantic role only when exactly one high-confidence candidate exists; leave ambiguous values untouched
+- [x] 2.3 Generate a CSF story for any adopted component lacking one
+- [x] 2.4 Derive per-component readiness by running the existing lint (`countMustFix() === 0 && no off-token-color` ⇒ loop-ready); collect blocking values with locations
+- [x] 2.5 Build the structured adoption report (per-component status, rebinds before/after + provenance, blocking values)
+- [x] 2.6 Unit-test adoption: unambiguous rebind applied, ambiguous left + flagged, report classification correct, re-run is idempotent
 
 ## 3. ds-from-project workflow + API
 
