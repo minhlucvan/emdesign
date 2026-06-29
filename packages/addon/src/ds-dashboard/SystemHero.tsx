@@ -38,6 +38,7 @@ export interface SystemHeroProps {
   sectionsCount: number;
   tokensCount: number;
   onRequestChange: (text: string) => void;
+  previewUrl?: string;
 }
 
 export function SystemHero({
@@ -136,6 +137,30 @@ export function SystemHero({
           Send
         </Btn>
       </AiRow>
+
+      {/* Preview section */}
+      {previewUrl && <PreviewSection url={previewUrl} />}
     </HeroSection>
+  );
+}
+
+/** Inline preview with collapsible iframe. */
+function PreviewSection({ url }: { url: string }) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div style={{ marginTop: 12 }}>
+      <Row gap={8} style={{ marginBottom: 6 }}>
+        <Muted style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Preview</Muted>
+        <Btn onClick={() => setExpanded(!expanded)}>
+          {expanded ? 'Collapse' : 'View more'}
+        </Btn>
+      </Row>
+      <div style={{
+        border: '1px solid #e5e5e5', borderRadius: 6, overflow: 'hidden',
+        height: expanded ? 600 : 120, transition: 'height 0.2s ease',
+      }}>
+        <iframe src={url} style={{ width: '100%', height: '100%', border: 'none' }} title="System preview" />
+      </div>
+    </div>
   );
 }

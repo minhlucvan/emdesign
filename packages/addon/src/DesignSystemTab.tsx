@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { api } from './api';
+import { api, BACKEND_URL } from './api';
 import {
   useStudioState, Page, Section, SectionTitle, Row, Stack, Muted, Btn, Pill, sevTone, ErrorBanner,
   HeaderBar, HeaderBrand, LoadingSkeleton,
@@ -236,6 +236,7 @@ export function DesignSystemTab() {
             sectionsCount={detail.sections.length}
             tokensCount={detail.tokens.length}
             onRequestChange={(text) => handleRefine(detail.id, 'all', text)}
+            previewUrl={`${BACKEND_URL}/api/bases/${detail.id}/preview`}
           />
 
           {/* Tier 1 — expanded */}
