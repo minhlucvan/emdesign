@@ -53,6 +53,7 @@ export function SystemHero({
   sectionsCount,
   tokensCount,
   onRequestChange,
+  previewUrl,
 }: SystemHeroProps) {
 
 
