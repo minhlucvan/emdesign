@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "od-design-system-project/v1",
+  "id": "vercel",
+  "name": "Vercel",
+  "category": "Brand",
+  "description": "Imported from awesome-design-md/vercel. \"Toast notification surface — flat-cornered card-marketing chrome with Level 4 shadow.\"",
+  "source": {
+    "type": "awesome-design-md",
+    "brand": "vercel",
+    "url": "https://raw.githubusercontent.com/voltagent/awesome-design-md/main/design-md/vercel/DESIGN.md"
+  },
+  "files": {
+    "design": "DESIGN.md",
+    "tokens": "tokens.css",
+    "components": "code/"
+  },
+  "craft": {
+    "applies": [
+      "off-token-color",
+      "accent-overuse"
+    ],
+    "exemptions": []
+  },
+  "stats": {
+    "tokens": 6,
+    "primitives": 0
+  }
+}
