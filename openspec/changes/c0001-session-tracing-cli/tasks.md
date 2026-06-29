@@ -9,10 +9,10 @@
 
 ## Unit 2: CLI `session` and `logs` commands
 
-- [ ] Create `packages/cli/src/commands/session.ts` — `session list|show|logs`
-- [ ] Read `~/.claude/` JSONL via `@emdesign/session` `storage.ts`
-- [ ] Create `logs` subcommand — read `.emdesign/logs/` with level/session/time filters
-- [ ] Register commands in `packages/cli/src/cli.ts`
+- [x] Create `packages/cli/src/commands/session.ts` — `session list|show|logs`
+- [x] Read `~/.claude/` JSONL via `@emdesign/session` `storage.ts`
+- [x] Create `logs` subcommand — read `.emdesign/logs/` with level/session/time filters
+- [x] Register commands in `packages/cli/src/cli.ts`
 
 ## Unit 3: CLI `intent` and `chat` commands
 

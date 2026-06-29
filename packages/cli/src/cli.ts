@@ -28,6 +28,7 @@ import { cmdScreenCreate, cmdScreenList } from './commands/screen.js';
 import { cmdLoop } from './commands/loop.js';
 import { cmdStorybookHealth } from './commands/storybook.js';
 import { cmdExplore } from './commands/explore.js';
+import { cmdSession, cmdLogs } from './commands/session.js';
 
 const PORT = Number(process.env.EMDESIGN_PORT ?? 4321);
 
@@ -71,7 +72,7 @@ async function main() {
   if (argv.includes('--completion')) {
     const shellIdx = argv.indexOf('--completion');
     const shell = shellIdx >= 0 && shellIdx + 1 < argv.length && !argv[shellIdx + 1].startsWith('--') ? argv[shellIdx + 1] : 'bash';
-    const commands = ['init','attach','update','serve','up','health','ds','design','generate','doctor','vision','capture','capture-baseline','discover','doc','graph','explore','compose','help'];
+    const commands = ['init','attach','update','serve','up','health','ds','design','generate','doctor','vision','capture','capture-baseline','discover','doc','graph','explore','compose','help','session','logs'];
     const dsSubs = ['list','create','use','validate','grade','scaffold','customize','update','diff','compare','conflicts','history','bases','base-detail','context','prompt'];
     if (shell === 'zsh') {
       process.stdout.write(`#compdef emdesign
@@ -549,6 +550,43 @@ complete -F _emdesign_completions emdesign
       break;
     }
 
+    // ── Session tracing ────────────────────────────────────────────────────
+    case 'session': {
+      const [sessionSub, ...sessionRest] = rest;
+      const limit = sessionRest.includes('--limit') ? Number(sessionRest[sessionRest.indexOf('--limit') + 1]) : undefined;
+      const tail = sessionRest.includes('--tail');
+      const fmt = sessionRest.includes('--format') ? sessionRest[sessionRest.indexOf('--format') + 1] as 'text' | 'json' : undefined;
+      const id = (sessionSub === 'show' || sessionSub === 'logs') ? sessionRest[0] : undefined;
+
+      if (!sessionSub || !['list', 'show', 'logs'].includes(sessionSub)) {
+        formatError('usage: emdesign session list|show|logs [args]\n  list [--limit N]  show <id>  logs <id> [--tail] [--format text|json]');
+        process.exit(1);
+      }
+
+      await cmdSession({
+        subcommand: sessionSub as 'list' | 'show' | 'logs',
+        args: sessionRest,
+        limit,
+        id,
+        tail,
+        format: fmt,
+      }, paths);
+      break;
+    }
+
+    // ── Logs ──────────────────────────────────────────────────────────────
+    case 'logs': {
+      const level = rest.includes('--level') ? rest[rest.indexOf('--level') + 1] : undefined;
+      const session = rest.includes('--session') ? rest[rest.indexOf('--session') + 1] : undefined;
+      const since = rest.includes('--since') ? rest[rest.indexOf('--since') + 1] : undefined;
+      const until = rest.includes('--until') ? rest[rest.indexOf('--until') + 1] : undefined;
+      const follow = rest.includes('--follow');
+      const fmt = rest.includes('--format') ? rest[rest.indexOf('--format') + 1] as 'json' | 'text' : undefined;
+
+      await cmdLogs({ level, session, since, until, follow, format: fmt }, paths);
+      break;
+    }
+
     // ── Help ─────────────────────────────────────────────────────────────
     case 'help':
     default: {
@@ -615,6 +653,12 @@ Run 'emdesign <command> --help' for per-command details.
     screen create <name> [--route]    Create a screen with routing
     screen list                       List all screens
 
+🧵  Session tracing and logs
+    session list [--limit N]          List Claude sessions
+    session show <id>                 Show session details
+    session logs <id> [--tail]        View session log entries
+    logs [--level] [--session]        Query trace logs
+
 ⚙️  Configure lint rules
     ds lint-rules list [id]           Show active lint rules
     ds lint-rules preset <id> <name>  Apply a rule preset
@@ -647,8 +691,8 @@ Run 'emdesign <command> --help' for per-command details.
 
 ── All commands ────────────────────────────────────────────────────
     capture  compose  design  discover  doc  doctor  ds  explore
-    generate  graph  health  init  loop  render  screen  spatial
-    story  storybook  update  use  vision
+    generate  graph  health  init  loop  logs  render  screen
+    session  spatial  story  storybook  update  use  vision
 
 Legacy aliases: lint, visual-test, score, vision-critique, spatial-audit
 `);
