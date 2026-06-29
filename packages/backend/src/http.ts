@@ -16,7 +16,7 @@ import { effectiveAdapter } from './adapters/index.js';
 import { runtimeFor } from './runtime.js';
 import { applyDesignSystem, listBases, listBaseCategories, baseDetail, basePreviewHtml, customizeDesignSystem, searchDesignSystems, parseYamlFrontmatter, generatePreviewHtml } from './scaffold.js';
 import type { WorkflowSession, WorkflowStage } from './workflow.js';
-import { workflowStore } from './workflow-api.js';
+import { workflowStore, workflowQueue } from './workflow-api.js';
 import { loadOrBuild, buildAndSave } from './graph.js';
 import { RULES, RULES_BY_ID } from '@emdesign/graph';
 import { lintFrameworkCharters, lintDesignSystem, lintRendered, mergeReports } from '@emdesign/doctor';
@@ -260,35 +260,45 @@ export async function createHttpBridge(store: Store, paths: RepoPaths, orch?: an
   });
 
   // Import a design system from awesome-design-md by brand name.
-  // Queues an intent for the agent to process (ds-import.js workflow).
-  // The agent picks up the intent, fetches the DESIGN.md, runs ds-scaffold
-  // and ds-generate-preview — no programmatic duplicate.
+  // Creates a background session (fetches DESIGN.md, runs the workflow
+  // pipeline via SessionQueue). Returns immediately with the sessionId
+  // so the frontend can poll for progress. Max concurrent sessions are
+  // managed by the SessionQueue (default 3).
   app.post('/api/design-systems/import-awesome', async (req, res) => {
     try {
       const { brand, name } = req.body;
       if (!brand) return res.status(400).json({ error: 'brand is required.' });
 
-      // Create a tracked workflow session for frontend progress display
       const sessionId = `import-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
       const stages: WorkflowStage[] = [
-        { name: 'queued', status: 'running', progress: 10 },
         { name: 'fetch', status: 'pending', progress: 0 },
-        { name: 'scaffold', status: 'pending', progress: 0 },
-        { name: 'generate preview', status: 'pending', progress: 0 },
+        { name: 'parse', status: 'pending', progress: 0 },
+        { name: 'generate tokens', status: 'pending', progress: 0 },
+        { name: 'scaffold primitives', status: 'pending', progress: 0 },
+        { name: 'validate', status: 'pending', progress: 0 },
       ];
+
+      // Store the import params so the runner can use them
+      const importMeta = { brand, name: name || brand, sessionId };
       workflowStore.create(sessionId, stages);
+      (workflowStore.get(sessionId) as any).importMeta = importMeta;
 
-      // Queue an intent for the agent (ds-import workflow picks it up)
-      const displayName = name || brand;
-      store.enqueueIntent({
-        type: 'create-design-system',
-        instruction: `Import the "${brand}" design system from awesome-design-md using the ds-import workflow. Name it "${displayName}". Run ds-import with source "awesome/${brand}" and name "${displayName}". After import, run ds-generate-preview to create the rich preview HTML.`,
-      });
+      // Enqueue — runs when a slot is available (max 3 concurrent)
+      workflowQueue.enqueue(sessionId);
 
-      res.json({ sessionId, id: brand });
+      res.json({ sessionId, id: brand, queued: true, running: workflowQueue.runningCount, pending: workflowQueue.queuedCount });
     } catch (e) {
       res.status(500).json({ error: (e as Error).message });
     }
+  });
+
+  // Session queue status — used by the frontend to show queue depth / position.
+  app.get('/api/sessions/queue', (_req, res) => {
+    res.json({
+      running: workflowQueue.runningCount,
+      queued: workflowQueue.queuedCount,
+      active: workflowQueue.activeCount,
+    });
   });
 
   // Generate a rich preview HTML for an awesome-design-md entry from its DESIGN.md.
