@@ -263,7 +263,7 @@ export async function createHttpBridge(store: Store, paths: RepoPaths, orch?: an
   // Creates a workflow session with stage progress for the frontend ProgressView.
   app.post('/api/design-systems/import-awesome', async (req, res) => {
     try {
-      const { brand, name } = req.body;
+      const { brand, name, chatSessionId } = req.body;
       if (!brand) return res.status(400).json({ error: 'brand is required.' });
 
       // Create workflow session with stages
@@ -316,6 +316,21 @@ export async function createHttpBridge(store: Store, paths: RepoPaths, orch?: an
 
           updateStage('validate', 'running', 80);
           updateStage('validate', 'done', 100);
+
+          // Log completion message to chat session if one was created
+          if (chatSessionId) {
+            try {
+              fetch(`http://localhost:4321/api/chat/stream`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  message: `✅ Import complete for "${name || brand}". System created at design-systems/${brand}/ with DESIGN.md, tokens.css, primitives, and preview.`,
+                  intentType: 'create-design-system',
+                  sessionId: chatSessionId,
+                }),
+              }).catch(() => {});
+            } catch { /* chat logging optional */ }
+          }
 
           const session = workflowStore.get(sessionId);
           if (session) { session.status = 'completed'; }
