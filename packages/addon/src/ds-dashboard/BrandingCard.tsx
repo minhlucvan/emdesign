@@ -51,10 +51,11 @@ const VoiceExcerpt = styled.div(({ theme }) => ({
 export interface BrandingCardProps {
   system: DesignSystemFull;
   scope?: RefinementScope;
-  onAction?: (payload: { scope: RefinementScope }) => void;
+  refinementStatus?: 'idle' | 'refining' | 'queued' | 'success' | 'error';
+  onAction?: (payload: { scope: RefinementScope; instruction?: string }) => void;
 }
 
-export function BrandingCard({ system, scope = 'branding', onAction }: BrandingCardProps) {
+export function BrandingCard({ system, scope = 'branding', refinementStatus, onAction }: BrandingCardProps) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(system.manifest?.name as string || system.name);
   const [description, setDescription] = useState(system.manifest?.description as string || '');
@@ -67,7 +68,7 @@ export function BrandingCard({ system, scope = 'branding', onAction }: BrandingC
   const voiceExcerpt = brandVoice || extractBrandVoice(system.designMd);
 
   return (
-    <SectionCard title="Branding" scope={scope} defaultCollapsed={false} onAction={onAction}>
+    <SectionCard title="Branding" scope={scope} defaultCollapsed={true} refinementStatus={refinementStatus} onAction={onAction}>
       <Field>
         <Label>Name</Label>
         {editing ? (

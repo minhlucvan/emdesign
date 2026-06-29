@@ -4,7 +4,7 @@
   "type": "module",
   "description": "emdesign react-doctor plugin (library): wraps react-doctor (deterministic React scanner) for use in the agent loop and contributes doctor rules + MCP tool.",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./dist/index.js"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json"

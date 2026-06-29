@@ -2,10 +2,10 @@ import React, { useRef, useState } from 'react';
 import { IconButton, Separator } from '@storybook/components';
 import { useChannel } from '@storybook/manager-api';
 import { styled } from '@storybook/theming';
-import { api } from './api';
-import { EVT_TOOL_MODE, EVT_COMMENT_SUBMIT, EVT_TEXT_SUBMIT, EVT_CHAT_MODE, EVT_ELEMENT_SELECTED, EVT_WAND_TRIGGER, EVT_PLACE_TRIGGER, type ToolMode, type CommentTarget, type ElementSelectedPayload, type WandTriggerPayload, type PlaceTriggerPayload } from './channel';
+import { EVT_TOOL_MODE, EVT_COMMENT_SUBMIT, EVT_TEXT_SUBMIT, EVT_WAND_TRIGGER, EVT_PLACE_TRIGGER, type ToolMode, type CommentTarget, type WandTriggerPayload, type PlaceTriggerPayload } from './channel';
 import { useStudioState } from './ui';
 import { ChatModeController } from './ChatModeController';
+import { handleCommentSubmit, handleTextSubmit, handleWandTrigger, handlePlaceTrigger } from './services/toolBackend';
 
 const Chip = styled.span(({ theme }) => ({ font: `11px ${theme.typography.fonts.base}`, color: theme.textMutedColor, padding: '0 6px' }));
 
@@ -58,101 +58,17 @@ export function Tool() {
   // edit from the preview overlay becomes a typed intent. Also stay in sync when the preview turns off.
   const emit = useChannel({
     [EVT_TOOL_MODE]: (p: { mode: ToolMode }) => { modeRef.current = p?.mode ?? 'off'; setMode(modeRef.current); },
-    [EVT_COMMENT_SUBMIT]: async (p: { target: CommentTarget; instruction: string }) => {
-      try {
-        // Build a structured prompt with element context
-        const prompt = `Update component "${p.target.component || 'unknown'}": ${p.instruction}\n\nTarget element: <${p.target.tag}${p.target.selector ? ' ' + p.target.selector : ''}>\n- Text: "${p.target.text || ''}"\n- Story: ${p.target.storyId || ''}`;
-        const session = await api.createSession({
-          type: 'change-request',
-          instruction: prompt,
-          scope: p.target.storyId ? `story:${p.target.storyId}` : 'global',
-          origin: 'comment',
-          elementContext: {
-            selector: p.target.selector || '',
-            tag: p.target.tag || '',
-            text: p.target.text,
-            component: p.target.component,
-          },
-        });
-        // Persist the comment pin with session reference
-        await api.storeComment({
-          storyId: p.target.storyId || '',
-          selector: p.target.selector || '',
-          text: p.instruction,
-          tag: p.target.tag,
-          component: p.target.component,
-          sessionId: session.id,
-        }).catch(() => {});
-        // Queue a change request for the agent to process
-        await api.submitIntent({
-          type: 'change-request',
-          instruction: prompt,
-          target: p.target,
-          payload: { sessionId: session.id },
-        });
-        // Open chat so user sees the conversation — unlike placement, comments are explicit
-        emit(EVT_CHAT_MODE, { enabled: true, sessionId: session.id });
-      } catch { /* backend down */ }
+    [EVT_COMMENT_SUBMIT]: (p: { target: CommentTarget; instruction: string }) => {
+      handleCommentSubmit(p.target, p.instruction);
     },
-    [EVT_TEXT_SUBMIT]: async (p: { target: CommentTarget; from: string; to: string }) => {
-      try {
-        await api.submitIntent({
-          type: 'edit-text',
-          instruction: `Replace the text of ${p.target.selector} — was "${p.from}" — with: "${p.to}"`,
-          target: p.target,
-          payload: { textEdit: { from: p.from, to: p.to } },
-        });
-      } catch { /* backend down */ }
+    [EVT_TEXT_SUBMIT]: (p: { target: CommentTarget; from: string; to: string }) => {
+      handleTextSubmit(p.target, p.from, p.to);
     },
-    [EVT_WAND_TRIGGER]: async (p: WandTriggerPayload) => {
-      try {
-        const session = await api.createSession({
-          type: 'wand',
-          instruction: `Auto-fix component "${p.component}" at ${p.selector} (<${p.tag}>)${p.vision ? ' with vision critique' : ''}`,
-          scope: p.storyId ? `story:${p.storyId}` : 'global',
-          origin: 'wand',
-          elementContext: {
-            selector: p.selector,
-            tag: p.tag,
-            text: p.text,
-            component: p.component,
-            rect: p.rect,
-            vision: p.vision,
-          },
-        });
-        await api.submitIntent({
-          type: 'wand',
-          instruction: `Auto-fix ${p.component}`,
-          target: { selector: p.selector, tag: p.tag, text: p.text, component: p.component, storyId: p.storyId },
-          payload: { mode: 'guided', vision: p.vision, sessionId: session.id },
-        });
-      } catch { /* backend down */ }
+    [EVT_WAND_TRIGGER]: (p: WandTriggerPayload) => {
+      handleWandTrigger(p);
     },
-    [EVT_PLACE_TRIGGER]: async (p: PlaceTriggerPayload) => {
-      try {
-        const session = await api.createSession({
-          type: 'place',
-          instruction: `Place component "${p.selectedComponent}" ${p.placementMode} ${p.selector} (<${p.tag}>)`,
-          scope: p.storyId ? `story:${p.storyId}` : 'global',
-          origin: 'place',
-          elementContext: {
-            selector: p.selector,
-            tag: p.tag,
-            text: p.text,
-            component: p.component,
-            rect: p.rect,
-            placementMode: p.placementMode,
-            selectedComponent: p.selectedComponent,
-          },
-        });
-        await api.submitIntent({
-          type: 'place',
-          instruction: `Place ${p.selectedComponent} ${p.placementMode} ${p.selector}`,
-          target: { selector: p.selector, tag: p.tag, text: p.text, component: p.component, storyId: p.storyId },
-          payload: { placementMode: p.placementMode, selectedComponent: p.selectedComponent, sessionId: session.id },
-        });
-        // Placement runs in background — user can open chat optionally to see progress
-      } catch { /* backend down */ }
+    [EVT_PLACE_TRIGGER]: (p: PlaceTriggerPayload) => {
+      handlePlaceTrigger(p);
     },
   });
 

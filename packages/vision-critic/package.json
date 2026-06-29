@@ -2,9 +2,14 @@
   "name": "@emdesign/vision-critic",
   "version": "0.0.0",
   "type": "module",
-  "description": "Multi-model LLM vision critique for emdesign — Claude, Gemini, Minimax providers. Captures screenshot + DOM + static analysis context and returns structured visual critique for the design feedback loop.",
-  "exports": { ".": "./src/index.ts" },
-  "scripts": { "build": "tsc -p tsconfig.json", "test": "vitest run" },
+  "description": "Multi-model LLM vision critique for emdesign \u2014 Claude, Gemini, Minimax providers. Captures screenshot + DOM + static analysis context and returns structured visual critique for the design feedback loop.",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
   "dependencies": {
     "@emdesign/dsr": "*",
     "@anthropic-ai/sdk": "^0.32.0",

@@ -50,15 +50,16 @@ const EmptyState = styled.div(({ theme }) => ({
 export interface PrimitivesCardProps {
   system: DesignSystemFull;
   scope?: RefinementScope;
-  onAction?: (payload: { scope: RefinementScope }) => void;
+  refinementStatus?: 'idle' | 'refining' | 'queued' | 'success' | 'error';
+  onAction?: (payload: { scope: RefinementScope; instruction?: string }) => void;
 }
 
-export function PrimitivesCard({ system, scope = 'primitives', onAction }: PrimitivesCardProps) {
+export function PrimitivesCard({ system, scope = 'primitives', refinementStatus, onAction }: PrimitivesCardProps) {
   const components = system.components || [];
 
   if (components.length === 0) {
     return (
-      <SectionCard title="Primitives" scope={scope} defaultCollapsed={false} onAction={onAction}>
+      <SectionCard title="Primitives" scope={scope} defaultCollapsed={true} refinementStatus={refinementStatus} onAction={onAction}>
         <EmptyState>No primitives scaffolded</EmptyState>
         <div style={{ marginTop: 8 }}>
           <AddBtn onClick={() => {}}>+ Add primitive</AddBtn>
@@ -68,7 +69,7 @@ export function PrimitivesCard({ system, scope = 'primitives', onAction }: Primi
   }
 
   return (
-    <SectionCard title="Primitives" scope={scope} defaultCollapsed={false} onAction={onAction}>
+    <SectionCard title="Primitives" scope={scope} defaultCollapsed={true} refinementStatus={refinementStatus} onAction={onAction}>
       <ComponentList>
         {components.map((name) => (
           <ComponentBadge key={name}>

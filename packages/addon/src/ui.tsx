@@ -132,6 +132,20 @@ export const FormError = ({ error }: { error: string | null }) =>
 
 // ---- full-page tab primitives ----
 
+// ── header bar ───────────────────────────────────────────────────────────────
+
+export const HeaderBar = styled.div(({ theme }) => ({
+  display: 'flex', alignItems: 'center', gap: 6,
+  paddingBottom: 12, marginBottom: 12,
+  borderBottom: `1px solid ${theme.appBorderColor}`,
+}));
+
+export const HeaderBrand = styled.span(({ theme }) => ({
+  font: `700 14px ${theme.typography.fonts.base}`, color: theme.color.defaultText, flex: 1,
+}));
+
+// ---- full-page tab primitives ----
+
 export const Page = styled.div({ height: '100%', overflow: 'auto', padding: 16 });
 
 export const PageTitle = styled.h2(({ theme }) => ({ font: `700 18px ${theme.typography.fonts.base}`, margin: '0 0 2px' }));

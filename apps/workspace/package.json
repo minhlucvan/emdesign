@@ -4,9 +4,9 @@
   "type": "module",
   "description": "emdesign workspace core — the abstract, framework-agnostic installer (init/attach), canonical .claude template, config schema, and the framework registry. Concrete stacks build on it (e.g. @emdesign/workspace-react).",
   "exports": {
-    ".": "./src/index.ts",
-    "./install": "./src/install.ts",
-    "./registry": "./src/registry.ts"
+    ".": "./dist/index.js",
+    "./install": "./dist/install.js",
+    "./registry": "./dist/registry.js"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json"

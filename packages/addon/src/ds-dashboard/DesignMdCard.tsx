@@ -42,10 +42,11 @@ const EmptyState = styled.div(({ theme }) => ({
 export interface DesignMdCardProps {
   system: DesignSystemFull;
   scope?: RefinementScope;
-  onAction?: (payload: { scope: RefinementScope }) => void;
+  refinementStatus?: 'idle' | 'refining' | 'queued' | 'success' | 'error';
+  onAction?: (payload: { scope: RefinementScope; instruction?: string }) => void;
 }
 
-export function DesignMdCard({ system, scope = 'design-md', onAction }: DesignMdCardProps) {
+export function DesignMdCard({ system, scope = 'design-md', refinementStatus, onAction }: DesignMdCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [content, setContent] = useState(system.designMd || '');
@@ -57,7 +58,7 @@ export function DesignMdCard({ system, scope = 'design-md', onAction }: DesignMd
 
   if (!system.designMd) {
     return (
-      <SectionCard title="DESIGN.md" scope={scope} defaultCollapsed={false} onAction={onAction}>
+      <SectionCard title="DESIGN.md" scope={scope} defaultCollapsed={true} refinementStatus={refinementStatus} onAction={onAction}>
         <EmptyState>No DESIGN.md content</EmptyState>
       </SectionCard>
     );
@@ -67,7 +68,7 @@ export function DesignMdCard({ system, scope = 'design-md', onAction }: DesignMd
   const collapsedContent = lines.slice(0, 3).join('\n');
 
   return (
-    <SectionCard title="DESIGN.md" scope={scope} defaultCollapsed={false} onAction={onAction}>
+    <SectionCard title="DESIGN.md" scope={scope} defaultCollapsed={true} refinementStatus={refinementStatus} onAction={onAction}>
       {editing ? (
         <>
           <EditTextarea value={content} onChange={(e) => setContent(e.target.value)} />

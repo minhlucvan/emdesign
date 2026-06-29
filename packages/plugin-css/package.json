@@ -2,9 +2,20 @@
   "name": "@emdesign/plugin-css",
   "version": "0.0.0",
   "type": "module",
-  "description": "emdesign CSS plugin — owns CSS->graph parsing (tokens, themes, colors) + new node types (breakpoint, mediaQuery, cssVarGroup, contrastPair) + CSS production-readiness doctor rules.",
-  "exports": { ".": "./src/index.ts" },
-  "scripts": { "build": "tsc -p tsconfig.json" },
-  "dependencies": { "@emdesign/plugin-api": "*", "@emdesign/graph": "*", "@emdesign/dsr": "*" },
-  "devDependencies": { "@types/node": "^20.14.0", "typescript": "^5.5.0" }
+  "description": "emdesign CSS plugin \u2014 owns CSS->graph parsing (tokens, themes, colors) + new node types (breakpoint, mediaQuery, cssVarGroup, contrastPair) + CSS production-readiness doctor rules.",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@emdesign/plugin-api": "*",
+    "@emdesign/graph": "*",
+    "@emdesign/dsr": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "typescript": "^5.5.0"
+  }
 }

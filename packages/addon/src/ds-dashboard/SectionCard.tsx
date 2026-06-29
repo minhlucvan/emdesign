@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { styled } from '@storybook/theming';
 import type { RefinementScope } from '../constants';
+import { RefinementInput } from './RefinementInput';
 
 const CardWrapper = styled.div(({ theme }) => ({
   border: `1px solid ${theme.appBorderColor}`,
@@ -62,7 +63,9 @@ export interface SectionCardProps {
   defaultCollapsed?: boolean;
   scope: RefinementScope;
   children?: React.ReactNode;
-  onAction?: (payload: { scope: RefinementScope }) => void;
+  onAction?: (payload: { scope: RefinementScope; instruction?: string }) => void;
+  refinementStatus?: 'idle' | 'refining' | 'queued' | 'success' | 'error';
+  refinementError?: string;
 }
 
 export function SectionCard({
@@ -72,6 +75,8 @@ export function SectionCard({
   scope,
   children,
   onAction,
+  refinementStatus,
+  refinementError,
 }: SectionCardProps) {
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
 
@@ -83,9 +88,12 @@ export function SectionCard({
       </Header>
       {!collapsed && <Body>{children}</Body>}
       <ActionBar>
-        <AiButton onClick={() => onAction?.({ scope })}>
-          Customize with AI
-        </AiButton>
+        <RefinementInput
+          scope={scope}
+          onSubmit={(text) => onAction?.({ scope, instruction: text })}
+          status={refinementStatus ?? 'idle'}
+          errorText={refinementError}
+        />
       </ActionBar>
     </CardWrapper>
   );

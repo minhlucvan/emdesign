@@ -8,6 +8,7 @@ import {
   type DesignSystemBase,
   type BaseDetail,
   type CategoryCount,
+  type RegistrySystem,
   type LogsResponse,
   type HealthInfo,
   type GraphStats,
@@ -53,6 +54,7 @@ export const api = {
   // create-wizard + system tab data
   listBases: () => json<{ bases: DesignSystemBase[] }>('/api/bases'),
   getBaseCategories: () => json<{ categories: CategoryCount[] }>('/api/bases/categories'),
+  listRegistry: () => json<{ systems: RegistrySystem[]; total: number }>('/api/bases/registry'),
   getBaseDetail: (id: string) => json<BaseDetail>(`/api/bases/${id}/detail`),
   getBaseTokens: (id: string) => json<{ id: string; tokens: BaseDetail['tokens'] }>(`/api/bases/${id}/tokens`),
   getBasePreviewUrl: (id: string, overrides?: Record<string, string>) => {

@@ -7,7 +7,8 @@ export default defineConfig({
   test: {
     include: ['src/__tests__/**/*.test.{ts,tsx}'],
     name: '@emdesign/addon',
-    environment: 'node',
+    environment: 'jsdom',
     globals: true,
+    setupFiles: ['./vitest.setup.ts'],
   },
 });

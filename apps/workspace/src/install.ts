@@ -99,12 +99,6 @@ export function attach(targetDir = process.cwd()): InstallResult {
   }
   writeConfig(targetDir, framework, wrote, notes);
 
-  const dsDir = path.join(targetDir, 'design-systems');
-  if (!fs.existsSync(dsDir)) {
-    copyDir(STARTER_DS, path.join(dsDir, 'atelier'), false, wrote);
-    notes.push('Seeded a starter design system: design-systems/atelier.');
-  }
-
   notes.push('Next: `npm i -D @emdesign/addon`, run Storybook + `emdesign serve`, then `/mds:design "<idea>"`.');
   return { framework, wrote, notes };
 }
@@ -131,7 +125,6 @@ export function init(framework: string, targetDir: string): InstallResult {
     fs.copyFileSync(CLAUDE_MD_TEMPLATE, targetClaudeMd);
     wrote.push(targetClaudeMd);
   }
-  copyDir(STARTER_DS, path.join(targetDir, 'design-systems', 'atelier'), false, wrote);
   writeConfig(targetDir, framework, wrote, notes);
 
   if (!entry.implemented) notes.push(`Note: the ${framework} adapter is a stub — rule-based lint/parse is best-effort; the visual+vision+gate loop still runs.`);

@@ -1,74 +1,21 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { addons } from '@storybook/preview-api';
-import { EVT_TOOL_MODE, EVT_COMMENT_SUBMIT, EVT_TEXT_SUBMIT, EVT_COPIED, EVT_CHAT_MODE, EVT_ELEMENT_SELECTED, EVT_WAND_TRIGGER, EVT_PLACE_TRIGGER, type ToolMode, type CommentTarget, type ElementSelectedPayload, type WandTriggerPayload, type PlaceTriggerPayload, type PlacementMode } from './channel';
-
-function cssPath(el: Element, root: Element): string {
-  const parts: string[] = [];
-  let cur: Element | null = el;
-  while (cur && cur !== root && cur.nodeType === 1) {
-    let sel = cur.tagName.toLowerCase();
-    const parent: Element | null = cur.parentElement;
-    if (parent) {
-      const sibs = Array.from(parent.children).filter((c) => c.tagName === cur!.tagName);
-      if (sibs.length > 1) sel += `:nth-of-type(${sibs.indexOf(cur) + 1})`;
-    }
-    parts.unshift(sel);
-    cur = cur.parentElement;
-  }
-  return parts.join(' > ');
-}
+import { EVT_TOOL_MODE, EVT_COMMENT_SUBMIT, EVT_TEXT_SUBMIT, EVT_CHAT_MODE, EVT_PLACE_TRIGGER, type ToolMode, type CommentTarget, type PlaceTriggerPayload, type PlacementMode } from './channel';
+import { buildTarget } from './dom-utils';
+import { toolRegistry } from './tools/registry';
+import type { ToolContext, Pin } from './tools/types';
 
 type Box = { x: number; y: number; width: number; height: number };
-type Pin = { n: number; box?: Box; text: string; sessionId?: string };
+type PlaceZone = 'before' | 'after' | 'into' | 'replace' | null;
 
 const ACCENT = '#2563eb';
 
-function buildTarget(el: Element, root: Element, storyId?: string, component?: string): CommentTarget {
-  const b = el.getBoundingClientRect();
-  return {
-    selector: cssPath(el, root),
-    box: { x: b.x, y: b.y, width: b.width, height: b.height },
-    text: (el.textContent ?? '').trim().slice(0, 120),
-    tag: el.tagName.toLowerCase(),
-    classes: typeof el.className === 'string' ? el.className : undefined,
-    storyId,
-    component,
-  };
-}
-
-/** A human-readable + machine-readable descriptor of a picked element (for the copy tool). */
-function describe(t: CommentTarget): string {
-  const lines = [
-    'emdesign element',
-    t.component ? `component: ${t.component}` : '',
-    t.storyId ? `story: ${t.storyId}` : '',
-    `selector: ${t.selector}`,
-    `tag: <${t.tag}>`,
-    t.text ? `text: "${t.text}"` : '',
-    t.classes ? `classes: "${t.classes}"` : '',
-    t.box ? `box: ${Math.round(t.box.x)},${Math.round(t.box.y)} ${Math.round(t.box.width)}×${Math.round(t.box.height)}` : '',
-  ].filter(Boolean);
-  return `${lines.join('\n')}\n---\n${JSON.stringify(t)}`;
-}
-
-const HINTS: Record<ToolMode, string> = {
-  off: '',
-  comment: 'emdesign: click an element to comment · Esc to cancel',
-  copy: 'emdesign: click an element to copy its identifier · Esc to cancel',
-  text: 'emdesign: click a text element to edit it inline · Enter to apply · Esc to cancel',
-  reference: 'emdesign: click an element to reference it in chat · Esc to cancel',
-  wand: 'emdesign: click an element to auto-fix · Shift+click for vision critique · Esc to cancel',
-  place: 'emdesign: hover top (before) · bottom (after) · middle (into) · Shift (replace) — click to place · Esc to cancel',
-};
-
 /**
- * One canvas overlay for all three tools. It highlights the element under the cursor and, on click,
- * does the mode's action: open a comment popover, copy a rich descriptor to the clipboard, or make the
- * text editable inline and emit an edit-text intent on commit.
+ * ToolOverlay — thin orchestrator that delegates tool behavior to the
+ * tool registry. Tracks activeTool (via EVT_TOOL_MODE), maintains shared
+ * state (pins, placeholders, toast), and renders shared chrome.
  */
-type PlaceZone = 'before' | 'after' | 'into' | 'replace' | null;
-
-function ToolOverlay({ storyId, component }: { storyId?: string; component?: string }) {
+export function ToolOverlay({ storyId, component }: { storyId?: string; component?: string }) {
   const [mode, setModeState] = useState<ToolMode>('off');
   const [hover, setHover] = useState<DOMRect | null>(null);
   const [hoverEl, setHoverEl] = useState<Element | null>(null);
@@ -112,6 +59,7 @@ function ToolOverlay({ storyId, component }: { storyId?: string; component?: str
     offAndSync();
   };
 
+  // Listen for EVT_TOOL_MODE from the manager panel
   useEffect(() => {
     const channel = addons.getChannel();
     const onMode = (p: { mode: ToolMode }) => setMode(p?.mode ?? 'off');
@@ -119,7 +67,7 @@ function ToolOverlay({ storyId, component }: { storyId?: string; component?: str
     return () => { channel.off(EVT_TOOL_MODE, onMode); document.body.style.cursor = ''; };
   }, []);
 
-  // Load stored comment pins and reset transient state when the story changes
+  // Load stored comment pins when story changes
   useEffect(() => {
     setPins([]);
     setComposing(null);
@@ -136,17 +84,35 @@ function ToolOverlay({ storyId, component }: { storyId?: string; component?: str
     }
   }, [storyId]);
 
+  // Build ToolContext for the active tool
+  const buildCtx = (): ToolContext => ({
+    hoverEl,
+    storyId,
+    component,
+    pins,
+    setPins,
+    setToast: flash,
+    offAndSync,
+  });
+
+  // Set up DOM event listeners — delegate to the active tool's registry entry
   useEffect(() => {
     const root = document.getElementById('storybook-root') ?? document.body;
     const busy = () => composingRef.current || !!editingRef.current;
+
     const onMove = (e: MouseEvent) => {
       if (modeRef.current === 'off' || busy()) return;
       const el = e.target as Element | null;
       if (el && root.contains(el)) {
         setHover(el.getBoundingClientRect());
         setHoverEl(el);
+        // Delegate to tool's onMouseMove
+        const activeDef = toolRegistry.get(modeRef.current);
+        if (activeDef?.onMouseMove) {
+          activeDef.onMouseMove(e, buildCtx());
+        }
+        // Place tool zone detection (orchestrator-managed hover state)
         if (modeRef.current === 'place') {
-          // Determine insertion zone based on mouse Y position within the element
           const rect = el.getBoundingClientRect();
           const relY = (e.clientY - rect.top) / rect.height;
           if (e.shiftKey) {
@@ -161,104 +127,49 @@ function ToolOverlay({ storyId, component }: { storyId?: string; component?: str
         }
       }
     };
+
     const onClick = (e: MouseEvent) => {
       const m = modeRef.current;
-      // Placing popup is open — ignore all clicks so the popup handles them
       if (m === 'off' || busy() || placingRef.current) return;
       const el = e.target as Element | null;
       if (!el || !root.contains(el)) return;
       e.preventDefault();
       e.stopPropagation();
-      const target = buildTarget(el, root, storyId, component);
 
-      if (m === 'reference') {
-        // Build a richer payload with computed styles and component metadata
-        const computedStyles: Record<string, string> = {};
-        try {
-          const cs = getComputedStyle(el);
-          for (const key of ['color', 'backgroundColor', 'fontSize', 'fontWeight', 'marginTop', 'marginRight', 'marginBottom', 'marginLeft', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'borderRadius', 'boxShadow', 'display', 'position']) {
-            computedStyles[key] = cs.getPropertyValue(key);
-          }
-        } catch { /* cross-origin iframe */ }
-        // Resolve emdesign component from closest data-emdesign-component ancestor
-        const emdesignComponent = el.closest('[data-emdesign-component]')?.getAttribute('data-emdesign-component') || undefined;
-        const payload: ElementSelectedPayload = {
-          tag: target.tag || '',
-          text: target.text || '',
-          selector: target.selector,
-          component: component || target.component || '',
-          rect: { x: target.box?.x ?? 0, y: target.box?.y ?? 0, width: target.box?.width ?? 0, height: target.box?.height ?? 0 },
-          computedStyles,
-          emdesignComponent,
-        };
-        addons.getChannel().emit(EVT_ELEMENT_SELECTED, payload);
-        setPins((p) => [...p, { n: p.length + 1, box: target.box as Box, text: `referenced <${target.tag}>` }]);
-        flash(`referenced <${target.tag}>`);
-        offAndSync();
-      } else if (m === 'comment') {
+      if (m === 'comment') {
+        const target = buildTarget(el, root, storyId, component);
         composingRef.current = true;
         setComposing({ target, box: target.box as Box });
         setText('');
-      } else if (m === 'copy') {
-        const payload = describe(target);
-        try { navigator.clipboard?.writeText(payload); } catch { /* clipboard blocked */ }
-        addons.getChannel().emit(EVT_COPIED, { ok: true, selector: target.selector });
-        setPins((p) => [...p, { n: p.length + 1, box: target.box as Box, text: 'copied' }]);
-        flash(`copied <${target.tag}>`);
-        offAndSync();
-      } else if (m === 'text') {
-        const he = el as HTMLElement;
-        editingRef.current = { el: he, from: (he.textContent ?? '').trim() };
-        he.contentEditable = 'true';
-        he.style.outline = `2px solid ${ACCENT}`;
-        he.focus();
-        // place caret at the end
-        const sel = window.getSelection?.();
-        if (sel) { const r = document.createRange(); r.selectNodeContents(he); r.collapse(false); sel.removeAllRanges(); sel.addRange(r); }
-      } else if (m === 'wand') {
-        // Collect computed styles (same as reference mode)
-        const computedStyles: Record<string, string> = {};
-        try {
-          const cs = getComputedStyle(el);
-          for (const key of ['color', 'backgroundColor', 'fontSize', 'fontWeight', 'marginTop', 'marginRight', 'marginBottom', 'marginLeft', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'borderRadius', 'boxShadow', 'display', 'position']) {
-            computedStyles[key] = cs.getPropertyValue(key);
-          }
-        } catch { /* cross-origin iframe */ }
-        // Resolve emdesign component from closest data-emdesign-component ancestor
-        const emdesignComponent = el.closest('[data-emdesign-component]')?.getAttribute('data-emdesign-component') || undefined;
-        const wandPayload: WandTriggerPayload = {
-          tag: target.tag || '',
-          text: target.text || '',
-          selector: target.selector,
-          component: emdesignComponent || component || target.component || '',
-          rect: { x: target.box?.x ?? 0, y: target.box?.y ?? 0, width: target.box?.width ?? 0, height: target.box?.height ?? 0 },
-          computedStyles,
-          storyId,
-          vision: e.shiftKey, // Shift+click enables vision critique
-        };
-        addons.getChannel().emit(EVT_WAND_TRIGGER, wandPayload);
-        setPins((p) => [...p, { n: p.length + 1, box: target.box as Box, text: `auto-fix <${target.tag}>` }]);
-        flash(`auto-fix triggered for <${target.tag}>`);
-        offAndSync();
       } else if (m === 'place') {
-        if (placingRef.current) return; // already placing — use ref to avoid stale closure
+        if (placingRef.current) return;
+        const target = buildTarget(el, root, storyId, component);
         const detectedZone: PlacementMode = (placeZone as PlacementMode) || 'after';
         setPlacing({ target, box: target.box as Box, zone: detectedZone });
         placingRef.current = true;
         setText('');
+      } else {
+        // Delegate to the active tool's onClick
+        const activeDef = toolRegistry.get(m);
+        if (activeDef?.onClick) {
+          activeDef.onClick(e, buildCtx());
+        }
       }
     };
+
     const onEditKey = (e: KeyboardEvent) => {
       if (!editingRef.current) return;
       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); endEdit(true); }
       else if (e.key === 'Escape') { e.preventDefault(); endEdit(false); }
     };
+
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && !editingRef.current) {
         if (placingRef.current) cancelPlace();
         else cancel();
       }
     };
+
     document.addEventListener('mousemove', onMove, true);
     document.addEventListener('click', onClick, true);
     document.addEventListener('keydown', onEditKey, true);
@@ -269,7 +180,7 @@ function ToolOverlay({ storyId, component }: { storyId?: string; component?: str
       document.removeEventListener('keydown', onEditKey, true);
       document.removeEventListener('keydown', onKey, true);
     };
-  }, [storyId, component]);
+  }, [storyId, component, pins, hoverEl, placeZone]);
 
   const cancel = () => { composingRef.current = false; setComposing(null); setText(''); };
   const cancelPlace = () => { setPlacing(null); setText(''); setPlaceZone(null); setHover(null); modeRef.current = 'off'; placingRef.current = false; setModeState('off'); document.body.style.cursor = ''; addons.getChannel().emit(EVT_TOOL_MODE, { mode: 'off' }); };
@@ -296,24 +207,23 @@ function ToolOverlay({ storyId, component }: { storyId?: string; component?: str
       selectedComponent: description,
     };
 
-    // Create a visual placeholder immediately
     const phId = ++placeholderIdRef.current;
     setPlaceholders((p) => [...p, { id: phId, box: placing.box, description, zone: detectedZone, status: 'placing' }]);
 
-    // Emit the trigger — Tool.tsx will create a session + auto-open chat with sessionId
     addons.getChannel().emit(EVT_PLACE_TRIGGER, placePayload);
     setPins((p) => [...p, { n: p.length + 1, box: placing.box, text: `place ${detectedZone}: ${description}` }]);
     flash(`placing ${detectedZone} <${placing.target.tag}>`);
 
-    // Placeholder auto-clears after 10s or when story re-renders (HMR)
     setTimeout(() => {
       setPlaceholders((prev) => prev.filter((ph) => ph.id !== phId));
     }, 15000);
 
-    // Defer mode reset to avoid React batch conflicts — ensures tool turns off
-    // before any subsequent click could re-trigger placement
     setTimeout(() => cancelPlace(), 0);
   };
+
+  // Render the active tool's overlay via the registry
+  const activeDef = mode !== 'off' ? toolRegistry.get(mode) : undefined;
+  const activeOverlay = activeDef?.renderOverlay ? activeDef.renderOverlay(buildCtx()) : null;
 
   const popLeft = composing ? Math.min(composing.box.x, window.innerWidth - 300) : 0;
   const popTop = composing ? Math.min(composing.box.y + composing.box.height + 8, window.innerHeight - 130) : 0;
@@ -321,6 +231,10 @@ function ToolOverlay({ storyId, component }: { storyId?: string; component?: str
 
   return (
     <>
+      {/* Render active tool's overlay (e.g. wand hover highlight) */}
+      {activeOverlay}
+
+      {/* Pin badges */}
       {pins.map((p) => (
         <div key={`pin-${p.n}`} onClick={p.sessionId ? () => { addons.getChannel().emit(EVT_CHAT_MODE, { enabled: true, sessionId: p.sessionId }); } : undefined}
           title={p.text}
@@ -329,7 +243,7 @@ function ToolOverlay({ storyId, component }: { storyId?: string; component?: str
             boxShadow: '0 1px 4px rgba(0,0,0,.4)', cursor: p.sessionId ? 'pointer' : 'default' }}>{p.n}</div>
       ))}
 
-      {/* Placeholder overlays — pulsing skeleton where component will be inserted */}
+      {/* Placeholder overlays */}
       {placeholders.map((ph) => (
         <div key={`ph-${ph.id}`}
           style={{
@@ -341,40 +255,37 @@ function ToolOverlay({ storyId, component }: { storyId?: string; component?: str
             background: 'rgba(34,197,94,0.08)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             gap: 8,
-            animation: 'none', // inline keyframes via boxShadow pulse
-            boxShadow: '0 0 0 0 rgba(34,197,94,0.4)',
           }}>
           <div style={{
             display: 'flex', alignItems: 'center', gap: 8,
             background: 'rgba(0,0,0,0.7)', padding: '6px 12px', borderRadius: 6, fontSize: 12,
           }}>
-            <span style={{ display: 'inline-block', width: 14, height: 14, borderRadius: 999, border: '2px solid #22c55e', borderTopColor: 'transparent', animation: 'none', transform: 'rotate(0deg)' }}></span>
+            <span style={{ display: 'inline-block', width: 14, height: 14, borderRadius: 999, border: '2px solid #22c55e', borderTopColor: 'transparent' }}></span>
             <span style={{ color: '#22c55e', fontWeight: 600 }}>{ph.zone}</span>
             <span style={{ color: '#ccc' }}>{ph.description.slice(0, 40)}</span>
           </div>
         </div>
       ))}
 
+      {/* Toast/hint bar */}
       {(active || toast || placeholders.length > 0) && (
         <div style={{ position: 'fixed', top: 8, left: '50%', transform: 'translateX(-50%)', zIndex: 99999, background: '#111', color: '#fff', font: '12px sans-serif', padding: '5px 10px', borderRadius: 6, pointerEvents: 'none', boxShadow: '0 2px 8px rgba(0,0,0,.4)' }}>
-          {toast ?? (composing ? 'emdesign: type your comment' : placing ? `emdesign: describe what to place ${placing.zone}` : placeholders.length > 0 ? `✨ placing ${placeholders.length} component(s)...` : HINTS[mode])}
+          {toast ?? (composing ? 'emdesign: type your comment' : placing ? `emdesign: describe what to place ${placing.zone}` : placeholders.length > 0 ? `✨ placing ${placeholders.length} component(s)...` : activeDef?.hint ?? '')}
         </div>
       )}
 
-      {active && hover && !composing && !editingRef.current && mode === 'wand' && (
-        <div style={{ position: 'fixed', top: hover.top, left: hover.left, width: hover.width, height: hover.height, outline: `2px solid #a855f7`, background: 'rgba(168,85,247,0.10)', zIndex: 99998, pointerEvents: 'none' }}>
-          <div style={{ position: 'absolute', top: -22, right: -6, fontSize: 14, lineHeight: 1, pointerEvents: 'none' }}>🪄</div>
-        </div>
+      {/* Element hover highlight for tools without their own renderOverlay */}
+      {active && hover && !composing && !editingRef.current && mode !== 'wand' && mode !== 'place' && (
+        <div style={{ position: 'fixed', top: hover.top, left: hover.left, width: hover.width, height: hover.height, outline: `2px solid ${ACCENT}`, background: 'rgba(37,99,235,0.12)', zIndex: 99998, pointerEvents: 'none' }} />
       )}
 
+      {/* Place tool hover visuals — zone-specific highlight, guide line, badge */}
       {active && hover && !composing && !editingRef.current && mode === 'place' && placeZone && (
         <>
-          {/* Element highlight */}
           <div style={{ position: 'fixed', top: hover.top, left: hover.left, width: hover.width, height: hover.height,
             outline: placeZone === 'replace' ? '2px solid #ef4444' : '2px solid #22c55e',
             background: placeZone === 'replace' ? 'rgba(239,68,68,0.08)' : 'rgba(34,197,94,0.08)',
             zIndex: 99998, pointerEvents: 'none' }} />
-          {/* Insertion guide line */}
           {(placeZone === 'before' || placeZone === 'after') && (
             <div style={{ position: 'fixed',
               top: placeZone === 'before' ? hover.top - 2 : hover.bottom - 2,
@@ -386,7 +297,6 @@ function ToolOverlay({ storyId, component }: { storyId?: string; component?: str
               boxShadow: '0 0 8px rgba(34,197,94,0.6)',
               zIndex: 99999, pointerEvents: 'none' }} />
           )}
-          {/* Zone badge */}
           <div style={{ position: 'fixed',
             top: placeZone === 'before' ? hover.top - 18 : placeZone === 'after' ? hover.bottom + 4 : hover.top + 4,
             left: hover.left + 6,
@@ -399,10 +309,7 @@ function ToolOverlay({ storyId, component }: { storyId?: string; component?: str
         </>
       )}
 
-      {active && hover && !composing && !editingRef.current && mode !== 'wand' && mode !== 'place' && (
-        <div style={{ position: 'fixed', top: hover.top, left: hover.left, width: hover.width, height: hover.height, outline: `2px solid ${ACCENT}`, background: 'rgba(37,99,235,0.12)', zIndex: 99998, pointerEvents: 'none' }} />
-      )}
-
+      {/* Comment popover */}
       {composing && (
         <>
           <div style={{ position: 'fixed', top: composing.box.y, left: composing.box.x, width: composing.box.width, height: composing.box.height, outline: `2px solid ${ACCENT}`, background: 'rgba(37,99,235,0.12)', zIndex: 99998, pointerEvents: 'none' }} />
@@ -417,11 +324,11 @@ function ToolOverlay({ storyId, component }: { storyId?: string; component?: str
         </>
       )}
 
+      {/* Place popover */}
       {placing && (
         <>
-          {/* Backdrop — click anywhere outside the popup to dismiss */}
           <div onClick={(e) => { e.stopPropagation(); cancelPlace(); }} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 99999, background: 'transparent' }} />
-          <div style={{ position: 'fixed', top: placing.box.y, left: placing.box.x, width: placing.box.width, height: placing.box.height, outline: `2px solid #22c55e`, background: 'rgba(34,197,94,0.10)', zIndex: 100000, pointerEvents: 'none' }} />
+          <div style={{ position: 'fixed', top: placing.box.y, left: placing.box.x, width: placing.box.width, height: placing.box.height, outline: '2px solid #22c55e', background: 'rgba(34,197,94,0.10)', zIndex: 100000, pointerEvents: 'none' }} />
           <div style={{ position: 'fixed', top: Math.min(placing.box.y + placing.box.height + 8, window.innerHeight - 130), left: Math.min(placing.box.x, window.innerWidth - 300), width: 300, zIndex: 100001, background: '#1c1c1f', color: '#fff', border: '1px solid #333', borderRadius: 8, padding: 10, boxShadow: '0 6px 24px rgba(0,0,0,.5)', font: '13px sans-serif' }}>
             <div style={{ opacity: 0.7, fontSize: 11, marginBottom: 4 }}>&lt;{placing.target.tag}&gt; {placing.target.text ? `"${placing.target.text.slice(0, 32)}"` : ''} — <span style={{ color: '#22c55e', fontWeight: 700 }}>{placing.zone}</span></div>
             <textarea autoFocus value={text} onChange={(e) => setText(e.target.value)} placeholder={`what component to place ${placing.zone} here? e.g. "a stats card with trend indicator"`} rows={2} style={{ width: '100%', boxSizing: 'border-box', background: '#0f0f10', color: '#fff', border: '1px solid #333', borderRadius: 4, padding: 6, font: '13px sans-serif', resize: 'vertical' }} onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) sendPlace(); }} />

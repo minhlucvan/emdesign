@@ -36,6 +36,7 @@ export type IntentType =
   | 'create-view'
   | 'create-design-system'
   | 'update-design-system'
+  | 'refine-design-system'
   | 'wand'
   | 'auto-fix'
   | 'place';
@@ -250,6 +251,17 @@ export interface WorkflowSession {
 }
 
 export type RefinementScope = 'branding' | 'design-md' | 'colors' | 'typography' | 'spacing' | 'motion' | 'primitives' | 'all';
+
+export interface RegistrySystem {
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+  source: string;
+  completeness: 'full' | 'design-md-only' | 'minimal';
+  tokens: number;
+  primitives: string[];
+}
 
 export interface CreateOption {
   mode: string;

@@ -3,10 +3,10 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Session and process lifecycle management for emdesign — unified platform orchestrator. Read-side adapted from claude-run (MIT, github.com/nilbuild/claude-run).",
+  "description": "Session and process lifecycle management for emdesign \u2014 unified platform orchestrator. Read-side adapted from claude-run (MIT, github.com/nilbuild/claude-run).",
   "main": "dist/index.js",
   "exports": {
-    ".": "./src/index.ts",
+    ".": "./dist/index.js",
     "./web": "./web/main.tsx"
   },
   "scripts": {

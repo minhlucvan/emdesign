@@ -52,23 +52,24 @@ const EmptyState = styled.div(({ theme }) => ({
 export interface MotionCardProps {
   system: DesignSystemFull;
   scope?: RefinementScope;
-  onAction?: (payload: { scope: RefinementScope }) => void;
+  onAction?: (payload: { scope: RefinementScope; instruction?: string }) => void;
+  refinementStatus?: 'idle' | 'refining' | 'queued' | 'success' | 'error';
 }
 
-export function MotionCard({ system, scope = 'motion', onAction }: MotionCardProps) {
+export function MotionCard({ system, scope = 'motion', onAction, refinementStatus }: MotionCardProps) {
   const durationTokens = system.tokens.filter((t) => t.kind === 'duration');
   const easingTokens = system.tokens.filter((t) => t.kind === 'easing');
 
   if (durationTokens.length === 0 && easingTokens.length === 0) {
     return (
-      <SectionCard title="Motion" scope={scope} defaultCollapsed={false} onAction={onAction}>
+      <SectionCard title="Motion" scope={scope} defaultCollapsed={true} onAction={onAction} refinementStatus={refinementStatus}>
         <EmptyState>No motion tokens</EmptyState>
       </SectionCard>
     );
   }
 
   return (
-    <SectionCard title="Motion" scope={scope} defaultCollapsed={false} onAction={onAction}>
+    <SectionCard title="Motion" scope={scope} defaultCollapsed={true} onAction={onAction} refinementStatus={refinementStatus}>
       {durationTokens.length > 0 && (
         <>
           <TokenGrid>

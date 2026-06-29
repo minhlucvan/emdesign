@@ -54,10 +54,11 @@ const RADIUS_SLIDER = { min: 0, max: 24, step: 2 };
 export interface SpacingCardProps {
   system: DesignSystemFull;
   scope?: RefinementScope;
-  onAction?: (payload: { scope: RefinementScope }) => void;
+  onAction?: (payload: { scope: RefinementScope; instruction?: string }) => void;
+  refinementStatus?: 'idle' | 'refining' | 'queued' | 'success' | 'error';
 }
 
-export function SpacingCard({ system, scope = 'spacing', onAction }: SpacingCardProps) {
+export function SpacingCard({ system, scope = 'spacing', onAction, refinementStatus }: SpacingCardProps) {
   const dimensionTokens = system.tokens.filter((t) => t.kind === 'dimension');
   const spaceToken = dimensionTokens.find((t) => t.role === 'space-unit');
   const radiusTokens = dimensionTokens.filter((t) => t.role.startsWith('radius-'));
@@ -75,14 +76,14 @@ export function SpacingCard({ system, scope = 'spacing', onAction }: SpacingCard
 
   if (dimensionTokens.length === 0) {
     return (
-      <SectionCard title="Spacing & Shape" scope={scope} defaultCollapsed={false} onAction={onAction}>
+      <SectionCard title="Spacing & Shape" scope={scope} defaultCollapsed={true} onAction={onAction} refinementStatus={refinementStatus}>
         <EmptyState>No spacing tokens</EmptyState>
       </SectionCard>
     );
   }
 
   return (
-    <SectionCard title="Spacing & Shape" scope={scope} defaultCollapsed={false} onAction={onAction}>
+    <SectionCard title="Spacing & Shape" scope={scope} defaultCollapsed={true} onAction={onAction} refinementStatus={refinementStatus}>
       <SliderRow>
         <SliderLabel>Space unit</SliderLabel>
         <SliderControl

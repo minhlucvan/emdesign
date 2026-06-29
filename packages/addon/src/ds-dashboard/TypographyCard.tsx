@@ -65,24 +65,25 @@ const PREVIEW_SENTENCE = 'The quick brown fox jumps over the lazy dog';
 export interface TypographyCardProps {
   system: DesignSystemFull;
   scope?: RefinementScope;
-  onAction?: (payload: { scope: RefinementScope }) => void;
+  onAction?: (payload: { scope: RefinementScope; instruction?: string }) => void;
+  refinementStatus?: 'idle' | 'refining' | 'queued' | 'success' | 'error';
 }
 
-export function TypographyCard({ system, scope = 'typography', onAction }: TypographyCardProps) {
+export function TypographyCard({ system, scope = 'typography', onAction, refinementStatus }: TypographyCardProps) {
   const fontTokens = system.tokens.filter((t) => t.kind === 'font');
   const [editingRole, setEditingRole] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
 
   if (fontTokens.length === 0) {
     return (
-      <SectionCard title="Typography" scope={scope} defaultCollapsed={false} onAction={onAction}>
+      <SectionCard title="Typography" scope={scope} defaultCollapsed={false} onAction={onAction} refinementStatus={refinementStatus}>
         <EmptyState>No font tokens</EmptyState>
       </SectionCard>
     );
   }
 
   return (
-    <SectionCard title="Typography" scope={scope} defaultCollapsed={false} onAction={onAction}>
+    <SectionCard title="Typography" scope={scope} defaultCollapsed={false} onAction={onAction} refinementStatus={refinementStatus}>
       <FontGrid>
         {fontTokens.map((t) => (
           <FontCard key={t.role} onClick={() => { setEditingRole(t.role); setEditValue(t.value); }}>

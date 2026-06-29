@@ -4,12 +4,14 @@
   "type": "module",
   "description": "emdesign Tailwind CSS plugin (styling): class<->token-role map, tailwind.config<->tokens parsing, theming, and config emission from the token contract.",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./dist/index.js"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json"
   },
-  "dependencies": { "@emdesign/plugin-api": "*" },
+  "dependencies": {
+    "@emdesign/plugin-api": "*"
+  },
   "devDependencies": {
     "@types/node": "^20.14.0",
     "typescript": "^5.5.0"

@@ -75,7 +75,8 @@ function isValidHex(value: string): boolean {
 export interface ColorsCardProps {
   system: DesignSystemFull;
   scope?: RefinementScope;
-  onAction?: (payload: { scope: RefinementScope }) => void;
+  onAction?: (payload: { scope: RefinementScope; instruction?: string }) => void;
+  refinementStatus?: 'idle' | 'refining' | 'queued' | 'success' | 'error';
 }
 
 const COLOR_GROUPS: Record<string, string[]> = {
@@ -86,7 +87,7 @@ const COLOR_GROUPS: Record<string, string[]> = {
   'Status colors': ['color-success', 'color-error', 'color-warning'],
 };
 
-export function ColorsCard({ system, scope = 'colors', onAction }: ColorsCardProps) {
+export function ColorsCard({ system, scope = 'colors', onAction, refinementStatus }: ColorsCardProps) {
   const colorTokens = system.tokens.filter((t) => t.kind === 'color');
   const [editingRole, setEditingRole] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
@@ -105,7 +106,7 @@ export function ColorsCard({ system, scope = 'colors', onAction }: ColorsCardPro
 
   if (colorTokens.length === 0) {
     return (
-      <SectionCard title="Colors" scope={scope} defaultCollapsed={false} onAction={onAction}>
+      <SectionCard title="Colors" scope={scope} defaultCollapsed={false} onAction={onAction} refinementStatus={refinementStatus}>
         <EmptyState>No color tokens</EmptyState>
       </SectionCard>
     );

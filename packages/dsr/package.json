@@ -2,9 +2,9 @@
   "name": "@emdesign/dsr",
   "version": "0.0.0",
   "type": "module",
-  "description": "emdesign design-system runtime — the DDD domain layer over the @emdesign/graph data model. Load/read/manage a design system like a typed code library: aggregates, value objects, a rule engine, validation, references, conflicts, cache, and history. Design as code.",
+  "description": "emdesign design-system runtime \u2014 the DDD domain layer over the @emdesign/graph data model. Load/read/manage a design system like a typed code library: aggregates, value objects, a rule engine, validation, references, conflicts, cache, and history. Design as code.",
   "exports": {
-    ".": "./src/index.ts",
+    ".": "./dist/index.js",
     "./charters/runner": "./src/charters/runner.ts",
     "./charters/story-charter": "./src/charters/story-charter.ts"
   },

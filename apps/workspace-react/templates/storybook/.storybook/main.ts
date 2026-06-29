@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 /** emdesign React/Tailwind workspace — Storybook host. `@emdesign/addon` adds the design panel. */
 const here = path.dirname(fileURLToPath(import.meta.url));
 const activeFile = path.resolve(here, '../.emdesign/active-ds');
-const activeDs = fs.existsSync(activeFile) ? fs.readFileSync(activeFile, 'utf8').trim() : 'atelier';
+const activeDs = fs.existsSync(activeFile) ? fs.readFileSync(activeFile, 'utf8').trim() : null;
 
 const config: StorybookConfig = {
   stories: [
@@ -21,7 +21,7 @@ const config: StorybookConfig = {
     vite.resolve.alias = {
       ...(vite.resolve.alias ?? {}),
       // `@ds` → the ACTIVE design system's primitives (set by `emdesign use <id>` → .emdesign/active-ds).
-      '@ds': path.resolve(here, `../design-systems/${activeDs}/code`),
+      ...(activeDs ? { '@ds': path.resolve(here, `../design-systems/${activeDs}/code`) } : {}),
     };
     return vite;
   },

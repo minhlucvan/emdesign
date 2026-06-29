@@ -2,9 +2,9 @@
   "name": "@emdesign/plugin-core",
   "version": "0.0.0",
   "type": "module",
-  "description": "Universal always-on design-system rules for emdesign — stack-agnostic production-readiness review (doctorRules) and rendered-artifact lint (renderedDoctorRules: overlap, contrast, spacing, tap-target, type-scale, overflow). Active in every emdesign project via 'core' injection.",
+  "description": "Universal always-on design-system rules for emdesign \u2014 stack-agnostic production-readiness review (doctorRules) and rendered-artifact lint (renderedDoctorRules: overlap, contrast, spacing, tap-target, type-scale, overflow). Active in every emdesign project via 'core' injection.",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./dist/index.js"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json"
