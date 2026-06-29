@@ -1024,27 +1024,40 @@ export async function importAwesomeDesign(paths: RepoPaths, brand: string, opts?
   // Scaffold default primitives from atelier
   try { scaffoldPrimitives(paths, id, 'atelier'); } catch { /* optional */ }
 
-  // Generate and save rich preview.html
+  // Fetch preview.html from getdesign.md (authoritative source)
+  // Falls back to local generation if remote is unavailable.
   try {
-    const colors = typeof frontmatter.colors === 'object' ? frontmatter.colors : undefined;
-    const previewHtml = generatePreviewHtml({
-      name: opts?.name ?? brand,
-      description: frontmatter.description,
-      category: frontmatter.category ?? 'Brand',
-      colors,
-      fonts: {
-        display: frontmatter.font?.heading || frontmatter.typography?.heading,
-        body: frontmatter.font?.body || frontmatter.typography?.sans,
-        mono: frontmatter.font?.mono,
-      },
-      spacing: frontmatter.spacing?.unit,
-      accentColor: colors?.primary || colors?.accent,
-      surface: colors?.surface || colors?.background,
-    });
-    fs.writeFileSync(path.join(dir, 'reference-example.html'), previewHtml);
-  } catch (e) {
-    // Preview generation is optional — don't fail the import
-    console.warn(`[emdesign] Preview generation skipped for '${brand}': ${e}`);
+    const previewUrl = `https://getdesign.md/design-md/${brand}/preview.html`;
+    const previewResp = await fetch(previewUrl, { signal: AbortSignal.timeout(8000) });
+    if (previewResp.ok) {
+      const previewHtml = await previewResp.text();
+      fs.writeFileSync(path.join(dir, 'reference-example.html'), previewHtml);
+    } else {
+      throw new Error(`HTTP ${previewResp.status}`);
+    }
+  } catch {
+    // Fallback: generate a local preview from frontmatter
+    try {
+      const colors = typeof frontmatter.colors === 'object' ? frontmatter.colors : undefined;
+      const previewHtml = generatePreviewHtml({
+        name: opts?.name ?? brand,
+        description: frontmatter.description,
+        category: frontmatter.category ?? 'Brand',
+        colors,
+        fonts: {
+          display: frontmatter.font?.heading || frontmatter.typography?.heading,
+          body: frontmatter.font?.body || frontmatter.typography?.sans,
+          mono: frontmatter.font?.mono,
+        },
+        spacing: frontmatter.spacing?.unit,
+        accentColor: colors?.primary || colors?.accent,
+        surface: colors?.surface || colors?.background,
+      });
+      fs.writeFileSync(path.join(dir, 'reference-example.html'), previewHtml);
+    } catch (e) {
+      // Preview is optional — don't fail the import
+      console.warn(`[emdesign] Preview generation skipped for '${brand}': ${e}`);
+    }
   }
 
   const tokens = parseDeclaredTokens(tokensCss).length;
