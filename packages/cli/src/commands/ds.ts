@@ -24,6 +24,8 @@ import {
   searchDesignSystems,
   importAwesomeDesign,
   importGitDesign,
+  importProjectDesign,
+  summarizeReport,
   getDesignSystemInfo,
   getLintRules,
   setLintRule,
@@ -241,7 +243,7 @@ export async function cmdDs(ds: DsArgs, paths: RepoPaths, store: Store): Promise
       const importSrc = a1; // awesome | git | vendor | npm | url
       const importId = a2;
       if (!importSrc || !importId) {
-        formatError('usage: emdesign ds import <awesome|git|vendor> <id> [--name <name>] [--ref <branch>] [--path <dir>]');
+        formatError('usage: emdesign ds import <awesome|git|vendor|project> <id|path> [--name <name>] [--id <id>] [--ref <branch>] [--path <dir>]');
         process.exit(1);
       }
       const importNameIdx = ds.argv.indexOf('--name');
@@ -259,8 +261,32 @@ export async function cmdDs(ds: DsArgs, paths: RepoPaths, store: Store): Promise
         const fromBase = `open-design/${importId}`;
         const r = createDesignSystem(paths, { id: importName ?? importId, mode: 'import', from: fromBase });
         out(r, ds.json);
+      } else if (importSrc === 'project') {
+        // Reverse-engineer an existing project into a design system + adopt its components.
+        const projectPath = path.resolve(importId);
+        const idIdx = ds.argv.indexOf('--id');
+        const idOpt = idIdx >= 0 ? ds.argv[idIdx + 1] : undefined;
+        // Stage progress goes to stderr in --json mode so stdout stays clean JSON.
+        const progress = ds.json ? process.stderr : process.stdout;
+        let result;
+        try {
+          result = await importProjectDesign(paths, projectPath, { name: importName, id: idOpt });
+        } catch (e) {
+          formatError(`ds import project failed: ${e instanceof Error ? e.message : String(e)}`);
+          process.exit(1);
+          return;
+        }
+        for (const s of result.stages) {
+          progress.write(`  ${s.name}: ${s.status}\n`);
+        }
+        if (ds.json) {
+          formatJson(result.report);
+        } else {
+          process.stdout.write(summarizeReport(result.report) + '\n');
+        }
+        if (ds.gate && result.gate !== 'pass') process.exit(1);
       } else {
-        formatError(`Unknown import source: ${importSrc}. Use: awesome, git, vendor`);
+        formatError(`Unknown import source: ${importSrc}. Use: awesome, git, vendor, project`);
         process.exit(1);
       }
       break;
