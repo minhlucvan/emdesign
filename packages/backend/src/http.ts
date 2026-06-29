@@ -286,7 +286,8 @@ export async function createHttpBridge(store: Store, paths: RepoPaths, orch?: an
       // Enqueue — runs when a slot is available (max 3 concurrent)
       workflowQueue.enqueue(sessionId);
 
-      res.json({ sessionId, id: brand, queued: true, running: workflowQueue.runningCount, pending: workflowQueue.queuedCount });
+      const systemId = (name || brand).toLowerCase().replace(/[^a-z0-9-]/g, '-');
+      res.json({ sessionId, id: systemId, queued: true, running: workflowQueue.runningCount, pending: workflowQueue.queuedCount });
     } catch (e) {
       res.status(500).json({ error: (e as Error).message });
     }
