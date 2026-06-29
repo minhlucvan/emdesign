@@ -18,6 +18,8 @@ import {
   type PlatformState,
   type ServiceType,
 } from './constants';
+
+export { BACKEND_URL };
 import type { CommentTarget } from './channel';
 
 async function json<T>(path: string, init?: RequestInit): Promise<T> {

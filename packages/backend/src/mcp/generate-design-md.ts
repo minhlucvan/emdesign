@@ -16,7 +16,7 @@ export interface GenerateDesignMdInput {
   baseRef?: string;
 }
 
-const SECTION_TEMPLATES: Record<string, string> = {
+const SECTION_TEMPLATES: Record<string, (...args: any[]) => string> = {
   'Visual Theme & Atmosphere': (
     mood: string, accent: string
   ) => `The system evokes a ${mood} atmosphere.

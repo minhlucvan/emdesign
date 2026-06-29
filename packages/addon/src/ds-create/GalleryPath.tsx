@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { styled } from '@storybook/theming';
-import { api } from '../api';
+import { api, BACKEND_URL } from '../api';
 import { Row, Stack, Muted, Input, Btn, Pill } from '../ui';
 import { CustomizeForm } from './CustomizeForm';
 import type { DesignSystemBase, RegistrySystem } from '../constants';
@@ -94,18 +94,15 @@ export function GalleryPath({ onProgress, onComplete }: GalleryPathProps) {
     return true;
   });
 
-  // When selecting an awesome entry, trigger import
+  // When selecting an awesome entry, trigger import via backend
   const handleSelectAwesome = useCallback(async (entry: RegistrySystem) => {
     setSelectedAwesome(entry);
-    // Import directly
     try {
-      const res = await fetch(`/api/design-systems/from-design-md`, {
+      const brand = entry.source.replace('awesome/', '');
+      const res = await fetch(`${BACKEND_URL}/api/design-systems/import-awesome`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          source: entry.source,
-          name: entry.name,
-        }),
+        body: JSON.stringify({ brand, name: entry.name }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -168,7 +165,7 @@ export function GalleryPath({ onProgress, onComplete }: GalleryPathProps) {
           return (
             <Card key={`a-${s.id}`} onClick={() => handleSelectAwesome(s)}>
               <PreviewArea bg={`linear-gradient(135deg, #667eea 0%, #764ba2 100%)`}>
-                <BrandBadge>DESIGN.md</BrandBadge>
+                <iframe src={`${BACKEND_URL}/api/bases/awesome/${s.id}/preview`} style={{ width: '100%', height: '100%', border: 'none' }} />
               </PreviewArea>
               <CardBody>
                 <CardName>{s.name}</CardName>

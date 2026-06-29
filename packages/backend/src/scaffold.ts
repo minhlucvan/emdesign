@@ -685,7 +685,7 @@ export async function searchDesignSystems(query?: string, opts?: { limit?: numbe
     if (resp.ok) {
       const readme = await resp.text();
       // Parse brand entries from README table — each row has a brand name and link
-      const brandRegex = /\| \[(\w[\w\s.-]+)\]\(https:\/\/github\.com\/voltagent\/awesome-design-md\/tree\/main\/([\w.-]+)\)/g;
+      const brandRegex = /-\s+\[\*\*([^*]+)\*\*\]\(https:\/\/getdesign\.md\/([^/]+)\/design-md\)\s*-\s*(.+)/g;
       const seen = new Set<string>();
       let match;
       while ((match = brandRegex.exec(readme)) !== null) {
@@ -760,8 +760,8 @@ export async function importAwesomeDesign(paths: RepoPaths, brand: string, opts?
   if (fs.existsSync(dir)) throw new Error(`Design system '${id}' already exists at ${dir}`);
   ensureDir(dir);
 
-  // Fetch DESIGN.md from awesome-design-md
-  const designMdUrl = `${AWESOME_DESIGN_MD_REPO}/${brand}/DESIGN.md`;
+  // Fetch DESIGN.md from awesome-design-md (brand dirs are under design-md/)
+  const designMdUrl = `${AWESOME_DESIGN_MD_REPO}/design-md/${brand}/DESIGN.md`;
   const resp = await fetch(designMdUrl);
   if (!resp.ok) throw new Error(`Brand '${brand}' not found in awesome-design-md (${resp.status})`);
   const designMd = await resp.text();
@@ -793,7 +793,7 @@ export async function importAwesomeDesign(paths: RepoPaths, brand: string, opts?
   return { id, note: `Imported '${brand}' as '${id}': ${tokens} tokens, primitives scaffolded.` };
 }
 
-function parseYamlFrontmatter(md: string): Record<string, any> {
+export function parseYamlFrontmatter(md: string): Record<string, any> {
   const result: Record<string, any> = {};
   const match = md.match(/^---\n([\s\S]*?)\n---/);
   if (!match) return result;

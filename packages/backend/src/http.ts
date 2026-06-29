@@ -14,7 +14,7 @@ import { resolveDesignSystem } from './designContext.js';
 import { countMustFix } from './lint/index.js';
 import { effectiveAdapter } from './adapters/index.js';
 import { runtimeFor } from './runtime.js';
-import { applyDesignSystem, listBases, listBaseCategories, baseDetail, basePreviewHtml, customizeDesignSystem } from './scaffold.js';
+import { applyDesignSystem, listBases, listBaseCategories, baseDetail, basePreviewHtml, customizeDesignSystem, searchDesignSystems, importAwesomeDesign, parseYamlFrontmatter } from './scaffold.js';
 import { loadOrBuild, buildAndSave } from './graph.js';
 import { RULES, RULES_BY_ID } from '@emdesign/graph';
 import { lintFrameworkCharters, lintDesignSystem, lintRendered, mergeReports } from '@emdesign/doctor';
@@ -101,16 +101,18 @@ function computeSurface(store: Store, paths: RepoPaths): SurfaceData {
   const lintFindings: Array<{ ruleId: string; severity: string; message: string }> = [];
   if (ds) {
     try {
-      const lintResult = lintDesignSystem(ds, { strict: false });
-      if (lintResult.failed.length) {
-        for (const f of lintResult.failed) {
-          lintFindings.push({
-            ruleId: f.ruleId || 'lint',
-            severity: f.level === 'error' ? 'P0' : 'P1',
-            message: f.message,
-          });
+      try {
+        const lintResult = lintDesignSystem(paths.activeDesignSystem, { strict: false } as any);
+        if ((lintResult as any).failed?.length) {
+          for (const f of (lintResult as any).failed) {
+            lintFindings.push({
+              ruleId: f.ruleId || 'lint',
+              severity: f.level === 'error' ? 'P0' : 'P1',
+              message: f.message,
+            });
+          }
         }
-      }
+      } catch {}
     } catch { /* lint may fail on incomplete DS */ }
   }
 
@@ -235,6 +237,69 @@ export async function createHttpBridge(store: Store, paths: RepoPaths, orch?: an
       const html = basePreviewHtml(paths, req.params.id, overrides);
       if (!html) return res.status(404).json({ error: `No preview available for '${req.params.id}'.` });
       res.type('html').send(html);
+    } catch (e) { res.status(500).json({ error: (e as Error).message }); }
+  });
+
+  // Registry — merged catalog of vendor bases + awesome-design-md (remote), cached 5 min.
+  let registryCache: { data: unknown; expiry: number } | null = null;
+  app.get('/api/bases/registry', async (_req, res) => {
+    try {
+      if (registryCache && Date.now() < registryCache.expiry) {
+        return res.json(registryCache.data);
+      }
+      const entries = await searchDesignSystems(undefined, { limit: 100 });
+      const data = { systems: entries, total: entries.length };
+      registryCache = { data, expiry: Date.now() + 300_000 };
+      res.json(data);
+    } catch (e) {
+      if (registryCache) return res.json(registryCache.data);
+      res.status(500).json({ error: (e as Error).message });
+    }
+  });
+
+  // Import a design system from awesome-design-md by brand name.
+  app.post('/api/design-systems/import-awesome', async (req, res) => {
+    try {
+      const { brand, name } = req.body;
+      if (!brand) return res.status(400).json({ error: 'brand is required.' });
+      const result = await importAwesomeDesign(paths, brand, { name });
+      res.json(result);
+    } catch (e) {
+      res.status(500).json({ error: (e as Error).message });
+    }
+  });
+
+  // Generate a preview HTML for an awesome-design-md entry from its DESIGN.md.
+  app.get('/api/bases/awesome/:id/preview', async (req, res) => {
+    try {
+      const brand = req.params.id;
+      const url = `https://raw.githubusercontent.com/voltagent/awesome-design-md/main/design-md/${brand}/DESIGN.md`;
+      const resp = await fetch(url);
+      if (!resp.ok) return res.status(404).json({ error: `DESIGN.md not found for '${brand}'.` });
+      const md = await resp.text();
+      const fm = parseYamlFrontmatter(md);
+      const colors = typeof fm.colors === 'object' ? fm.colors : {};
+      const primary = colors.primary || colors.background || '#667eea';
+      const surface = colors.background || colors.surface || '#ffffff';
+      const textColor = colors.text || '#1a1a2e';
+      const font = fm.font?.heading || fm.typography?.heading || 'system-ui';
+
+      res.type('html').send(`<!DOCTYPE html>
+<html><head><meta charset="utf-8"><style>
+  body { margin: 0; font-family: ${font}, system-ui, sans-serif; background: ${surface}; color: ${textColor}; }
+  .preview { padding: 24px; }
+  .swatch { display: inline-block; width: 28px; height: 28px; border-radius: 6px; margin: 4px; border: 1px solid rgba(0,0,0,0.1); }
+  h3 { margin: 0 0 8px; font-size: 14px; }
+  .grid { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 16px; }
+  .font-sample { font-size: 15px; line-height: 1.5; margin-bottom: 8px; }
+</style></head><body>
+<div class="preview">
+  <h3>Colors</h3>
+  <div class="grid">${Object.entries(colors).map(([k, v]) => `<span class="swatch" style="background:${v}" title="${k}: ${v}"></span>`).join('')}</div>
+  <h3>Typography</h3>
+  <div class="font-sample" style="font-family:'${font}'">The quick brown fox jumps over the lazy dog.</div>
+  <div style="font-size:11px;color:#999;margin-top:16px">${brand} · awesome-design-md</div>
+</div></body></html>`);
     } catch (e) { res.status(500).json({ error: (e as Error).message }); }
   });
 
