@@ -168,7 +168,7 @@ export function DesignSystemTab() {
             <div style={{ flex: 1 }}>
               <ProgressView
                 sessionId={workflowSession}
-                creationMode={creationMode === 'design-md' ? 'design-md' : 'from-prompt'}
+                creationMode={creationMode === 'design-md' ? 'design-md' : creationMode === 'gallery' ? 'import-awesome' : 'from-prompt'}
                 onComplete={() => {
                   setWorkflowSession(null);
                   setCreationMode(null);

@@ -41,6 +41,15 @@ const MD_STAGES: WorkflowStage[] = [
   { id: 4, name: 'Validating', status: 'pending' },
 ];
 
+const IMPORT_STAGES: WorkflowStage[] = [
+  { id: 0, name: 'Fetching DESIGN.md', status: 'pending' },
+  { id: 1, name: 'Parsing frontmatter', status: 'pending' },
+  { id: 2, name: 'Generating tokens.css', status: 'pending' },
+  { id: 3, name: 'Scaffolding primitives', status: 'pending' },
+  { id: 4, name: 'Generating preview', status: 'pending' },
+  { id: 5, name: 'Validating', status: 'pending' },
+];
+
 const statusIcon: Record<WorkflowStageStatus, string> = {
   pending: '○',
   running: '↻',
@@ -50,7 +59,7 @@ const statusIcon: Record<WorkflowStageStatus, string> = {
 
 interface ProgressViewProps {
   sessionId: string;
-  creationMode: 'from-prompt' | 'design-md';
+  creationMode: 'from-prompt' | 'design-md' | 'import-awesome';
   onComplete?: (id: string) => void;
   onError?: (err: Error) => void;
 }

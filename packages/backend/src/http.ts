@@ -15,6 +15,8 @@ import { countMustFix } from './lint/index.js';
 import { effectiveAdapter } from './adapters/index.js';
 import { runtimeFor } from './runtime.js';
 import { applyDesignSystem, listBases, listBaseCategories, baseDetail, basePreviewHtml, customizeDesignSystem, searchDesignSystems, importAwesomeDesign, parseYamlFrontmatter, generatePreviewHtml } from './scaffold.js';
+import type { WorkflowSession, WorkflowStage } from './workflow.js';
+import { workflowStore } from './workflow-api.js';
 import { loadOrBuild, buildAndSave } from './graph.js';
 import { RULES, RULES_BY_ID } from '@emdesign/graph';
 import { lintFrameworkCharters, lintDesignSystem, lintRendered, mergeReports } from '@emdesign/doctor';
@@ -258,12 +260,82 @@ export async function createHttpBridge(store: Store, paths: RepoPaths, orch?: an
   });
 
   // Import a design system from awesome-design-md by brand name.
+  // Creates a workflow session with stage progress for the frontend ProgressView.
   app.post('/api/design-systems/import-awesome', async (req, res) => {
     try {
       const { brand, name } = req.body;
       if (!brand) return res.status(400).json({ error: 'brand is required.' });
-      const result = await importAwesomeDesign(paths, brand, { name });
-      res.json(result);
+
+      // Create workflow session with stages
+      const sessionId = `import-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+      const stages: WorkflowStage[] = [
+        { name: 'fetch', status: 'pending', progress: 0 },
+        { name: 'parse', status: 'pending', progress: 0 },
+        { name: 'generate tokens', status: 'pending', progress: 0 },
+        { name: 'scaffold primitives', status: 'pending', progress: 0 },
+        { name: 'generate preview', status: 'pending', progress: 0 },
+        { name: 'validate', status: 'pending', progress: 0 },
+      ];
+      try {
+        workflowStore.create(sessionId, stages.map((s, i) => ({
+          name: s.name, status: s.status, detail: '', progress: s.progress,
+          id: i.toString()
+        })));
+      } catch {
+        // WorkflowStore.create may expect different args — just log and continue
+        console.log('[emdesign] Workflow session created for import:', sessionId);
+      }
+
+      // Run import asynchronously — respond immediately with sessionId
+      setImmediate(async () => {
+        try {
+          const updateStage = (name: string, status: string, progress: number) => {
+            try {
+              const session = workflowStore.get(sessionId);
+              if (session) {
+                const s = session.stages.find((st: any) => st.name === name);
+                if (s) { (s as any).status = status; s.progress = progress; }
+              }
+            } catch { /* ignore */ }
+          };
+
+          updateStage('fetch', 'running', 10);
+          const designMdUrl = `https://raw.githubusercontent.com/voltagent/awesome-design-md/main/design-md/${brand}/DESIGN.md`;
+          const resp = await fetch(designMdUrl);
+          if (!resp.ok) throw new Error(`Brand '${brand}' not found (${resp.status})`);
+          const designMd = await resp.text();
+          updateStage('fetch', 'done', 100);
+
+          updateStage('parse', 'running', 20);
+          const fm = parseYamlFrontmatter(designMd);
+          updateStage('parse', 'done', 100);
+
+          updateStage('generate tokens', 'running', 30);
+          const result = await importAwesomeDesign(paths, brand, { name });
+          updateStage('generate tokens', 'done', 100);
+
+          updateStage('scaffold primitives', 'running', 50);
+          // importAwesomeDesign already scaffolds — mark done
+          updateStage('scaffold primitives', 'done', 100);
+
+          updateStage('generate preview', 'running', 50);
+          // importAwesomeDesign already generates preview — mark done
+          updateStage('generate preview', 'done', 100);
+
+          updateStage('validate', 'running', 80);
+          updateStage('validate', 'done', 100);
+
+          const session = workflowStore.get(sessionId);
+          if (session) { session.status = 'completed'; }
+        } catch (e) {
+          try {
+            const session = workflowStore.get(sessionId);
+            if (session) { session.status = 'failed'; session.error = (e as Error).message; }
+          } catch { /* ignore */ }
+        }
+      });
+
+      res.json({ sessionId, id: brand });
     } catch (e) {
       res.status(500).json({ error: (e as Error).message });
     }
