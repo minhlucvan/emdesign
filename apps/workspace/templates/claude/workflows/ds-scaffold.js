@@ -2,17 +2,19 @@
 // Core scaffold workflow: turn any DESIGN.md into a complete design system.
 // Generates: manifest.json, tokens.css, code/ primitives, graph.json, validated rules.
 //
-// Usage: workflow('ds-scaffold', { id, designMdPath, source?, name?, description? })
+// Usage: workflow('ds-scaffold', { id, designMdPath, source?, name?, description?, dials? })
 //   id             - kebab-case id for the new design system
 //   designMdPath   - path to a local DESIGN.md file (can be set up by ds-import)
 //   source         - optional source attribution (e.g. 'awesome/airbnb')
 //   name           - optional display name (defaults from DESIGN.md frontmatter)
 //   description    - optional description (defaults from DESIGN.md frontmatter)
+//   dials          - optional { variance, motion, density } from ds-taste-profile
 export const meta = {
   name: 'ds-scaffold',
   description: 'Scaffold a complete design system from DESIGN.md: manifest, tokens.css, code/ primitives, graph, validation.',
   phases: [
     { title: 'Parse', detail: 'Parse DESIGN.md frontmatter + sections' },
+    { title: 'Read taste', detail: 'Load design taste profile for generation guidance' },
     { title: 'Generate tokens', detail: 'Build tokens.css from colors, typography, spacing' },
     { title: 'Scaffold primitives', detail: 'Generate code/ primitives (Button, Input, Card, Badge…)' },
     { title: 'Build graph', detail: 'Build knowledge graph.json for the design system' },
@@ -20,7 +22,7 @@ export const meta = {
   ],
 }
 
-const { id, designMdPath, source, name: displayName, description: displayDesc } = args
+const { id, designMdPath, source, name: displayName, description: displayDesc, dials: tasteDials } = args
 if (!id) throw new Error('ds-scaffold: id is required')
 if (!designMdPath) throw new Error('ds-scaffold: designMdPath is required')
 
@@ -60,6 +62,54 @@ try {
   throw new Error(`[ds-scaffold] Failed to create directory: ${e.message}`)
 }
 
+phase('Read taste')
+log(`[ds-scaffold] Reading design taste profile`)
+
+// Load taste context — check per-system skill first, then core reference
+let tasteContext = ''
+let dials = tasteDials || { variance: 5, motion: 5, density: 5 }
+
+if (!tasteDials) {
+  try {
+    const tasteSkill = await $`cat ${dsDir}/skills/taste/SKILL.md 2>/dev/null`
+    if (tasteSkill) {
+      const vMatch = tasteSkill.match(/DESIGN_VARIANCE:\s*(\d+)/)
+      const mMatch = tasteSkill.match(/MOTION_INTENSITY:\s*(\d+)/)
+      const dMatch = tasteSkill.match(/VISUAL_DENSITY:\s*(\d+)/)
+      if (vMatch) dials.variance = parseInt(vMatch[1])
+      if (mMatch) dials.motion = parseInt(mMatch[1])
+      if (dMatch) dials.density = parseInt(dMatch[1])
+      tasteContext = tasteSkill
+      log(`[ds-scaffold] Found per-system taste skill: V${dials.variance} / M${dials.motion} / D${dials.density}`)
+    }
+  } catch { /* no per-system skill */ }
+
+  if (!tasteContext) {
+    try {
+      tasteContext = await $`cat .claude/skills/design-taste/THE_DIALS.md 2>/dev/null`
+      log(`[ds-scaffold] Using core design-taste reference`)
+    } catch {
+      log(`[ds-scaffold] No taste reference — defaults V${dials.variance} / M${dials.motion} / D${dials.density}`)
+    }
+  }
+} else {
+  log(`[ds-scaffold] Using caller dials: V${dials.variance} / M${dials.motion} / D${dials.density}`)
+}
+
+// Build taste prompt snippet
+const tasteDesc = {
+  variance: dials.variance <= 3 ? 'Conventional, safe, standard' : dials.variance <= 6 ? 'Characterful, one distinctive move' : 'Bold, experimental, opinionated',
+  motion: dials.motion <= 3 ? 'Static, minimal animation' : dials.motion <= 6 ? 'Purposeful micro-interactions' : 'Expressive, animated',
+  density: dials.density <= 3 ? 'Airy, generous whitespace' : dials.density <= 6 ? 'Balanced, comfortable' : 'Compact, efficient',
+}
+const tastePrompt = `## Design Taste Context
+Dial settings: V${dials.variance} (${tasteDesc.variance}) / M${dials.motion} (${tasteDesc.motion}) / D${dials.density} (${tasteDesc.density})
+- VARIANCE guides: ${dials.variance <= 3 ? 'Conventional radii (4-6px), safe contrast, standard spacing' : dials.variance <= 6 ? 'Characterful radius (8-12px), one distinctive accent move' : 'Bold radii (16px+ or 0px), high contrast, expressive choices'}
+- MOTION guides: ${dials.motion <= 3 ? 'Fast transitions (100ms), linear easing, minimal animation' : dials.motion <= 6 ? 'Purposeful 200ms ease, state transitions' : 'Expressive 300ms+ spring physics, scroll-triggered'}
+- DENSITY guides: ${dials.density <= 3 ? 'Spacious (8px unit, 18px+ body, 48px+ padding)' : dials.density <= 6 ? 'Balanced (6px unit, 16px body, 32px padding)' : 'Compact (4px unit, 14px body, 16px padding)'}
+
+${tasteContext ? `## Taste Reference\n${tasteContext.slice(0, 800)}` : ''}`
+
 phase('Generate tokens')
 log(`[ds-scaffold] Building tokens.css from DESIGN.md`)
 
@@ -68,6 +118,8 @@ const tokensResult = await agent(
   `You are scaffolding a design system at "${dsDir}/${id}".
 
 Read the DESIGN.md at "${designMdPath}" and generate a complete tokens.css file.
+
+${tastePrompt}
 
 Rules:
 - Map frontmatter colors to --color-* variables (primary → accent, background → surface, text → text, etc.)
@@ -145,6 +197,8 @@ const primitivesResult = await agent(
   `You are scaffolding primitive React components for a design system at "${dsDir}/code/".
 
 The DESIGN.md is at "${designMdPath}" and tokens are in "${dsDir}/tokens.css".
+
+${tastePrompt}
 
 Read the tokens.css to understand the available colors, fonts, and spacing.
 
