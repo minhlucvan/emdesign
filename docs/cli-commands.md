@@ -58,6 +58,7 @@ emdesign health --json
 | `ds import awesome <brand> [--name <name>]` | Import from awesome-design-md (74 brands) |
 | `ds import git <url> [--ref <ref>] [--path <dir>] [--name <name>]` | Import from git repository |
 | `ds import vendor <id> [--name <name>]` | Import from vendored base |
+| `ds import project <path> [--name <name>] [--id <id>] [--json] [--gate]` | Reverse-engineer an existing project into a design system, adopt its components, and print the adoption report (`--gate` ⇒ non-zero when validation fails or any component needs a manual fix) |
 | `ds search <query> [--limit <n>]` | Search registries by keyword/category |
 | `ds info [id]` | Show detailed design system info |
 | `ds list` | List all local design systems |
@@ -69,6 +70,7 @@ emdesign health --json
 ```bash
 emdesign ds create atelier --mode blank
 emdesign ds import awesome linear --name "MyLinear"
+emdesign ds import project ./my-app --name "My App DS" --gate
 emdesign ds search fintech --limit 10
 emdesign ds info atelier
 ```

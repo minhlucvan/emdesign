@@ -3,6 +3,7 @@ import path from 'node:path';
 import { ensureDir, normalizeDsRef, setActiveDesignSystem, type RepoPaths } from './paths.js';
 import { parseDeclaredTokens, resolveDesignSystem } from './designContext.js';
 import { buildAndSave } from './graph.js';
+import type { AdoptionReport } from './project/report.js';
 import { SEMANTIC_TOKEN_ROLES } from '@emdesign/dsr';
 
 /** Design-system scaffolding — the create/validate engine behind the Design System flow. */
@@ -898,6 +899,63 @@ export async function importGitDesign(paths: RepoPaths, url: string, opts?: { re
     // Cleanup
     try { const { execSync } = await import('node:child_process'); execSync(`rm -rf ${tmpDir}`); } catch { /* ignore */ }
   }
+}
+
+/** The outcome of `ds import project`: the adoption report plus a gate verdict. */
+export interface ImportProjectResult {
+  /** The id the adopted design system was registered under. */
+  id: string;
+  /** True when the token contract validated (and the system was registered). */
+  ok: boolean;
+  /** Gate verdict: `pass` only when validate passed AND every component is loop-ready. */
+  gate: 'pass' | 'fail';
+  /** The machine-readable adoption report. */
+  report: AdoptionReport;
+  /** Human-readable notes: documented defaults + DESIGN.md/code divergences. */
+  notes: string[];
+  /** The orchestrator session id. */
+  sessionId: string;
+  /** Per-stage progress of the ds-from-project workflow. */
+  stages: Array<{ name: string; status: string }>;
+}
+
+/**
+ * Drive the ds-from-project workflow in-process (the embedded-engine path behind
+ * `ds import project <path>`): reverse-engineer a project into a design system,
+ * adopt its components, and return the adoption report plus a gate verdict. The
+ * system is registered ONLY once validation passes; an invalid/unsupported path
+ * throws and leaves nothing behind.
+ */
+export async function importProjectDesign(
+  paths: RepoPaths,
+  projectPath: string,
+  opts: { id?: string; name?: string } = {},
+): Promise<ImportProjectResult> {
+  // Dynamic import avoids a static cycle (workflow.ts depends on scaffold.ts).
+  const { WorkflowOrchestrator } = await import('./workflow.js');
+  const id =
+    opts.id ??
+    (opts.name ?? path.basename(projectPath)).toLowerCase().replace(/[^a-z0-9-]/g, '-');
+  const orchestrator = new WorkflowOrchestrator();
+  const sessionId = `import_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const result = await orchestrator.runFromProject(sessionId, {
+    projectPath,
+    workspaceRoot: paths.root,
+    id,
+    name: opts.name,
+  });
+  const session = orchestrator.getSession(sessionId);
+  const stages = (session?.stages ?? []).map((s) => ({ name: s.name, status: s.status }));
+  if (!result.completed) {
+    throw new Error(
+      result.error ?? `ds import project failed at stage '${result.failedStage ?? '?'}'`,
+    );
+  }
+  const report: AdoptionReport = result.report ?? { components: [] };
+  const v = validateDesignSystem(paths, id);
+  const needsManual = report.components.some((c) => c.status === 'needs-manual-fix');
+  const gate: 'pass' | 'fail' = v.ok && !needsManual ? 'pass' : 'fail';
+  return { id, ok: v.ok, gate, report, notes: result.notes ?? [], sessionId, stages };
 }
 
 // ═══════════════════════════════════════════════════════════════════════
