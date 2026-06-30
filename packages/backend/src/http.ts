@@ -617,9 +617,16 @@ export async function createHttpBridge(store: Store, paths: RepoPaths, orch?: an
   });
 
   // Design-system management (read + switch) — for the panel's System tab.
+  // Re-reads active system from config file on each request so background
+  // workflow runners (SessionQueue) that call applyDesignSystem are reflected.
   app.get('/api/design-systems', (_req, res) => {
     try {
-      res.json({ active: paths.activeDesignSystem, systems: runtimeFor(paths).list() });
+      let activeDs = paths.activeDesignSystem;
+      try {
+        const cfg = JSON.parse(fs.readFileSync(paths.configPath, 'utf8'));
+        if (cfg.activeDesignSystem) activeDs = cfg.activeDesignSystem;
+      } catch { /* use in-memory fallback */ }
+      res.json({ active: activeDs, systems: runtimeFor(paths).list() });
     } catch (e) {
       res.status(500).json({ error: (e as Error).message });
     }
