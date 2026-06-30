@@ -9,8 +9,9 @@ export const meta = {
   phases: [{ title: 'Baseline' }, { title: 'Edit' }, { title: 'Verify' }, { title: 'Reconcile' }],
 }
 
-const { name, change = '', instruction = '' } = args
+const _args = typeof args === "string" ? JSON.parse(args) : (args || {});
 
+const { name, change = '', instruction = '' } = _args
 phase('Baseline')
 log(`[component-edit] Establishing baseline for ${name}`)
 

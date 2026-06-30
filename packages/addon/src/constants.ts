@@ -241,6 +241,8 @@ export interface WorkflowStage {
   status: WorkflowStageStatus;
   startedAt?: number;
   detail?: string;
+  progress?: number;
+  error?: string;
 }
 
 export interface WorkflowSession {

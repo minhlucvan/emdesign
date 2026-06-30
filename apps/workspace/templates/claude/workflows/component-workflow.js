@@ -9,8 +9,9 @@ export const meta = {
   phases: [{ title: 'Enrich Intent' }, { title: 'Build Component' }, { title: 'Verify' }, { title: 'Reconcile' }],
 }
 
-const { name, mode = 'new', instruction = '' } = args
+const _args = typeof args === "string" ? JSON.parse(args) : (args || {});
 
+const { name, mode = 'new', instruction = '' } = _args
 phase('Enrich Intent')
 log(`[component] ${mode === 'new' ? 'Building' : 'Editing'} component: ${name}`)
 

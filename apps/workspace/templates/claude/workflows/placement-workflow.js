@@ -15,8 +15,9 @@ export const meta = {
   ],
 }
 
-const { name, selector, tag, placementMode = 'after', selectedComponent, instruction = '' } = args
+const _args = typeof args === "string" ? JSON.parse(args) : (args || {});
 
+const { name, selector, tag, placementMode = 'after', selectedComponent, instruction = '' } = _args
 phase('Resolve')
 log(`[placement] Resolving: place ${selectedComponent} ${placementMode} ${selector} in ${name}`)
 

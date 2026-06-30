@@ -1,5 +1,6 @@
 /**
- * Workflow — in-memory workflow store and orchestrator for design-system creation.
+ * Workflow — in-memory + disk-persisted workflow store for design-system creation.
+ * Sessions are saved to .emdesign/workflows/<sessionId>.json on every mutation.
  */
 
 import fs from 'node:fs';
@@ -30,13 +31,29 @@ export interface WorkflowSession {
   startedAt: string;
   error?: string;
   cancelled?: boolean;
+  /** Rolling buffer of agent text output (most recent entries). Updated by import-awesome handler. */
+  agentOutput?: Array<{ text: string; timestamp: number }>;
+}
+
+/** Resolve the workflows persistence directory under .emdesign/. */
+function workflowsDir(root?: string): string {
+  const base = root || (resolveRepoPaths().root);
+  return path.join(base, '.emdesign', 'workflows');
 }
 
 /**
- * In-memory workflow progress store — keyed by session ID.
+ * Disk-persisted workflow progress store — keyed by session ID.
+ * Every mutation is synced to .emdesign/workflows/<sessionId>.json.
  */
 export class WorkflowStore {
   private sessions = new Map<string, WorkflowSession>();
+  private persistRoot: string;
+
+  constructor(root?: string) {
+    this.persistRoot = workflowsDir(root);
+    ensureDir(this.persistRoot);
+    this.loadAll(); // load any persisted sessions from disk
+  }
 
   create(id: string, stages: WorkflowStage[]): WorkflowSession {
     const session: WorkflowSession = {
@@ -46,10 +63,15 @@ export class WorkflowStore {
       startedAt: new Date().toISOString(),
     };
     this.sessions.set(id, session);
+    this.save(id);
     return session;
   }
 
-  updateStage(id: string, name: string, status: StageStatus, progress: number, error?: string): void {
+  updateStage(
+    id: string, name: string, status: StageStatus,
+    progress: number, error?: string,
+    extra?: { agentOutput?: Array<{ text: string; timestamp: number }> },
+  ): void {
     const session = this.sessions.get(id);
     if (!session) return;
     const stage = session.stages.find(s => s.name === name);
@@ -58,9 +80,25 @@ export class WorkflowStore {
       stage.progress = progress;
       if (error !== undefined) stage.error = error;
     }
+    // Merge extra agent output if provided
+    if (extra?.agentOutput) {
+      if (!session.agentOutput) session.agentOutput = [];
+      session.agentOutput.push(...extra.agentOutput);
+      if (session.agentOutput.length > 200) session.agentOutput = session.agentOutput.slice(-200);
+    }
     // Update overall session status
     if (status === 'error') session.status = 'failed';
     else if (session.stages.every(s => s.status === 'done')) session.status = 'completed';
+    this.save(id);
+  }
+
+  pushAgentOutput(id: string, text: string, timestamp: number): void {
+    const session = this.sessions.get(id);
+    if (!session) return;
+    if (!session.agentOutput) session.agentOutput = [];
+    session.agentOutput.push({ text, timestamp });
+    if (session.agentOutput.length > 200) session.agentOutput = session.agentOutput.slice(-200);
+    this.save(id);
   }
 
   get(id: string): WorkflowSession | undefined {
@@ -77,6 +115,40 @@ export class WorkflowStore {
         stage.status = 'cancelled';
       }
     }
+    this.save(id);
+  }
+
+  // ── Persistence ────────────────────────────────────────────────
+
+  private filePath(id: string): string {
+    return path.join(this.persistRoot, `${id}.json`);
+  }
+
+  /**
+   * Persist a session to disk immediately. Safe to call after direct mutations.
+   * Returns true if written, false if session missing.
+   */
+  save(id: string): boolean {
+    try {
+      const session = this.sessions.get(id);
+      if (session) {
+        fs.writeFileSync(this.filePath(id), JSON.stringify(session, null, 2));
+        return true;
+      }
+    } catch { /* best-effort persist */ }
+    return false;
+  }
+
+  private loadAll(): void {
+    try {
+      const files = fs.readdirSync(this.persistRoot).filter(f => f.endsWith('.json'));
+      for (const file of files) {
+        try {
+          const data = JSON.parse(fs.readFileSync(path.join(this.persistRoot, file), 'utf8')) as WorkflowSession;
+          this.sessions.set(data.sessionId, data);
+        } catch { /* skip corrupt files */ }
+      }
+    } catch { /* no persisted workflows yet */ }
   }
 }
 
@@ -503,13 +575,15 @@ export class SessionQueue {
   private queue: string[] = [];
   private running = new Set<string>();
   private store: WorkflowStore;
-  private runner: (sessionId: string) => Promise<void>;
+  private runner: (sessionId: string, metadata?: Record<string, unknown>) => Promise<void>;
   private maxConcurrent: number;
+  // Separate metadata store so runner doesn't need to find it on the session
+  private metaMap = new Map<string, Record<string, unknown>>();
 
   constructor(opts: {
     store: WorkflowStore;
     /** Async function that processes a session (e.g. WorkflowOrchestrator.runFromDesignMd). */
-    runner: (sessionId: string) => Promise<void>;
+    runner: (sessionId: string, metadata?: Record<string, unknown>) => Promise<void>;
     /** Max concurrent sessions (default: 3). */
     maxConcurrent?: number;
   }) {
@@ -519,9 +593,10 @@ export class SessionQueue {
   }
 
   /** Enqueue a session for background processing. */
-  enqueue(sessionId: string): void {
+  enqueue(sessionId: string, metadata?: Record<string, unknown>): void {
     const session = this.store.get(sessionId);
     if (!session) return;
+    if (metadata) this.metaMap.set(sessionId, metadata);
     session.status = 'queued';
     this.queue.push(sessionId);
     this.drain();
@@ -555,7 +630,8 @@ export class SessionQueue {
     session.startedAt = startedAt;
 
     try {
-      await this.runner(sessionId);
+      const metadata = this.metaMap.get(sessionId);
+      await this.runner(sessionId, metadata);
       // runner updates the store — just confirm terminal state
       const s = this.store.get(sessionId);
       if (s && s.status === 'running') s.status = 'completed';

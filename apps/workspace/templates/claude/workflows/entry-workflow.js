@@ -14,8 +14,9 @@ export const meta = {
   ],
 }
 
-const { type = '', target = '', instruction = '', payload = {} } = args
+const _args = typeof args === "string" ? JSON.parse(args) : (args || {});
 
+const { type = '', target = '', instruction = '', payload = {} } = _args
 phase('Classify Intent')
 log(`[entry] Intent: type="${type}" target="${target}"`)
 

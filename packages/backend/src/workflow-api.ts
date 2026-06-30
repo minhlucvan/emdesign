@@ -23,77 +23,137 @@ export const workflowOrchestrator = new WorkflowOrchestrator(workflowStore);
  */
 export const workflowQueue = new SessionQueue({
   store: workflowStore,
-  runner: async (sessionId: string) => {
-    const session = workflowStore.get(sessionId) as any;
-    if (!session?.importMeta) return;
-    const { brand, name } = session.importMeta;
-
-    const updateStage = (stageName: string, status: string, progress: number) => {
-      const s = workflowStore.get(sessionId);
-      if (!s) return;
-      const stage = s.stages.find((st: any) => st.name === stageName);
-      if (stage) { (stage as any).status = status; stage.progress = progress; }
-    };
-
-    const failStage = (stageName: string, msg: string) => {
-      updateStage(stageName, 'error', 0);
-      const s = workflowStore.get(sessionId);
-      if (s) { s.status = 'failed'; s.error = msg; }
-    };
-
-    // Stage 1: Fetch DESIGN.md
-    updateStage('fetch', 'running', 10);
-    const url = `https://raw.githubusercontent.com/voltagent/awesome-design-md/main/design-md/${brand}/DESIGN.md`;
-    let designMd: string;
-    try {
-      const resp = await fetch(url, { signal: AbortSignal.timeout(15000) });
-      if (!resp.ok) { failStage('fetch', `Brand '${brand}' not found (${resp.status})`); return; }
-      designMd = await resp.text();
-      if (designMd.length < 10) { failStage('fetch', `Empty DESIGN.md for '${brand}'`); return; }
-    } catch (e) {
-      failStage('fetch', `Failed to fetch DESIGN.md: ${e instanceof Error ? e.message : String(e)}`);
+  runner: async (sessionId: string, metadata?: Record<string, unknown>) => {
+    const importMeta = metadata?.importMeta as { brand?: string; name?: string; id?: string; root?: string } | undefined;
+    if (!importMeta?.brand) {
+      console.error(`[workflow-queue] No importMeta for ${sessionId} — skipping`);
       return;
     }
-    updateStage('fetch', 'done', 100);
+    const { brand, name, id: systemId, root } = importMeta;
+    console.log(`[workflow-queue] Importing ${brand} as ${name} (${systemId})`);
+
+    const updateStage = (idx: number, status: string, progress: number, error?: string) => {
+      try {
+        const s = workflowStore.get(sessionId);
+        if (s && s.stages[idx]) {
+          (s.stages[idx] as any).status = status;
+          s.stages[idx].progress = progress;
+          if (error) (s.stages[idx] as any).error = error;
+          workflowStore.save(sessionId);
+        }
+      } catch { /* ignore */ }
+    };
+
+    const pushAgentText = (text: string) => {
+      try {
+        const s = workflowStore.get(sessionId);
+        if (s) {
+          if (!s.agentOutput) s.agentOutput = [];
+          s.agentOutput.push({ text, timestamp: Date.now() });
+          if (s.agentOutput.length > 200) s.agentOutput = s.agentOutput.slice(-200);
+          workflowStore.save(sessionId);
+        }
+      } catch { /* ignore */ }
+    };
+
+    const failWorkflow = (msg: string) => {
+      try {
+        const s = workflowStore.get(sessionId);
+        if (s) { s.status = 'failed'; s.error = msg; workflowStore.save(sessionId); }
+      } catch { /* ignore */ }
+    };
+
+    const completeWorkflow = () => {
+      try {
+        const s = workflowStore.get(sessionId);
+        if (s) {
+          s.stages.forEach((st: any) => { st.status = 'done'; st.progress = 100; });
+          s.status = 'completed';
+          workflowStore.save(sessionId);
+        }
+      } catch { /* ignore */ }
+    };
 
     try {
-      // Stage 2-5: Run the create-from-content pipeline
-      const paths = resolveRepoPaths();
+      updateStage(0, 'running', 20);
+      const resolvedRoot = root || resolveRepoPaths().root;
+      const paths = { root: resolvedRoot, designSystemsDir: resolvedRoot + '/design-systems' };
       const displayName = name || brand;
-      const id = displayName.toLowerCase().replace(/[^a-z0-9-]/g, '-');
 
-      updateStage('parse', 'running', 30);
-      createSystemFromContent(paths, id, designMd);
-      updateStage('parse', 'done', 100);
+      // Spawn Claude Code with the ds-import workflow
+      // @ts-ignore — @emdesign/agent-worker has no declaration file
+      const { AgentRunner } = await import('@emdesign/agent-worker');
+      const { claudeAdapter } = await import('@emdesign/backend');
+      const runner = new AgentRunner();
+      const prompt = `workflow('ds-import', { source: "awesome/${brand}", name: "${displayName}", id: "${systemId}" })`;
+      const handle = await runner.spawn({
+        def: claudeAdapter,
+        cwd: paths.root,
+        prompt,
+        newSessionId: sessionId,
+        allowedDirs: [paths.root],
+      });
 
-      updateStage('generate tokens', 'running', 50);
-      // Already done by createSystemFromContent
-      updateStage('generate tokens', 'done', 100);
+      // Wire agent structured events → workflow stage updates + agent text output
+      handle.onEvent((ev: any) => {
+        try {
+          if (ev.type === 'assistant' && ev.message?.content) {
+            for (const block of ev.message.content) {
+              if (block.type === 'text' && block.text) pushAgentText(block.text);
+              if (block.type === 'thinking' && block.thinking) pushAgentText(`[thinking] ${block.thinking}`);
+              if (block.type === 'tool_use') {
+                pushAgentText(`[tool] ${block.name}`);
+                if (['bash', 'read_file', 'write_file', 'fetch'].includes(block.name)) updateStage(0, 'running', 30);
+                if (block.name === 'Skill' || block.name === 'Workflow') { updateStage(0, 'done', 100); updateStage(1, 'running', 40); }
+                if (['create_component', 'edit_component', 'create_story'].includes(block.name)) { updateStage(2, 'done', 100); updateStage(3, 'running', 60); }
+                if (block.name === 'validate_design_system') { updateStage(3, 'done', 100); updateStage(4, 'running', 80); }
+              }
+            }
+          }
+          if (ev.type === 'user' && ev.message?.content) {
+            for (const block of ev.message.content) {
+              if (block.type === 'tool_result') {
+                const content = typeof block.content === 'string' ? block.content.slice(0, 200) : 'tool completed';
+                pushAgentText(`[result] ${content}`);
+              }
+            }
+          }
+        } catch { /* ignore */ }
+      });
 
-      updateStage('scaffold primitives', 'running', 70);
-      const { scaffoldPrimitives } = await import('./scaffold.js');
-      scaffoldPrimitives(paths, id, 'atelier');
-      updateStage('scaffold primitives', 'done', 100);
+      handle.onLog((line: string) => {
+        if (!line.startsWith('{') && !line.startsWith('[')) pushAgentText(line);
+      });
 
-      // Apply as active design system
-      const { applyDesignSystem } = await import('./scaffold.js');
-      applyDesignSystem(paths, id);
+      // Wait for top-level Claude to exit (it launches workflow sub-agent)
+      const { exitCode } = await handle.waitForExit();
+      if (exitCode !== 0) { failWorkflow(`Agent exited with code ${exitCode}`); return; }
 
-      updateStage('validate', 'running', 90);
-      const { validateDesignSystem } = await import('./scaffold.js');
-      const v = validateDesignSystem(paths, id);
-      if (!v.ok) {
-        failStage('validate', `Validation failed: ${v.note}`);
-        return;
+      // Poll for workflow sub-agent to complete (files appear on disk)
+      const dsDir = path.join(paths.designSystemsDir, systemId);
+      const tokensFile = path.join(dsDir, 'tokens.css');
+      const manifestFile = path.join(dsDir, 'manifest.json');
+      let waited = 0;
+      const MAX_WAIT = 600_000;
+      const POLL_INTERVAL = 5_000;
+      while (waited < MAX_WAIT) {
+        if (fs.existsSync(tokensFile) && fs.existsSync(manifestFile)) break;
+        await new Promise(r => setTimeout(r, POLL_INTERVAL));
+        waited += POLL_INTERVAL;
       }
-      updateStage('validate', 'done', 100);
 
-      const s = workflowStore.get(sessionId);
-      if (s) { s.status = 'completed'; }
+      if (fs.existsSync(tokensFile)) {
+        updateStage(4, 'done', 100);
+        try {
+          const { applyDesignSystem: applyDs } = await import('./scaffold.js');
+          applyDs(paths, systemId);
+        } catch { /* activation best-effort */ }
+        completeWorkflow();
+      } else {
+        failWorkflow('Timed out waiting for workflow sub-agent to complete.');
+      }
     } catch (e) {
-      const errMsg = e instanceof Error ? e.message : String(e);
-      const s = workflowStore.get(sessionId);
-      if (s) { s.status = 'failed'; s.error = errMsg; }
+      failWorkflow(e instanceof Error ? e.message : String(e));
     }
   },
   maxConcurrent: 3,
@@ -441,12 +501,15 @@ workflowApiRouter.get('/design-systems/:id/workflow-status', (req: Request, res:
   res.json({
     sessionId: session.sessionId,
     status: session.status,
+    startedAt: session.startedAt,
+    error: session.error,
     stages: session.stages.map(s => ({
       name: s.name,
       status: s.status as string,
       progress: s.progress,
       error: s.error,
     })),
+    agentOutput: session.agentOutput?.slice(-100) ?? [],
   });
 });
 
@@ -468,18 +531,31 @@ workflowApiRouter.get('/design-systems/:id/workflow-stream', (req: Request, res:
   }
 
   let idx = 0;
+  let lastAgentIndex = 0;
   let closed = false;
   const emitStages = () => {
     if (closed) return;
     const current = workflowStore.get(session.sessionId);
     if (!current) return;
+    // Emit stage events with progress and error fields
     for (let i = 0; i < current.stages.length; i++) {
       const s = current.stages[i];
-      res.write(`event: stage\ndata: ${JSON.stringify({ id: i, status: s.status, detail: s.name })}\n\n`);
+      res.write(`event: stage\ndata: ${JSON.stringify({
+        id: i, status: s.status, detail: s.name,
+        progress: s.progress, error: s.error,
+      })}\n\n`);
+    }
+    // Emit new agent text output entries (since last poll)
+    if (current.agentOutput && current.agentOutput.length > lastAgentIndex) {
+      const newEntries = current.agentOutput.slice(lastAgentIndex);
+      lastAgentIndex = current.agentOutput.length;
+      for (const entry of newEntries) {
+        res.write(`event: agentText\ndata: ${JSON.stringify({ text: entry.text.slice(0, 1000) })}\n\n`);
+      }
     }
     // Emit done only when session is actually completed
     if (current.status === 'completed' || current.status === 'failed') {
-      res.write(`event: done\ndata: ${JSON.stringify({ status: current.status })}\n\n`);
+      res.write(`event: done\ndata: ${JSON.stringify({ status: current.status, error: current.error })}\n\n`);
       res.end();
     } else {
       setTimeout(emitStages, 800);

@@ -17,7 +17,9 @@ export const meta = {
   ],
 }
 
-const { prompt, id: explicitId, name: explicitName, category: explicitCategory } = args
+const _args = typeof args === "string" ? JSON.parse(args) : (args || {});
+
+const { prompt, id: explicitId, name: explicitName, category: explicitCategory } = _args
 if (!prompt) throw new Error('ds-taste-profile: prompt is required')
 
 const dsId = explicitId || prompt.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40)

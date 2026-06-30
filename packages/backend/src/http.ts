@@ -266,56 +266,45 @@ export async function createHttpBridge(store: Store, paths: RepoPaths, orch?: an
       const { brand, name } = req.body;
       if (!brand) return res.status(400).json({ error: 'brand is required.' });
 
-      const { randomUUID } = await import('node:crypto');
-      const os = await import('node:os');
       const displayName = name || brand;
       const systemId = displayName.toLowerCase().replace(/[^a-z0-9-]/g, '-');
-      const sessionId = randomUUID();
 
-      // Register in PlatformManager (emdesignSessions in sidebar)
-      if (orch) {
-        await orch.createSession({
-          type: 'design-system-import',
-          workflow: 'ds-import',
-          args: { source: `awesome/${brand}`, name: displayName, id: systemId },
-          instruction: `Import "${displayName}" from awesome-design-md`,
-          origin: 'chat',
-        });
-      }
+      // Submit to agent manager — it handles queue, agent spawning, state tracking, persistence
+      if (!orch) return res.status(500).json({ error: 'Agent manager not available' });
+      const session = await orch.createSession({
+        type: 'design-system-import',
+        workflow: 'ds-import',
+        args: { source: `awesome/${brand}`, name: displayName, id: systemId },
+        instruction: `Import "${displayName}" from awesome-design-md`,
+        origin: 'chat',
+      });
+
+      // Also create in WorkflowStore so ProgressView can stream SSE stages
+      const { workflowStore } = await import('./workflow-api.js');
+      workflowStore.create(session.id, [
+        { name: 'Design', status: 'pending', progress: 0 },
+        { name: 'Preview', status: 'pending', progress: 0 },
+        { name: 'Extract tokens', status: 'pending', progress: 0 },
+        { name: 'Decompose primitives', status: 'pending', progress: 0 },
+        { name: 'Validate', status: 'pending', progress: 0 },
+      ]);
 
       // Register in ~/.claude/history.jsonl so claudeSessions picks it up
       try {
+        const os = await import('node:os');
         const historyEntry = {
-          sessionId,
+          sessionId: session.id,
           display: `Import design system: ${displayName} (${brand})`,
           timestamp: Date.now(),
           project: paths.root,
         };
         const historyPath = path.join(os.homedir(), '.claude', 'history.jsonl');
         fs.appendFileSync(historyPath, JSON.stringify(historyEntry) + '\n');
-        // Invalidate the in-memory cache so next API call picks it up
         const { invalidateHistoryCache } = await import('@emdesign/agent-manager');
         invalidateHistoryCache();
       } catch { /* history registration optional */ }
 
-      // Spawn Claude Code with the ds-import workflow
-      const { AgentRunner } = await import('@emdesign/agent-worker');
-      const { claudeAdapter } = await import('@emdesign/backend');
-      const runner = new AgentRunner();
-      const prompt = `workflow('ds-import', { source: "awesome/${brand}", name: "${displayName}", id: "${systemId}" })`;
-      const handle = await runner.spawn({
-        def: claudeAdapter,
-        cwd: paths.root,
-        prompt,
-        newSessionId: sessionId,
-        allowedDirs: [paths.root],
-      });
-
-      handle.waitForExit().catch((e) => {
-        console.error('[emdesign] Import session failed:', e.message);
-      });
-
-      res.json({ sessionId, id: systemId });
+      res.json({ sessionId: session.id, id: systemId });
     } catch (e) {
       res.status(500).json({ error: (e as Error).message });
     }
@@ -921,6 +910,7 @@ export async function createHttpBridge(store: Store, paths: RepoPaths, orch?: an
     });
 
     try {
+      // @ts-ignore — @emdesign/agent-worker has no declaration file
       const { AgentRunner } = await import('@emdesign/agent-worker');
       const { claudeAdapter } = await import('@emdesign/backend');
       const runner = new AgentRunner();

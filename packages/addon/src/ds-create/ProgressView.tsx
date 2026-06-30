@@ -1,60 +1,21 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { styled } from '@storybook/theming';
-import { getWorkflowStreamUrl, cancelWorkflow } from '../api';
+import { addons } from '@storybook/manager-api';
+import { EVT_CHAT_MODE } from '../channel';
+import { api, cancelWorkflow } from '../api';
 import { Section, SectionTitle, Row, Muted, Btn, Pill } from '../ui';
-import type { WorkflowStage, WorkflowStageStatus } from '../constants';
 
-const StageList = styled.div({ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 8 });
+const AgentOutput = styled.div({
+  maxHeight: 300, overflow: 'auto', marginTop: 12, padding: 8,
+  background: '#1a1a1a', color: '#e0e0e0', borderRadius: 6,
+  font: '12px/1.5 monospace', whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+});
 
-const StageRow = styled.div<{ $status: WorkflowStageStatus }>(({ theme, $status }) => ({
-  display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px',
-  borderRadius: theme.appBorderRadius,
-  background: $status === 'running' ? `${theme.color.secondary}11` : 'transparent',
-  fontSize: 13,
-}));
-
-const StatusIcon = styled.span<{ $status: WorkflowStageStatus }>(({ $status }) => ({
-  width: 18, textAlign: 'center', fontSize: 14,
-  color: $status === 'error' ? '#e03'
-    : $status === 'done' ? '#2a8'
-    : $status === 'running' ? '#68c'
-    : '#999',
-}));
-
-const StageName = styled.span({ flex: 1 });
-const Elapsed = styled(Muted)({ fontSize: 11 });
-
-const PROMPT_STAGES: WorkflowStage[] = [
-  { id: 0, name: 'Analyzing', status: 'pending' },
-  { id: 1, name: 'Generating DESIGN.md', status: 'pending' },
-  { id: 2, name: 'Generating tokens.css', status: 'pending' },
-  { id: 3, name: 'Scaffolding', status: 'pending' },
-  { id: 4, name: 'Building graph', status: 'pending' },
-  { id: 5, name: 'Validating', status: 'pending' },
-];
-
-const MD_STAGES: WorkflowStage[] = [
-  { id: 0, name: 'Parsing DESIGN.md', status: 'pending' },
-  { id: 1, name: 'Extracting tokens', status: 'pending' },
-  { id: 2, name: 'Scaffolding', status: 'pending' },
-  { id: 3, name: 'Building graph', status: 'pending' },
-  { id: 4, name: 'Validating', status: 'pending' },
-];
-
-const IMPORT_STAGES: WorkflowStage[] = [
-  { id: 0, name: 'Fetching DESIGN.md', status: 'pending' },
-  { id: 1, name: 'Parsing frontmatter', status: 'pending' },
-  { id: 2, name: 'Generating tokens.css', status: 'pending' },
-  { id: 3, name: 'Scaffolding primitives', status: 'pending' },
-  { id: 4, name: 'Generating preview', status: 'pending' },
-  { id: 5, name: 'Validating', status: 'pending' },
-];
-
-const statusIcon: Record<WorkflowStageStatus, string> = {
-  pending: '○',
+const statusIcon: Record<string, string> = {
+  created: '○',
   running: '↻',
-  done: '✓',
-  error: '✗',
+  completed: '✓',
+  failed: '✗',
 };
 
 interface ProgressViewProps {
@@ -65,72 +26,74 @@ interface ProgressViewProps {
 }
 
 export function ProgressView({ sessionId, creationMode, onComplete, onError }: ProgressViewProps) {
-  const stages = useRef<WorkflowStage[]>(
-    creationMode === 'from-prompt'
-      ? PROMPT_STAGES.map((s) => ({ ...s }))
-      : MD_STAGES.map((s) => ({ ...s }))
-  );
-  const [displayStages, setDisplayStages] = useState<WorkflowStage[]>([...stages.current]);
-  const [workflowStatus, setWorkflowStatus] = useState<'running' | 'completed' | 'failed'>('running');
+  const [agentOutput, setAgentOutput] = useState<string[]>([]);
+  const [sessionStatus, setSessionStatus] = useState<string>('running');
+  const [sessionPhase, setSessionPhase] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [startTime] = useState(Date.now());
-  const esRef = useRef<EventSource | null>(null);
+  const agentEndRef = useRef<HTMLDivElement>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const completedRef = useRef(false);
 
+  // Auto-scroll agent output
   useEffect(() => {
-    const url = getWorkflowStreamUrl(sessionId);
-    if (!url) return;
+    agentEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [agentOutput]);
 
-    const es = new EventSource(url);
-    esRef.current = es;
-
-    es.addEventListener('stage', (e: MessageEvent) => {
+  // Poll agent manager sessions API for status
+  useEffect(() => {
+    const poll = async () => {
       try {
-        const data = JSON.parse(e.data) as { id: number; status: WorkflowStageStatus; detail?: string };
-        stages.current = stages.current.map((s) =>
-          s.id === data.id ? { ...s, status: data.status, detail: data.detail, startedAt: s.startedAt ?? (data.status === 'running' ? Date.now() : undefined) } : s
-        );
-        setDisplayStages([...stages.current]);
-      } catch { /* ignore malformed */ }
-    });
+        const r = await api.listSessions();
+        // Find the session with matching ID in emdesignSessions
+        const emSessions = (r as any).emdesignSessions ?? [];
+        const match = emSessions.find((s: any) => s.id === sessionId);
+        if (!match) return;
 
-    es.addEventListener('done', () => {
-      setWorkflowStatus('completed');
-      onComplete?.(sessionId);
-      es.close();
-    });
+        setSessionStatus(match.emdesignStatus || 'running');
+        if (match.emdesignPhase) setSessionPhase(match.emdesignPhase);
 
-    es.addEventListener('error', () => {
-      // EventSource auto-reconnects; if it fails we surface an error
-      if (es.readyState === EventSource.CLOSED) {
-        setError('Connection lost');
-        setWorkflowStatus('failed');
-        onError?.(new Error('SSE connection lost'));
-      }
-    });
+        // Check for completion
+        if (match.emdesignStatus === 'completed' && !completedRef.current) {
+          completedRef.current = true;
+          if (pollRef.current) clearInterval(pollRef.current);
+          onComplete?.(sessionId);
+        }
+        if (match.emdesignStatus === 'failed' && !completedRef.current) {
+          completedRef.current = true;
+          if (pollRef.current) clearInterval(pollRef.current);
+          const errMsg = match.error || 'Workflow failed';
+          setError(errMsg);
+          onError?.(new Error(errMsg));
+        }
+      } catch { /* poll will retry */ }
+    };
 
-    return () => { es.close(); esRef.current = null; };
-  }, [sessionId, creationMode, onComplete, onError]);
+    poll(); // immediate first call
+    pollRef.current = setInterval(poll, 2000);
+
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, [sessionId, onComplete, onError]);
+
+  // Also stream session logs via the WebSocket / event bus
+  // (the agent manager pushes session:log events — captured by ChatSidebar)
 
   const handleCancel = async () => {
     try {
       await cancelWorkflow(sessionId);
-      setWorkflowStatus('failed');
+      setSessionStatus('failed');
     } catch { /* ignore */ }
-  };
-
-  const handleRetry = () => {
-    setError(null);
-    setWorkflowStatus('running');
-    // Re-run effect by letting the component remount
   };
 
   if (error) {
     return (
       <Section>
-        <SectionTitle>Generation Progress</SectionTitle>
+        <SectionTitle>Import Progress</SectionTitle>
         <Row gap={8} style={{ marginTop: 8 }}>
           <Pill tone="bad">error</Pill>
-          <Muted>Connection lost — <a href="#" onClick={(e) => { e.preventDefault(); handleRetry(); }}>retry</a></Muted>
+          <Muted>{error}</Muted>
         </Row>
       </Section>
     );
@@ -138,21 +101,32 @@ export function ProgressView({ sessionId, creationMode, onComplete, onError }: P
 
   return (
     <Section>
-      <SectionTitle>Generation Progress</SectionTitle>
-      <StageList>
-        {displayStages.map((stage) => (
-          <StageRow key={stage.id} $status={stage.status} title={stage.detail}>
-            <StatusIcon $status={stage.status}>{statusIcon[stage.status]}</StatusIcon>
-            <StageName>{stage.name}</StageName>
-            {stage.startedAt && <Elapsed>{Math.round((Date.now() - stage.startedAt) / 1000)}s</Elapsed>}
-          </StageRow>
-        ))}
-      </StageList>
+      <SectionTitle>Import Progress</SectionTitle>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', fontSize: 13 }}>
+        <span style={{ width: 18, textAlign: 'center', fontSize: 14, color: '#68c' }}>
+          {statusIcon[sessionStatus] || '○'}
+        </span>
+        <span style={{ flex: 1 }}>{sessionPhase || sessionStatus}</span>
+        <Muted style={{ fontSize: 11 }}>{Math.round((Date.now() - startTime) / 1000)}s</Muted>
+      </div>
+
+      {agentOutput.length > 0 && (
+        <AgentOutput>
+          {agentOutput.map((line, i) => (
+            <div key={i}>{line}</div>
+          ))}
+          <div ref={agentEndRef} />
+        </AgentOutput>
+      )}
+
       <Row gap={8} style={{ marginTop: 12 }}>
         <Btn
-          disabled={workflowStatus === 'completed' || workflowStatus === 'failed'}
+          disabled={sessionStatus === 'completed' || sessionStatus === 'failed'}
           onClick={handleCancel}
         >Cancel</Btn>
+        <Btn onClick={() => {
+          addons.getChannel().emit(EVT_CHAT_MODE, { enabled: true, sessionId });
+        }}>View in Chat →</Btn>
       </Row>
     </Section>
   );

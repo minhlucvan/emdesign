@@ -59,7 +59,7 @@ export type { PlatformOrchestrator } from './types.js';
 export type { ServiceType, ServiceStatus, ServiceInfo, PlatformState } from './types.js';
 
 // HTTP router
-export { createSessionRouter } from './api/httpRouter.js';
+export { createSessionRouter } from './httpRouter.js';
 
 // WebSocket
 export { attachWebSocket } from './WebSocketServer.js';
@@ -72,5 +72,3 @@ export type { LogEntry } from './log-sink.js';
 export { AgentManager } from './manager.js';
 export type { AgentManagerOptions } from './manager.js';
 
-// CLI
-export { cli } from './cli.js';

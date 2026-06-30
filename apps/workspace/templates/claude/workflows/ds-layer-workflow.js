@@ -10,8 +10,9 @@ export const meta = {
   phases: [{ title: 'Analyze Intent' }, { title: 'Determine Layer' }, { title: 'Apply Change' }, { title: 'Verify & Reconcile' }],
 }
 
-const { intent = '', changes = {} } = args
+const _args = typeof args === "string" ? JSON.parse(args) : (args || {});
 
+const { intent = '', changes = {} } = _args
 phase('Analyze Intent')
 log(`[ds-layer] Analyzing intent: ${intent}`)
 

@@ -15,7 +15,9 @@ export const meta = {
   ],
 }
 
-const { id } = args
+const _args = typeof args === "string" ? JSON.parse(args) : (args || {});
+
+const { id } = _args
 if (!id) throw new Error('ds-generate-preview: id is required')
 
 const dsDir = `design-systems/${id}`
