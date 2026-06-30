@@ -999,24 +999,14 @@ export async function createHttpBridge(store: Store, paths: RepoPaths, orch?: an
     // workflow-api not available — skip workflow routes
   }
 
-  // ── Intent worker daemon ──────────────────────────────────────────────
-  // event/message → queue (state.json) → IntentWorker → session manager
-  // Polls the store for pending intents and spawns Claude Code sessions.
-  let worker: import('@emdesign/session').IntentWorker | null = null;
-  try {
-    const { IntentWorker } = await import('@emdesign/session');
-    worker = new IntentWorker({
-      dequeue: () => store.nextQueued(),
-      markInProgress: (id) => store.setChangeRequestStatus(id, 'in_progress'),
-      markDone: (id, note) => store.setChangeRequestStatus(id, 'done', note),
-      markError: (id, err) => store.setChangeRequestStatus(id, 'error', err),
-      orch,
-      cwd: paths.root,
-    });
-    worker.start();
-    console.error('[emdesign] Intent worker started (max 3 concurrent)');
-  } catch (e) {
-    console.error('[emdesign] Intent worker not available:', e instanceof Error ? e.message : String(e));
+  // ── Start the intent worker (queue consumer) ────────────────────────────
+  // event/message → queue (state.json) → PlatformManager.workers → session manager
+  if (orch) {
+    try {
+      orch.startWorker(3);
+    } catch (e) {
+      console.error('[emdesign] Failed to start intent worker:', e instanceof Error ? e.message : String(e));
+    }
   }
 
   return app;

@@ -16,6 +16,7 @@ import {
   type ClaudeSession,
   type ConversationMessage,
 } from './storage.js';
+import { IntentWorker } from './IntentWorker.js';
 import type {
   PlatformOrchestrator,
   PlatformState,
@@ -30,6 +31,7 @@ export class PlatformManager implements PlatformOrchestrator {
   readonly services: ProcessManager;
   readonly store: Store;
   readonly sessionStore: SessionStore;
+  private workers: IntentWorker[] = [];
 
   constructor(private paths: RepoPaths) {
     this.bus = new PlatformEventBus();
@@ -41,6 +43,39 @@ export class PlatformManager implements PlatformOrchestrator {
     // Cleanup on process exit
     process.on('SIGINT', () => this.shutdown().catch(() => process.exit(1)));
     process.on('SIGTERM', () => this.shutdown().catch(() => process.exit(1)));
+  }
+
+  /** Start the default intent worker (queue consumer). */
+  startWorker(maxConcurrent = 3): void {
+    const worker = new IntentWorker({
+      dequeue: () => this.store.nextQueued(),
+      markInProgress: (id) => this.store.setChangeRequestStatus(id, 'in_progress'),
+      markDone: (id, note) => this.store.setChangeRequestStatus(id, 'done', note),
+      markError: (id, err) => this.store.setChangeRequestStatus(id, 'error', err),
+      orch: this,
+      cwd: this.paths.root,
+      maxConcurrent,
+    });
+    worker.start();
+    this.workers.push(worker);
+    console.error(`[emdesign] Intent worker started (max ${maxConcurrent} concurrent)`);
+  }
+
+  /** Start an additional worker (for multi-worker setups). */
+  addWorker(maxConcurrent?: number): IntentWorker {
+    this.startWorker(maxConcurrent);
+    return this.workers[this.workers.length - 1];
+  }
+
+  /** Stop all workers. */
+  stopWorkers(): void {
+    for (const w of this.workers) w.stop();
+    this.workers = [];
+  }
+
+  /** Number of active sessions across all workers. */
+  get activeSessions(): number {
+    return this.workers.reduce((sum, w) => sum + w.activeCount, 0);
   }
 
   // ── Read-side (Claude session browsing) ──────────────────────────
