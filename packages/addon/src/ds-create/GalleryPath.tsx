@@ -96,26 +96,21 @@ export function GalleryPath({ onProgress, onComplete }: GalleryPathProps) {
     return true;
   });
 
-  // When selecting an awesome entry, import via backend with workflow session
+  // When selecting an awesome entry, import via backend with workflow session.
+  // Shows ProgressView and subscribes to SSE so the user sees live stage updates.
   const handleSelectAwesome = useCallback(async (entry: RegistrySystem) => {
     setSelectedAwesome(entry);
-    try {
-      const brand = entry.source.replace('awesome/', '');
-      const res = await fetch(`${BACKEND_URL}/api/design-systems/import-awesome`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ brand, name: entry.name }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        // Import succeeded — wait briefly for backend to settle, then load dashboard
-        await new Promise(r => setTimeout(r, 2000));
-        onComplete?.(data.id || brand);
-      }
-    } catch (e) {
-      console.error('[GalleryPath] Import failed:', e);
+    const brand = entry.source.replace('awesome/', '');
+    const res = await fetch(`${BACKEND_URL}/api/design-systems/import-awesome`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ brand, name: entry.name }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      onProgress?.(data.sessionId);
     }
-  }, [onComplete]);
+  }, [onProgress]);
 
   // Show detail page for a gallery entry
   if (selectedEntry) {

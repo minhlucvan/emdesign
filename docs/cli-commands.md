@@ -24,7 +24,8 @@ and V3 (registry/import/blocks/blueprints/lint-rules).
 11. [Knowledge Graph](#11-knowledge-graph)
 12. [Exploration](#12-exploration)
 13. [Automation](#13-automation)
-14. [Universal Flags](#14-universal-flags)
+14. [Session Tracing & Debugging](#14-session-tracing--debugging)
+15. [Universal Flags](#15-universal-flags)
 
 ---
 
@@ -326,5 +327,86 @@ Round 1..N:
 | `--json` | Structured JSON output on stdout (`{ok, data, meta}`) |
 | `--gate` | Exit code = pass verdict (0 = ship, 1 = fail) |
 | `--quiet` | Suppress stderr messages (doctor) |
+| `--trace` | Enable session tracing — creates a Claude session, logs every stage (see [Session Tracing](session-tracing.md)) |
+| `--log-level <level>` | Set minimum log level (debug\|info\|warn\|error, default: info) |
 | `--version`, `-V` | Show `emdesign v<version>` |
 | `--completion [bash\|zsh]` | Generate shell completion script |
+
+---
+
+## 15. Session Tracing & Debugging
+
+emdesign records every agent interaction, tool call, and workflow stage using
+**Claude's native session storage** (`~/.claude/`). The `session` subcommand
+lets you inspect sessions and logs from the CLI.
+
+### Commands
+
+| Command | Description |
+|---------|-------------|
+| `session list [--limit N] [--project <path>] [--failed]` | List recent Claude sessions |
+| `session show <id>` | Show session metadata and summary |
+| `session logs <id> [--tail] [--format text\|json]` | View full conversation log |
+| `logs [--level <lvl>] [--session <id>] [--since <iso>] [--follow]` | Query global or per-session logs |
+
+### Usage
+
+```bash
+# List recent sessions
+emdesign session list --limit 5
+
+# View a session's conversation
+emdesign session logs em_ses_1782747366008_2h0r
+
+# Filter logs by severity
+emdesign logs --level error --since 30m
+
+# Import with full tracing
+emdesign ds import awesome stripe --trace
+```
+
+See [`docs/session-tracing.md`](session-tracing.md) for full documentation,
+including the JSONL log format, event bus reference, and HTTP API endpoints.
+
+## 16. Intent & Chat Commands
+
+Send design intents or start agent chat sessions directly from the CLI —
+same paths the Storybook addon UI uses.
+
+### Commands
+
+| Command | Description |
+|---------|-------------|
+| `intent <type> <instruction>` | Submit an intent to the backend queue (identical to UI toolbar/wizard) |
+| `chat <message> --type <intent-type>` | Start an interactive chat session with SSE streaming (identical to ChatSidebar) |
+
+### Intent Types
+
+| Type | What it does | Agent route |
+|------|-------------|-------------|
+| `create-component` | New component from scratch | `/mds:craft:component` |
+| `change-request` | Modify an existing component | `/mds:craft:update` |
+| `create-story` | Auto-generate CSF story file | `/mds:craft:story` |
+| `create-view` | Compose components into a view | `/mds:craft:view` |
+| `create-design-system` | Create a new design system | `/mds:system:create` |
+| `update-design-system` | Modify tokens/typography | `/mds:system:update` |
+| `edit-text` | Inline text edit on an element | `/mds:craft:update` |
+
+### Usage
+
+```bash
+# Submit an intent to the queue (non-blocking)
+emdesign intent create-component "Hero card with gradient background and CTA"
+
+# Start a chat session and stream the agent's response (blocking)
+emdesign chat "Build a pricing table with 3 tiers" --type create-component --wait
+
+# Interactive mode (stream response, then prompt for follow-up)
+emdesign chat "Make the header sticky" --type change-request --interactive
+
+# With session tracing
+emdesign chat "Newsletter signup form" --type create-component --trace
+```
+
+See [`docs/session-tracing.md`](session-tracing.md) for full documentation,
+including all intent types, chat modes, and the intent routing flow.
