@@ -58,8 +58,7 @@ export type { AgentHandle, AgentRunnerOptions } from './AgentRunner.js';
 export type { ServiceType, ServiceStatus, ServiceInfo, PlatformState } from './types.js';
 export { createSessionRouter } from './api/httpRouter.js';
 export { attachWebSocket } from './WebSocketServer.js';
-export { IntentWorker } from './IntentWorker.js';
-export type { IntentWorkerOptions } from './IntentWorker.js';
+// IntentWorker moved to @emdesign/agent-worker
 
 // Log sink
 export { createLogSink } from './log-sink.js';

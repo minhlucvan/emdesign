@@ -999,14 +999,33 @@ export async function createHttpBridge(store: Store, paths: RepoPaths, orch?: an
     // workflow-api not available — skip workflow routes
   }
 
-  // ── Start the intent worker (queue consumer) ────────────────────────────
-  // event/message → queue (state.json) → PlatformManager.workers → session manager
-  if (orch) {
-    try {
-      orch.startWorker(3);
-    } catch (e) {
-      console.error('[emdesign] Failed to start intent worker:', e instanceof Error ? e.message : String(e));
-    }
+  // ── Start the agent manager (queue consumer) ────────────────────────────
+  // event/message → queue (state.json) → AgentManager → AgentWorker → Claude Code
+  // Routes all intents, chat, conversations through a single management path.
+  try {
+    const { AgentManager } = await import('@emdesign/agent-manager');
+    const manager = new AgentManager({
+      dequeue: () => store.nextQueued() as ({ id: string; type?: string; instruction: string } | undefined),
+      markInProgress: (id: string) => store.setChangeRequestStatus(id, 'in_progress'),
+      markDone: (id: string, note?: string) => store.setChangeRequestStatus(id, 'done', note),
+      markError: (id: string, err: string) => store.setChangeRequestStatus(id, 'error', err),
+      registerSession: async (sessionId: string, item: { id: string; type?: string; instruction: string }) => {
+        try {
+          const entry = { sessionId, display: `Intent: ${item.instruction.slice(0, 80)}`, timestamp: Date.now(), project: paths.root };
+          const { homedir } = await import('node:os');
+          const { appendFileSync } = await import('node:fs');
+          const { join } = await import('node:path');
+          appendFileSync(join(homedir(), '.claude', 'history.jsonl'), JSON.stringify(entry) + '\n');
+          const { invalidateHistoryCache } = await import('@emdesign/session');
+          invalidateHistoryCache();
+        } catch {}
+      },
+      cwd: paths.root,
+    });
+    manager.start();
+    console.error(`[emdesign] Agent manager started with ${manager['opts'].workerCount} worker(s)`);
+  } catch (e) {
+    console.error('[emdesign] Agent manager not available:', e instanceof Error ? e.message : String(e));
   }
 
   return app;
