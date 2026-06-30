@@ -684,7 +684,7 @@ export async function createMcpServer(store: Store, paths: RepoPaths, _orch?: an
     try {
       const { registerSessionMcpTools } = await import('@emdesign/agent-manager');
       registerSessionMcpTools(server, _orch);
-    } catch { /* @emdesign/session not available */ }
+    } catch { /* @emdesign/agent-manager not available */ }
   }
 
   return server;
