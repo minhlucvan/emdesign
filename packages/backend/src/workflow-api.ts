@@ -3,7 +3,7 @@
  */
 
 import { Router, type Request, type Response } from 'express';
-import { WorkflowStore, WorkflowOrchestrator } from './workflow.js';
+import { WorkflowStore, WorkflowOrchestrator, SessionQueue } from './workflow.js';
 import { resolveRepoPaths, type RepoPaths } from './paths.js';
 import { createDesignSystem, scaffoldBlocks, customizeDesignSystem, applyDesignSystem, baseTokensCss, manifestJson, validateDesignSystem } from './scaffold.js';
 import { SEMANTIC_TOKEN_ROLES } from '@emdesign/dsr';
@@ -15,6 +15,89 @@ import { ensureDir } from './paths.js';
 // Shared in-memory stores
 export const workflowStore = new WorkflowStore();
 export const workflowOrchestrator = new WorkflowOrchestrator(workflowStore);
+
+/**
+ * Session queue — manages background workflow execution with concurrency limiting.
+ * The runner fetches DESIGN.md from awesome-design-md, runs the workflow pipeline
+ * (parse → tokens → primitives → graph → validate), and updates stage progress.
+ */
+export const workflowQueue = new SessionQueue({
+  store: workflowStore,
+  runner: async (sessionId: string) => {
+    const session = workflowStore.get(sessionId) as any;
+    if (!session?.importMeta) return;
+    const { brand, name } = session.importMeta;
+
+    const updateStage = (stageName: string, status: string, progress: number) => {
+      const s = workflowStore.get(sessionId);
+      if (!s) return;
+      const stage = s.stages.find((st: any) => st.name === stageName);
+      if (stage) { (stage as any).status = status; stage.progress = progress; }
+    };
+
+    const failStage = (stageName: string, msg: string) => {
+      updateStage(stageName, 'error', 0);
+      const s = workflowStore.get(sessionId);
+      if (s) { s.status = 'failed'; s.error = msg; }
+    };
+
+    // Stage 1: Fetch DESIGN.md
+    updateStage('fetch', 'running', 10);
+    const url = `https://raw.githubusercontent.com/voltagent/awesome-design-md/main/design-md/${brand}/DESIGN.md`;
+    let designMd: string;
+    try {
+      const resp = await fetch(url, { signal: AbortSignal.timeout(15000) });
+      if (!resp.ok) { failStage('fetch', `Brand '${brand}' not found (${resp.status})`); return; }
+      designMd = await resp.text();
+      if (designMd.length < 10) { failStage('fetch', `Empty DESIGN.md for '${brand}'`); return; }
+    } catch (e) {
+      failStage('fetch', `Failed to fetch DESIGN.md: ${e instanceof Error ? e.message : String(e)}`);
+      return;
+    }
+    updateStage('fetch', 'done', 100);
+
+    try {
+      // Stage 2-5: Run the create-from-content pipeline
+      const paths = resolveRepoPaths();
+      const displayName = name || brand;
+      const id = displayName.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+
+      updateStage('parse', 'running', 30);
+      createSystemFromContent(paths, id, designMd);
+      updateStage('parse', 'done', 100);
+
+      updateStage('generate tokens', 'running', 50);
+      // Already done by createSystemFromContent
+      updateStage('generate tokens', 'done', 100);
+
+      updateStage('scaffold primitives', 'running', 70);
+      const { scaffoldPrimitives } = await import('./scaffold.js');
+      scaffoldPrimitives(paths, id, 'atelier');
+      updateStage('scaffold primitives', 'done', 100);
+
+      // Apply as active design system
+      const { applyDesignSystem } = await import('./scaffold.js');
+      applyDesignSystem(paths, id);
+
+      updateStage('validate', 'running', 90);
+      const { validateDesignSystem } = await import('./scaffold.js');
+      const v = validateDesignSystem(paths, id);
+      if (!v.ok) {
+        failStage('validate', `Validation failed: ${v.note}`);
+        return;
+      }
+      updateStage('validate', 'done', 100);
+
+      const s = workflowStore.get(sessionId);
+      if (s) { s.status = 'completed'; }
+    } catch (e) {
+      const errMsg = e instanceof Error ? e.message : String(e);
+      const s = workflowStore.get(sessionId);
+      if (s) { s.status = 'failed'; s.error = errMsg; }
+    }
+  },
+  maxConcurrent: 3,
+});
 
 const HEX_COLOR_RE = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
 const POSITIVE_CS_VALUE_RE = /^\d+px$/;

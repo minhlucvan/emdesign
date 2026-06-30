@@ -21,9 +21,11 @@ export interface WorkflowStage {
   error?: string;
 }
 
+export type SessionStatus = 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
+
 export interface WorkflowSession {
   sessionId: string;
-  status: 'running' | 'completed' | 'failed' | 'cancelled';
+  status: SessionStatus;
   stages: WorkflowStage[];
   startedAt: string;
   error?: string;
@@ -489,5 +491,97 @@ export class WorkflowOrchestrator {
       clearTimeout(timer);
       this.timeouts.delete(sessionId);
     }
+  }
+}
+
+/**
+ * Session queue — manages background workflow execution with concurrency limiting.
+ * Sessions are queued and processed in FIFO order. Only `maxConcurrent` sessions
+ * run at any given time.
+ */
+export class SessionQueue {
+  private queue: string[] = [];
+  private running = new Set<string>();
+  private store: WorkflowStore;
+  private runner: (sessionId: string) => Promise<void>;
+  private maxConcurrent: number;
+
+  constructor(opts: {
+    store: WorkflowStore;
+    /** Async function that processes a session (e.g. WorkflowOrchestrator.runFromDesignMd). */
+    runner: (sessionId: string) => Promise<void>;
+    /** Max concurrent sessions (default: 3). */
+    maxConcurrent?: number;
+  }) {
+    this.store = opts.store;
+    this.runner = opts.runner;
+    this.maxConcurrent = opts.maxConcurrent ?? 3;
+  }
+
+  /** Enqueue a session for background processing. */
+  enqueue(sessionId: string): void {
+    const session = this.store.get(sessionId);
+    if (!session) return;
+    session.status = 'queued';
+    this.queue.push(sessionId);
+    this.drain();
+  }
+
+  /** Number of currently running sessions. */
+  get runningCount(): number { return this.running.size; }
+
+  /** Number of queued (not yet running) sessions. */
+  get queuedCount(): number { return this.queue.length; }
+
+  /** Total active sessions (queued + running). */
+  get activeCount(): number { return this.queue.length + this.running.size; }
+
+  private drain(): void {
+    while (this.running.size < this.maxConcurrent && this.queue.length > 0) {
+      const sessionId = this.queue.shift()!;
+      this.running.add(sessionId);
+      this.process(sessionId);
+    }
+  }
+
+  private async process(sessionId: string): Promise<void> {
+    const session = this.store.get(sessionId);
+    if (!session) { this.running.delete(sessionId); return; }
+
+    session.status = 'running';
+
+    // Set a journal entry so the frontend can see it transitioned from queued→running
+    const startedAt = new Date().toISOString();
+    session.startedAt = startedAt;
+
+    try {
+      await this.runner(sessionId);
+      // runner updates the store — just confirm terminal state
+      const s = this.store.get(sessionId);
+      if (s && s.status === 'running') s.status = 'completed';
+    } catch (e) {
+      const s = this.store.get(sessionId);
+      if (s) {
+        s.status = 'failed';
+        s.error = e instanceof Error ? e.message : String(e);
+      }
+    } finally {
+      this.running.delete(sessionId);
+      this.drain(); // process next queued session
+    }
+  }
+
+  /** Cancel a queued or running session. */
+  cancel(sessionId: string): void {
+    // Remove from queue if pending
+    const qIdx = this.queue.indexOf(sessionId);
+    if (qIdx >= 0) {
+      this.queue.splice(qIdx, 1);
+      const session = this.store.get(sessionId);
+      if (session) { session.status = 'cancelled'; session.cancelled = true; }
+      return;
+    }
+    // Cancel running session via the store
+    this.store.cancel(sessionId);
   }
 }

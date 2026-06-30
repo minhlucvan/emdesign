@@ -14,9 +14,7 @@ import { resolveDesignSystem } from './designContext.js';
 import { countMustFix } from './lint/index.js';
 import { effectiveAdapter } from './adapters/index.js';
 import { runtimeFor } from './runtime.js';
-import { applyDesignSystem, listBases, listBaseCategories, baseDetail, basePreviewHtml, customizeDesignSystem, searchDesignSystems, importAwesomeDesign, parseYamlFrontmatter, generatePreviewHtml } from './scaffold.js';
-import type { WorkflowSession, WorkflowStage } from './workflow.js';
-import { workflowStore } from './workflow-api.js';
+import { applyDesignSystem, listBases, listBaseCategories, baseDetail, basePreviewHtml, customizeDesignSystem, searchDesignSystems, parseYamlFrontmatter, generatePreviewHtml } from './scaffold.js';
 import { loadOrBuild, buildAndSave } from './graph.js';
 import { RULES, RULES_BY_ID } from '@emdesign/graph';
 import { lintFrameworkCharters, lintDesignSystem, lintRendered, mergeReports } from '@emdesign/doctor';
@@ -260,93 +258,70 @@ export async function createHttpBridge(store: Store, paths: RepoPaths, orch?: an
   });
 
   // Import a design system from awesome-design-md by brand name.
-  // Creates a workflow session with stage progress for the frontend ProgressView.
+  // Creates a single Claude Code session (UUID) and registers it in
+  // both ~/.claude/history.jsonl (claudeSessions) and PlatformManager
+  // (emdesignSessions) so the sidebar picks it up immediately.
   app.post('/api/design-systems/import-awesome', async (req, res) => {
     try {
-      const { brand, name, chatSessionId } = req.body;
+      const { brand, name } = req.body;
       if (!brand) return res.status(400).json({ error: 'brand is required.' });
 
-      // Create workflow session with stages
-      const sessionId = `import-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-      const stages: WorkflowStage[] = [
-        { name: 'fetch', status: 'pending', progress: 0 },
-        { name: 'parse', status: 'pending', progress: 0 },
-        { name: 'generate tokens', status: 'pending', progress: 0 },
-        { name: 'scaffold primitives', status: 'pending', progress: 0 },
-        { name: 'generate preview', status: 'pending', progress: 0 },
-        { name: 'validate', status: 'pending', progress: 0 },
-      ];
-      workflowStore.create(sessionId, stages);
+      const { randomUUID } = await import('node:crypto');
+      const os = await import('node:os');
+      const displayName = name || brand;
+      const systemId = displayName.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+      const sessionId = randomUUID();
 
-      // Run import asynchronously — respond immediately with sessionId
-      setImmediate(async () => {
-        try {
-          const updateStage = (name: string, status: string, progress: number) => {
-            try {
-              const session = workflowStore.get(sessionId);
-              if (session) {
-                const s = session.stages.find((st: any) => st.name === name);
-                if (s) { (s as any).status = status; s.progress = progress; }
-              }
-            } catch { /* ignore */ }
-          };
+      // Register in PlatformManager (emdesignSessions in sidebar)
+      if (orch) {
+        await orch.createSession({
+          type: 'design-system-import',
+          workflow: 'ds-import',
+          args: { source: `awesome/${brand}`, name: displayName, id: systemId },
+          instruction: `Import "${displayName}" from awesome-design-md`,
+          origin: 'chat',
+        });
+      }
 
-          updateStage('fetch', 'running', 10);
-          const designMdUrl = `https://raw.githubusercontent.com/voltagent/awesome-design-md/main/design-md/${brand}/DESIGN.md`;
-          const resp = await fetch(designMdUrl);
-          if (!resp.ok) throw new Error(`Brand '${brand}' not found (${resp.status})`);
-          const designMd = await resp.text();
-          updateStage('fetch', 'done', 100);
+      // Register in ~/.claude/history.jsonl so claudeSessions picks it up
+      try {
+        const historyEntry = {
+          sessionId,
+          display: `Import design system: ${displayName} (${brand})`,
+          timestamp: Date.now(),
+          project: paths.root,
+        };
+        const historyPath = path.join(os.homedir(), '.claude', 'history.jsonl');
+        fs.appendFileSync(historyPath, JSON.stringify(historyEntry) + '\n');
+        // Invalidate the in-memory cache so next API call picks it up
+        const { invalidateHistoryCache } = await import('@emdesign/agent-manager');
+        invalidateHistoryCache();
+      } catch { /* history registration optional */ }
 
-          updateStage('parse', 'running', 20);
-          const fm = parseYamlFrontmatter(designMd);
-          updateStage('parse', 'done', 100);
-
-          updateStage('generate tokens', 'running', 30);
-          const result = await importAwesomeDesign(paths, brand, { name });
-          updateStage('generate tokens', 'done', 100);
-
-          updateStage('scaffold primitives', 'running', 50);
-          // importAwesomeDesign already scaffolds — mark done
-          updateStage('scaffold primitives', 'done', 100);
-
-          updateStage('generate preview', 'running', 50);
-          // importAwesomeDesign already generates preview — mark done
-          updateStage('generate preview', 'done', 100);
-
-          updateStage('validate', 'running', 80);
-          updateStage('validate', 'done', 100);
-
-          // Log completion message to chat session if one was created
-          if (chatSessionId) {
-            try {
-              fetch(`http://localhost:4321/api/chat/stream`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  message: `✅ Import complete for "${name || brand}". System created at design-systems/${brand}/ with DESIGN.md, tokens.css, primitives, and preview.`,
-                  intentType: 'create-design-system',
-                  sessionId: chatSessionId,
-                }),
-              }).catch(() => {});
-            } catch { /* chat logging optional */ }
-          }
-
-          const session = workflowStore.get(sessionId);
-          if (session) { session.status = 'completed'; }
-        } catch (e) {
-          try {
-            const session = workflowStore.get(sessionId);
-            if (session) { session.status = 'failed'; session.error = (e as Error).message; }
-          } catch { /* ignore */ }
-        }
+      // Spawn Claude Code with the ds-import workflow
+      const { AgentRunner } = await import('@emdesign/agent-worker');
+      const { claudeAdapter } = await import('@emdesign/backend');
+      const runner = new AgentRunner();
+      const prompt = `workflow('ds-import', { source: "awesome/${brand}", name: "${displayName}", id: "${systemId}" })`;
+      const handle = await runner.spawn({
+        def: claudeAdapter,
+        cwd: paths.root,
+        prompt,
+        newSessionId: sessionId,
+        allowedDirs: [paths.root],
       });
 
-      res.json({ sessionId, id: brand });
+      handle.waitForExit().catch((e) => {
+        console.error('[emdesign] Import session failed:', e.message);
+      });
+
+      res.json({ sessionId, id: systemId });
     } catch (e) {
       res.status(500).json({ error: (e as Error).message });
     }
   });
+
+
 
   // Generate a rich preview HTML for an awesome-design-md entry from its DESIGN.md.
   // Cache DESIGN.md fetches in-memory for 5 minutes.
@@ -663,9 +638,16 @@ export async function createHttpBridge(store: Store, paths: RepoPaths, orch?: an
   });
 
   // Design-system management (read + switch) — for the panel's System tab.
+  // Re-reads active system from config file on each request so background
+  // workflow runners (SessionQueue) that call applyDesignSystem are reflected.
   app.get('/api/design-systems', (_req, res) => {
     try {
-      res.json({ active: paths.activeDesignSystem, systems: runtimeFor(paths).list() });
+      let activeDs = paths.activeDesignSystem;
+      try {
+        const cfg = JSON.parse(fs.readFileSync(paths.configPath, 'utf8'));
+        if (cfg.activeDesignSystem) activeDs = cfg.activeDesignSystem;
+      } catch { /* use in-memory fallback */ }
+      res.json({ active: activeDs, systems: runtimeFor(paths).list() });
     } catch (e) {
       res.status(500).json({ error: (e as Error).message });
     }
@@ -939,7 +921,7 @@ export async function createHttpBridge(store: Store, paths: RepoPaths, orch?: an
     });
 
     try {
-      const { AgentRunner } = await import('@emdesign/session');
+      const { AgentRunner } = await import('@emdesign/agent-worker');
       const { claudeAdapter } = await import('@emdesign/backend');
       const runner = new AgentRunner();
 
@@ -964,7 +946,7 @@ export async function createHttpBridge(store: Store, paths: RepoPaths, orch?: an
         handle.cancel().catch(() => {});
       });
 
-      handle.onLog((line) => {
+      handle.onLog((line: string) => {
         try {
           const ev = JSON.parse(line);
           if (ev.type === 'assistant' && ev.message?.content) {
@@ -993,11 +975,19 @@ export async function createHttpBridge(store: Store, paths: RepoPaths, orch?: an
   if (orch) {
     try {
       // Dynamic import to avoid hard dependency on @emdesign/session
-      const { createSessionRouter } = await import('@emdesign/session');
+      const { createSessionRouter } = await import('@emdesign/agent-manager');
       const router = createSessionRouter(orch);
       app.use('/api', router);
     } catch {
       // @emdesign/session not available — skip session routes
+    }
+
+    // Wire log-sink into the HTTP bridge when orchestrator bus is available
+    try {
+      const { createLogSink } = await import('@emdesign/agent-manager');
+      createLogSink(orch.bus, paths.root);
+    } catch {
+      // log-sink not available — skip wiring
     }
   }
 
@@ -1007,6 +997,35 @@ export async function createHttpBridge(store: Store, paths: RepoPaths, orch?: an
     app.use('/api', wfRouter);
   } catch {
     // workflow-api not available — skip workflow routes
+  }
+
+  // ── Start the agent manager (queue consumer) ────────────────────────────
+  // event/message → queue (state.json) → AgentManager → AgentWorker → Claude Code
+  // Routes all intents, chat, conversations through a single management path.
+  try {
+    const { AgentManager } = await import('@emdesign/agent-manager');
+    const manager = new AgentManager({
+      dequeue: () => store.nextQueued() as ({ id: string; type?: string; instruction: string } | undefined),
+      markInProgress: (id: string) => store.setChangeRequestStatus(id, 'in_progress'),
+      markDone: (id: string, note?: string) => store.setChangeRequestStatus(id, 'done', note),
+      markError: (id: string, err: string) => store.setChangeRequestStatus(id, 'error', err),
+      registerSession: async (sessionId: string, item: { id: string; type?: string; instruction: string }) => {
+        try {
+          const entry = { sessionId, display: `Intent: ${item.instruction.slice(0, 80)}`, timestamp: Date.now(), project: paths.root };
+          const { homedir } = await import('node:os');
+          const { appendFileSync } = await import('node:fs');
+          const { join } = await import('node:path');
+          appendFileSync(join(homedir(), '.claude', 'history.jsonl'), JSON.stringify(entry) + '\n');
+          const { invalidateHistoryCache } = await import('@emdesign/agent-manager');
+          invalidateHistoryCache();
+        } catch {}
+      },
+      cwd: paths.root,
+    });
+    manager.start();
+    console.error(`[emdesign] Agent manager started with ${manager['opts'].workerCount} worker(s)`);
+  } catch (e) {
+    console.error('[emdesign] Agent manager not available:', e instanceof Error ? e.message : String(e));
   }
 
   return app;

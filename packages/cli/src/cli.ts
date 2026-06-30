@@ -26,8 +26,11 @@ import { cmdA11y, cmdComponentTest, cmdComponentDiff } from './commands/componen
 import { cmdStoryAuto } from './commands/story.js';
 import { cmdScreenCreate, cmdScreenList } from './commands/screen.js';
 import { cmdLoop } from './commands/loop.js';
+import type { TraceContext } from './lib/trace.js';
 import { cmdStorybookHealth } from './commands/storybook.js';
 import { cmdExplore } from './commands/explore.js';
+import { cmdSession, cmdLogs } from './commands/session.js';
+import { cmdIntent, cmdChat } from './commands/intent.js';
 
 const PORT = Number(process.env.EMDESIGN_PORT ?? 4321);
 
@@ -71,7 +74,7 @@ async function main() {
   if (argv.includes('--completion')) {
     const shellIdx = argv.indexOf('--completion');
     const shell = shellIdx >= 0 && shellIdx + 1 < argv.length && !argv[shellIdx + 1].startsWith('--') ? argv[shellIdx + 1] : 'bash';
-    const commands = ['init','attach','update','serve','up','health','ds','design','generate','doctor','vision','capture','capture-baseline','discover','doc','graph','explore','compose','help'];
+    const commands = ['init','attach','update','serve','up','health','ds','design','generate','doctor','vision','capture','capture-baseline','discover','doc','graph','explore','compose','help','session','logs','intent','chat'];
     const dsSubs = ['list','create','use','validate','grade','scaffold','customize','update','diff','compare','conflicts','history','bases','base-detail','context','prompt'];
     if (shell === 'zsh') {
       process.stdout.write(`#compdef emdesign
@@ -131,6 +134,15 @@ complete -F _emdesign_completions emdesign
   const json = rest.includes('--json');
   const gate = rest.includes('--gate');
   const quiet = rest.includes('--quiet');
+  const trace = rest.includes('--trace');
+  const logLevel = rest.includes('--log-level') ? rest[rest.indexOf('--log-level') + 1] : undefined;
+
+  // Create trace context if --trace is set
+  let traceCtx: TraceContext | undefined;
+  if (trace) {
+    const { createTraceContext } = await import('./lib/trace.js');
+    traceCtx = createTraceContext(process.cwd(), { logLevel });
+  }
 
   // ── Top-level --help dispatch ──────────────────────────────────────────
   if (rest.includes('--help') || rest.includes('-h')) {
@@ -195,7 +207,7 @@ complete -F _emdesign_completions emdesign
 
       let orch: any;
       try {
-        const { PlatformManager } = await import('@emdesign/session');
+        const { PlatformManager } = await import('@emdesign/agent-manager');
         orch = new PlatformManager(paths);
       } catch { /* session not available */ }
 
@@ -205,7 +217,7 @@ complete -F _emdesign_completions emdesign
       });
       if (orch) {
         try {
-          const { attachWebSocket } = await import('@emdesign/session');
+          const { attachWebSocket } = await import('@emdesign/agent-manager');
           attachWebSocket(server as any, orch.bus);
         } catch { /* ws not supported */ }
         orch.services.startHealthChecks();
@@ -216,7 +228,7 @@ complete -F _emdesign_completions emdesign
     case 'up': {
       let orch: any;
       try {
-        const { PlatformManager, attachWebSocket } = await import('@emdesign/session');
+        const { PlatformManager, attachWebSocket } = await import('@emdesign/agent-manager');
         orch = new PlatformManager(paths);
         const server = await startHttpBridge(store, paths, PORT, orch);
         try { attachWebSocket(server as any, orch.bus); } catch { /* ws not available */ }
@@ -246,7 +258,7 @@ complete -F _emdesign_completions emdesign
     // ── Design system ────────────────────────────────────────────────────
     case 'ds': {
       const [subcommand = 'list', ...dsArgs] = rest;
-      await cmdDs({ subcommand, args: dsArgs, argv: rest, json, gate }, paths, store);
+      await cmdDs({ subcommand, args: dsArgs, argv: rest, json, gate, trace: traceCtx }, paths, store);
       break;
     }
 
@@ -549,12 +561,81 @@ complete -F _emdesign_completions emdesign
       break;
     }
 
+    // ── Session tracing ────────────────────────────────────────────────────
+    case 'session': {
+      const [sessionSub, ...sessionRest] = rest;
+      const limit = sessionRest.includes('--limit') ? Number(sessionRest[sessionRest.indexOf('--limit') + 1]) : undefined;
+      const tail = sessionRest.includes('--tail');
+      const fmt = sessionRest.includes('--format') ? sessionRest[sessionRest.indexOf('--format') + 1] as 'text' | 'json' : undefined;
+      const id = (sessionSub === 'show' || sessionSub === 'logs') ? sessionRest[0] : undefined;
+
+      if (!sessionSub || !['list', 'show', 'logs'].includes(sessionSub)) {
+        formatError('usage: emdesign session list|show|logs [args]\n  list [--limit N]  show <id>  logs <id> [--tail] [--format text|json]');
+        process.exit(1);
+      }
+
+      await cmdSession({
+        subcommand: sessionSub as 'list' | 'show' | 'logs',
+        args: sessionRest,
+        limit,
+        id,
+        tail,
+        format: fmt,
+      }, paths);
+      break;
+    }
+
+    // ── Logs ──────────────────────────────────────────────────────────────
+    case 'logs': {
+      const level = rest.includes('--level') ? rest[rest.indexOf('--level') + 1] : undefined;
+      const session = rest.includes('--session') ? rest[rest.indexOf('--session') + 1] : undefined;
+      const since = rest.includes('--since') ? rest[rest.indexOf('--since') + 1] : undefined;
+      const until = rest.includes('--until') ? rest[rest.indexOf('--until') + 1] : undefined;
+      const follow = rest.includes('--follow');
+      const fmt = rest.includes('--format') ? rest[rest.indexOf('--format') + 1] as 'json' | 'text' : undefined;
+
+      await cmdLogs({ level, session, since, until, follow, format: fmt }, paths);
+      break;
+    }
+
+    // ── Intent ─────────────────────────────────────────────────────────────
+    case 'intent': {
+      const intentType = positional(rest);
+      const instruction = positional(rest, 1);
+      if (!intentType || !instruction) {
+        formatError('usage: emdesign intent <type> <instruction> [--selector <css>]');
+        process.exit(1);
+      }
+      const selector = rest.includes('--selector') ? rest[rest.indexOf('--selector') + 1] : undefined;
+      await cmdIntent({ type: intentType, instruction, selector }, paths);
+      break;
+    }
+
+    // ── Chat ───────────────────────────────────────────────────────────────
+    case 'chat': {
+      const chatMsg = positional(rest);
+      const chatType = rest.includes('--type') ? rest[rest.indexOf('--type') + 1] : undefined;
+      if (!chatMsg || !chatType) {
+        formatError('usage: emdesign chat <message> --type <intent-type> [--wait] [--interactive]');
+        process.exit(1);
+      }
+      const wait = rest.includes('--wait');
+      const interactive = rest.includes('--interactive');
+      await cmdChat({ message: chatMsg, type: chatType, wait, interactive }, paths);
+      break;
+    }
+
     // ── Help ─────────────────────────────────────────────────────────────
     case 'help':
     default: {
       showMainHelp();
       break;
     }
+  }
+
+  // Teardown trace context after command completes
+  if (traceCtx) {
+    traceCtx.teardown();
   }
 }
 
@@ -615,6 +696,16 @@ Run 'emdesign <command> --help' for per-command details.
     screen create <name> [--route]    Create a screen with routing
     screen list                       List all screens
 
+💬  Agent
+    intent <type> <instruction>       Submit a design intent
+    chat <message> --type <type>      Chat with the design agent
+
+    🧵  Session tracing and logs
+    session list [--limit N]          List Claude sessions
+    session show <id>                 Show session details
+    session logs <id> [--tail]        View session log entries
+    logs [--level] [--session]        Query trace logs
+
 ⚙️  Configure lint rules
     ds lint-rules list [id]           Show active lint rules
     ds lint-rules preset <id> <name>  Apply a rule preset
@@ -646,9 +737,9 @@ Run 'emdesign <command> --help' for per-command details.
     --quiet                 Suppress stderr messages
 
 ── All commands ────────────────────────────────────────────────────
-    capture  compose  design  discover  doc  doctor  ds  explore
-    generate  graph  health  init  loop  render  screen  spatial
-    story  storybook  update  use  vision
+    capture  chat  compose  design  discover  doc  doctor  ds  explore
+    generate  graph  health  init  intent  loop  logs  render  screen
+    session  spatial  story  storybook  update  use  vision
 
 Legacy aliases: lint, visual-test, score, vision-critique, spatial-audit
 `);
