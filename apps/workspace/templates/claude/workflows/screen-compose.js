@@ -9,8 +9,9 @@ export const meta = {
   phases: [{ title: 'Reuse Analysis' }, { title: 'Build Missing' }, { title: 'Compose' }, { title: 'Verify' }],
 }
 
-const { name, sections = [], layout = 'stack' } = args
+const _args = typeof args === "string" ? JSON.parse(args) : (args || {});
 
+const { name, sections = [], layout = 'stack' } = _args
 phase('Reuse Analysis')
 log(`[screen] Composing: ${name} (${sections.length} sections, layout: ${layout})`)
 

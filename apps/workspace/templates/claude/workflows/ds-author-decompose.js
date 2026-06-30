@@ -21,7 +21,9 @@ export const meta = {
   ],
 }
 
-const { id, designMdPath, tasteDials: dials } = args
+const _args = typeof args === "string" ? JSON.parse(args) : (args || {});
+
+const { id, designMdPath, tasteDials: dials } = _args
 if (!id) throw new Error('ds-author-decompose: id is required')
 if (!designMdPath) throw new Error('ds-author-decompose: designMdPath is required')
 

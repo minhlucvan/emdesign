@@ -18,8 +18,9 @@ export const meta = {
   ],
 }
 
-const { name, mode = 'guided', vision = false } = args
+const _args = typeof args === "string" ? JSON.parse(args) : (args || {});
 
+const { name, mode = 'guided', vision = false } = _args
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function extractIssues(label, data, source, parserFn) {

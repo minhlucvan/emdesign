@@ -10,8 +10,9 @@ export const meta = {
   phases: [{ title: 'Decompose' }, { title: 'Build Screens' }, { title: 'Verify' }, { title: 'Reconcile' }],
 }
 
-const { name, screens = [] } = args
+const _args = typeof args === "string" ? JSON.parse(args) : (args || {});
 
+const { name, screens = [] } = _args
 log(`[app] Setting up application: ${name}`)
 
 // Validate the workspace DS (set at init time, not per-invocation)

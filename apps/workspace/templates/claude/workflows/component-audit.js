@@ -9,8 +9,9 @@ export const meta = {
   phases: [{ title: 'Score Check' }, { title: 'Deep Analysis' }, { title: 'Compile Report' }],
 }
 
-const { name } = args
+const _args = typeof args === "string" ? JSON.parse(args) : (args || {});
 
+const { name } = _args
 phase('Score Check')
 log(`[audit] Starting audit of ${name}`)
 

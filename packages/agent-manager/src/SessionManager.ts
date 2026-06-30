@@ -27,7 +27,8 @@ export class SessionManager {
   }
 
   async create(opts: SessionCreateOptions): Promise<EmSession> {
-    const id = `em_ses_${Date.now()}_${this.seq++}`;
+    const { randomUUID } = await import('node:crypto');
+    const id = randomUUID();
     const now = new Date().toISOString();
 
     const session: EmSession = {
@@ -156,6 +157,10 @@ export class SessionManager {
   }
 
   private buildWorkflowPrompt(opts: SessionCreateOptions): string {
+    if (opts.workflow && opts.args) {
+      const argsStr = JSON.stringify(opts.args);
+      return `workflow('${opts.workflow}', ${argsStr})`;
+    }
     return `You are running an emdesign workflow. Your task is: ${opts.instruction ?? opts.type}.
 
 You have access to the emdesign CLI. Use it to:

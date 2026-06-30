@@ -9,8 +9,9 @@ export const meta = {
   phases: [{ title: 'Enrich' }, { title: 'Generate' }, { title: 'Verify' }, { title: 'Capture' }, { title: 'Reconcile' }],
 }
 
-const { name, instruction = '', threshold = 0.8 } = args
+const _args = typeof args === "string" ? JSON.parse(args) : (args || {});
 
+const { name, instruction = '', threshold = 0.8 } = _args
 phase('Enrich')
 log(`[component-new] Building: ${name}`)
 

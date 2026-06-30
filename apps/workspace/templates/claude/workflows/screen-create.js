@@ -9,8 +9,9 @@ export const meta = {
   phases: [{ title: 'Scaffold' }, { title: 'Compose' }, { title: 'Register Route' }, { title: 'Verify' }],
 }
 
-const { name, route = `/${name.toLowerCase()}`, layout = 'stack', components = [], sections = [] } = args
+const _args = typeof args === "string" ? JSON.parse(args) : (args || {});
 
+const { name, route = `/${name.toLowerCase()}`, layout = 'stack', components = [], sections = [] } = _args
 phase('Scaffold')
 log(`[screen-create] Creating screen: ${name} → ${route}`)
 

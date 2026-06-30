@@ -190,7 +190,6 @@ export function createDesignSystem(
   const mode = opts.mode ?? 'blank';
   const dir = dsDir(paths, id);
   if (fs.existsSync(dir)) throw new Error(`Design system '${id}' already exists at ${dir}`);
-  ensureDir(dir);
   const wrote: string[] = [];
 
   if (mode === 'import') {
@@ -198,6 +197,7 @@ export function createDesignSystem(
     if (!from) throw new Error('import mode requires `from` (a design-system id or base ref to clone, e.g. open-design/brutalist).');
     const fromDir = dsDir(paths, from);
     if (!fs.existsSync(fromDir)) throw new Error(`Cannot import: design system '${from}' not found.`);
+    ensureDir(dir);
     copyDir(fromDir, dir);
     // Re-id the clone and drop the vendor provenance — it is now the user's own system to evolve.
     reidImportedManifest(path.join(dir, 'manifest.json'), id, name);

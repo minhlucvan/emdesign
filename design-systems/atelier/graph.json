@@ -210,83 +210,6 @@
       }
     },
     {
-      "id": "atelier/group/color",
-      "label": "cssVarGroup",
-      "props": {
-        "name": "color"
-      }
-    },
-    {
-      "id": "atelier/group/paper",
-      "label": "cssVarGroup",
-      "props": {
-        "name": "paper"
-      }
-    },
-    {
-      "id": "atelier/group/ink",
-      "label": "cssVarGroup",
-      "props": {
-        "name": "ink"
-      }
-    },
-    {
-      "id": "atelier/group/aged-ink",
-      "label": "cssVarGroup",
-      "props": {
-        "name": "aged ink"
-      }
-    },
-    {
-      "id": "atelier/group/terracotta",
-      "label": "cssVarGroup",
-      "props": {
-        "name": "terracotta"
-      }
-    },
-    {
-      "id": "atelier/group/fired-terracotta",
-      "label": "cssVarGroup",
-      "props": {
-        "name": "fired terracotta"
-      }
-    },
-    {
-      "id": "atelier/group/deckle-edge",
-      "label": "cssVarGroup",
-      "props": {
-        "name": "deckle edge"
-      }
-    },
-    {
-      "id": "atelier/group/type",
-      "label": "cssVarGroup",
-      "props": {
-        "name": "type"
-      }
-    },
-    {
-      "id": "atelier/group/shape-/-depth",
-      "label": "cssVarGroup",
-      "props": {
-        "name": "shape / depth"
-      }
-    },
-    {
-      "id": "atelier/group/motion",
-      "label": "cssVarGroup",
-      "props": {
-        "name": "motion"
-      }
-    },
-    {
-      "id": "atelier/group/layout",
-      "label": "cssVarGroup",
-      "props": {
-        "name": "layout"
-      }
-    },
-    {
       "id": "atelier/--color-surface",
       "label": "token",
       "props": {
@@ -294,7 +217,8 @@
         "kind": "color",
         "value": "#fbfaf7",
         "source": {
-          "file": "atelier/tokens.css"
+          "file": "atelier/tokens.css",
+          "line": 4
         }
       }
     },
@@ -313,7 +237,8 @@
         "kind": "color",
         "value": "#ffffff",
         "source": {
-          "file": "atelier/tokens.css"
+          "file": "atelier/tokens.css",
+          "line": 5
         }
       }
     },
@@ -332,7 +257,8 @@
         "kind": "color",
         "value": "#1a1714",
         "source": {
-          "file": "atelier/tokens.css"
+          "file": "atelier/tokens.css",
+          "line": 6
         }
       }
     },
@@ -351,7 +277,8 @@
         "kind": "color",
         "value": "#6b645c",
         "source": {
-          "file": "atelier/tokens.css"
+          "file": "atelier/tokens.css",
+          "line": 7
         }
       }
     },
@@ -370,7 +297,8 @@
         "kind": "color",
         "value": "#b4532a",
         "source": {
-          "file": "atelier/tokens.css"
+          "file": "atelier/tokens.css",
+          "line": 8
         }
       }
     },
@@ -389,7 +317,8 @@
         "kind": "color",
         "value": "#8f3f1f",
         "source": {
-          "file": "atelier/tokens.css"
+          "file": "atelier/tokens.css",
+          "line": 9
         }
       }
     },
@@ -408,7 +337,8 @@
         "kind": "color",
         "value": "#e6e1d8",
         "source": {
-          "file": "atelier/tokens.css"
+          "file": "atelier/tokens.css",
+          "line": 10
         }
       }
     },
@@ -427,7 +357,8 @@
         "kind": "color",
         "value": "#3f6b42",
         "source": {
-          "file": "atelier/tokens.css"
+          "file": "atelier/tokens.css",
+          "line": 11
         }
       }
     },
@@ -446,7 +377,8 @@
         "kind": "color",
         "value": "#9a6b1f",
         "source": {
-          "file": "atelier/tokens.css"
+          "file": "atelier/tokens.css",
+          "line": 12
         }
       }
     },
@@ -465,7 +397,8 @@
         "kind": "color",
         "value": "#963228",
         "source": {
-          "file": "atelier/tokens.css"
+          "file": "atelier/tokens.css",
+          "line": 13
         }
       }
     },
@@ -484,7 +417,8 @@
         "kind": "type",
         "value": "\"Newsreader\", \"Georgia\", serif",
         "source": {
-          "file": "atelier/tokens.css"
+          "file": "atelier/tokens.css",
+          "line": 16
         }
       }
     },
@@ -504,7 +438,8 @@
         "kind": "type",
         "value": "\"Inter\", system-ui, -apple-system, sans-serif",
         "source": {
-          "file": "atelier/tokens.css"
+          "file": "atelier/tokens.css",
+          "line": 17
         }
       }
     },
@@ -524,7 +459,8 @@
         "kind": "type",
         "value": "\"JetBrains Mono\", ui-monospace, monospace",
         "source": {
-          "file": "atelier/tokens.css"
+          "file": "atelier/tokens.css",
+          "line": 18
         }
       }
     },
@@ -544,7 +480,8 @@
         "kind": "radius",
         "value": "8px",
         "source": {
-          "file": "atelier/tokens.css"
+          "file": "atelier/tokens.css",
+          "line": 21
         }
       }
     },
@@ -556,7 +493,8 @@
         "kind": "radius",
         "value": "5px",
         "source": {
-          "file": "atelier/tokens.css"
+          "file": "atelier/tokens.css",
+          "line": 22
         }
       }
     },
@@ -568,7 +506,8 @@
         "kind": "radius",
         "value": "999px",
         "source": {
-          "file": "atelier/tokens.css"
+          "file": "atelier/tokens.css",
+          "line": 23
         }
       }
     },
@@ -580,7 +519,8 @@
         "kind": "spacing",
         "value": "8px",
         "source": {
-          "file": "atelier/tokens.css"
+          "file": "atelier/tokens.css",
+          "line": 24
         }
       }
     },
@@ -592,7 +532,8 @@
         "kind": "shadow",
         "value": "0 1px 2px rgba(26, 23, 20, 0.06), 0 8px 24px rgba(26, 23, 20, 0.05)",
         "source": {
-          "file": "atelier/tokens.css"
+          "file": "atelier/tokens.css",
+          "line": 25
         }
       }
     },
@@ -604,7 +545,8 @@
         "kind": "shadow",
         "value": "0 0 0 3px rgba(180, 83, 42, 0.28)",
         "source": {
-          "file": "atelier/tokens.css"
+          "file": "atelier/tokens.css",
+          "line": 26
         }
       }
     },
@@ -616,7 +558,8 @@
         "kind": "motion",
         "value": "120ms",
         "source": {
-          "file": "atelier/tokens.css"
+          "file": "atelier/tokens.css",
+          "line": 29
         }
       }
     },
@@ -628,7 +571,8 @@
         "kind": "motion",
         "value": "220ms",
         "source": {
-          "file": "atelier/tokens.css"
+          "file": "atelier/tokens.css",
+          "line": 30
         }
       }
     },
@@ -640,7 +584,8 @@
         "kind": "motion",
         "value": "cubic-bezier(0.2, 0, 0, 1)",
         "source": {
-          "file": "atelier/tokens.css"
+          "file": "atelier/tokens.css",
+          "line": 31
         }
       }
     },
@@ -652,7 +597,8 @@
         "kind": "layout",
         "value": "1180px",
         "source": {
-          "file": "atelier/tokens.css"
+          "file": "atelier/tokens.css",
+          "line": 34
         }
       }
     },
@@ -664,41 +610,9 @@
         "kind": "layout",
         "value": "96px",
         "source": {
-          "file": "atelier/tokens.css"
+          "file": "atelier/tokens.css",
+          "line": 35
         }
-      }
-    },
-    {
-      "id": "atelier/contrast/color-surface-color-text",
-      "label": "contrastPair",
-      "props": {
-        "bg": "color-surface",
-        "fg": "color-text",
-        "ratio": 17.1,
-        "aa": true,
-        "aaLarge": true
-      }
-    },
-    {
-      "id": "atelier/contrast/color-surface-raised-color-text",
-      "label": "contrastPair",
-      "props": {
-        "bg": "color-surface-raised",
-        "fg": "color-text",
-        "ratio": 17.85,
-        "aa": true,
-        "aaLarge": true
-      }
-    },
-    {
-      "id": "atelier/contrast/color-surface-color-text-muted",
-      "label": "contrastPair",
-      "props": {
-        "bg": "color-surface",
-        "fg": "color-text-muted",
-        "ratio": 5.58,
-        "aa": true,
-        "aaLarge": true
       }
     },
     {
@@ -1249,28 +1163,6 @@
       }
     },
     {
-      "id": "skill/emdesign",
-      "label": "skill",
-      "props": {
-        "name": "emdesign",
-        "source": {
-          "file": "skills/emdesign/SKILL.md"
-        }
-      }
-    },
-    {
-      "id": "skill/web-section",
-      "label": "skill",
-      "props": {
-        "name": "web-section",
-        "mode": "component",
-        "scenario": "marketing",
-        "source": {
-          "file": "skills/web-section/SKILL.md"
-        }
-      }
-    },
-    {
       "id": "charter/atelier/accent-usage",
       "label": "charter",
       "props": {
@@ -1447,83 +1339,6 @@
       "props": {}
     },
     {
-      "id": "atelier|contains|atelier/group/color",
-      "label": "contains",
-      "from": "atelier",
-      "to": "atelier/group/color",
-      "props": {}
-    },
-    {
-      "id": "atelier|contains|atelier/group/paper",
-      "label": "contains",
-      "from": "atelier",
-      "to": "atelier/group/paper",
-      "props": {}
-    },
-    {
-      "id": "atelier|contains|atelier/group/ink",
-      "label": "contains",
-      "from": "atelier",
-      "to": "atelier/group/ink",
-      "props": {}
-    },
-    {
-      "id": "atelier|contains|atelier/group/aged-ink",
-      "label": "contains",
-      "from": "atelier",
-      "to": "atelier/group/aged-ink",
-      "props": {}
-    },
-    {
-      "id": "atelier|contains|atelier/group/terracotta",
-      "label": "contains",
-      "from": "atelier",
-      "to": "atelier/group/terracotta",
-      "props": {}
-    },
-    {
-      "id": "atelier|contains|atelier/group/fired-terracotta",
-      "label": "contains",
-      "from": "atelier",
-      "to": "atelier/group/fired-terracotta",
-      "props": {}
-    },
-    {
-      "id": "atelier|contains|atelier/group/deckle-edge",
-      "label": "contains",
-      "from": "atelier",
-      "to": "atelier/group/deckle-edge",
-      "props": {}
-    },
-    {
-      "id": "atelier|contains|atelier/group/type",
-      "label": "contains",
-      "from": "atelier",
-      "to": "atelier/group/type",
-      "props": {}
-    },
-    {
-      "id": "atelier|contains|atelier/group/shape-/-depth",
-      "label": "contains",
-      "from": "atelier",
-      "to": "atelier/group/shape-/-depth",
-      "props": {}
-    },
-    {
-      "id": "atelier|contains|atelier/group/motion",
-      "label": "contains",
-      "from": "atelier",
-      "to": "atelier/group/motion",
-      "props": {}
-    },
-    {
-      "id": "atelier|contains|atelier/group/layout",
-      "label": "contains",
-      "from": "atelier",
-      "to": "atelier/group/layout",
-      "props": {}
-    },
-    {
       "id": "atelier|contains|atelier/--color-surface",
       "label": "contains",
       "from": "atelier",
@@ -1535,7 +1350,9 @@
       "label": "declaredIn",
       "from": "atelier/--color-surface",
       "to": "atelier/tokens.css",
-      "props": {}
+      "props": {
+        "line": 4
+      }
     },
     {
       "id": "atelier/--color-surface|tokenValue|atelier/#fbfaf7",
@@ -1556,7 +1373,9 @@
       "label": "declaredIn",
       "from": "atelier/--color-surface-raised",
       "to": "atelier/tokens.css",
-      "props": {}
+      "props": {
+        "line": 5
+      }
     },
     {
       "id": "atelier/--color-surface-raised|tokenValue|atelier/#ffffff",
@@ -1577,7 +1396,9 @@
       "label": "declaredIn",
       "from": "atelier/--color-text",
       "to": "atelier/tokens.css",
-      "props": {}
+      "props": {
+        "line": 6
+      }
     },
     {
       "id": "atelier/--color-text|tokenValue|atelier/#1a1714",
@@ -1598,7 +1419,9 @@
       "label": "declaredIn",
       "from": "atelier/--color-text-muted",
       "to": "atelier/tokens.css",
-      "props": {}
+      "props": {
+        "line": 7
+      }
     },
     {
       "id": "atelier/--color-text-muted|tokenValue|atelier/#6b645c",
@@ -1619,7 +1442,9 @@
       "label": "declaredIn",
       "from": "atelier/--color-accent",
       "to": "atelier/tokens.css",
-      "props": {}
+      "props": {
+        "line": 8
+      }
     },
     {
       "id": "atelier/--color-accent|tokenValue|atelier/#b4532a",
@@ -1640,7 +1465,9 @@
       "label": "declaredIn",
       "from": "atelier/--color-accent-hover",
       "to": "atelier/tokens.css",
-      "props": {}
+      "props": {
+        "line": 9
+      }
     },
     {
       "id": "atelier/--color-accent-hover|tokenValue|atelier/#8f3f1f",
@@ -1661,7 +1488,9 @@
       "label": "declaredIn",
       "from": "atelier/--color-border",
       "to": "atelier/tokens.css",
-      "props": {}
+      "props": {
+        "line": 10
+      }
     },
     {
       "id": "atelier/--color-border|tokenValue|atelier/#e6e1d8",
@@ -1682,7 +1511,9 @@
       "label": "declaredIn",
       "from": "atelier/--color-success",
       "to": "atelier/tokens.css",
-      "props": {}
+      "props": {
+        "line": 11
+      }
     },
     {
       "id": "atelier/--color-success|tokenValue|atelier/#3f6b42",
@@ -1703,7 +1534,9 @@
       "label": "declaredIn",
       "from": "atelier/--color-warn",
       "to": "atelier/tokens.css",
-      "props": {}
+      "props": {
+        "line": 12
+      }
     },
     {
       "id": "atelier/--color-warn|tokenValue|atelier/#9a6b1f",
@@ -1724,7 +1557,9 @@
       "label": "declaredIn",
       "from": "atelier/--color-danger",
       "to": "atelier/tokens.css",
-      "props": {}
+      "props": {
+        "line": 13
+      }
     },
     {
       "id": "atelier/--color-danger|tokenValue|atelier/#963228",
@@ -1745,7 +1580,9 @@
       "label": "declaredIn",
       "from": "atelier/--font-display",
       "to": "atelier/tokens.css",
-      "props": {}
+      "props": {
+        "line": 16
+      }
     },
     {
       "id": "atelier/--font-display|usesFont|atelier/face/Newsreader",
@@ -1766,7 +1603,9 @@
       "label": "declaredIn",
       "from": "atelier/--font-sans",
       "to": "atelier/tokens.css",
-      "props": {}
+      "props": {
+        "line": 17
+      }
     },
     {
       "id": "atelier/--font-sans|usesFont|atelier/face/Inter",
@@ -1787,7 +1626,9 @@
       "label": "declaredIn",
       "from": "atelier/--font-mono",
       "to": "atelier/tokens.css",
-      "props": {}
+      "props": {
+        "line": 18
+      }
     },
     {
       "id": "atelier/--font-mono|usesFont|atelier/face/JetBrains Mono",
@@ -1808,7 +1649,9 @@
       "label": "declaredIn",
       "from": "atelier/--radius",
       "to": "atelier/tokens.css",
-      "props": {}
+      "props": {
+        "line": 21
+      }
     },
     {
       "id": "atelier|contains|atelier/--radius-sm",
@@ -1822,7 +1665,9 @@
       "label": "declaredIn",
       "from": "atelier/--radius-sm",
       "to": "atelier/tokens.css",
-      "props": {}
+      "props": {
+        "line": 22
+      }
     },
     {
       "id": "atelier|contains|atelier/--radius-pill",
@@ -1836,7 +1681,9 @@
       "label": "declaredIn",
       "from": "atelier/--radius-pill",
       "to": "atelier/tokens.css",
-      "props": {}
+      "props": {
+        "line": 23
+      }
     },
     {
       "id": "atelier|contains|atelier/--space-unit",
@@ -1850,7 +1697,9 @@
       "label": "declaredIn",
       "from": "atelier/--space-unit",
       "to": "atelier/tokens.css",
-      "props": {}
+      "props": {
+        "line": 24
+      }
     },
     {
       "id": "atelier|contains|atelier/--shadow-raised",
@@ -1864,7 +1713,9 @@
       "label": "declaredIn",
       "from": "atelier/--shadow-raised",
       "to": "atelier/tokens.css",
-      "props": {}
+      "props": {
+        "line": 25
+      }
     },
     {
       "id": "atelier|contains|atelier/--focus-ring",
@@ -1878,7 +1729,9 @@
       "label": "declaredIn",
       "from": "atelier/--focus-ring",
       "to": "atelier/tokens.css",
-      "props": {}
+      "props": {
+        "line": 26
+      }
     },
     {
       "id": "atelier|contains|atelier/--motion-fast",
@@ -1892,7 +1745,9 @@
       "label": "declaredIn",
       "from": "atelier/--motion-fast",
       "to": "atelier/tokens.css",
-      "props": {}
+      "props": {
+        "line": 29
+      }
     },
     {
       "id": "atelier|contains|atelier/--motion-base",
@@ -1906,7 +1761,9 @@
       "label": "declaredIn",
       "from": "atelier/--motion-base",
       "to": "atelier/tokens.css",
-      "props": {}
+      "props": {
+        "line": 30
+      }
     },
     {
       "id": "atelier|contains|atelier/--ease-standard",
@@ -1920,7 +1777,9 @@
       "label": "declaredIn",
       "from": "atelier/--ease-standard",
       "to": "atelier/tokens.css",
-      "props": {}
+      "props": {
+        "line": 31
+      }
     },
     {
       "id": "atelier|contains|atelier/--container-max",
@@ -1934,7 +1793,9 @@
       "label": "declaredIn",
       "from": "atelier/--container-max",
       "to": "atelier/tokens.css",
-      "props": {}
+      "props": {
+        "line": 34
+      }
     },
     {
       "id": "atelier|contains|atelier/--section-y",
@@ -1948,28 +1809,9 @@
       "label": "declaredIn",
       "from": "atelier/--section-y",
       "to": "atelier/tokens.css",
-      "props": {}
-    },
-    {
-      "id": "atelier|contains|atelier/contrast/color-surface-color-text",
-      "label": "contains",
-      "from": "atelier",
-      "to": "atelier/contrast/color-surface-color-text",
-      "props": {}
-    },
-    {
-      "id": "atelier|contains|atelier/contrast/color-surface-raised-color-text",
-      "label": "contains",
-      "from": "atelier",
-      "to": "atelier/contrast/color-surface-raised-color-text",
-      "props": {}
-    },
-    {
-      "id": "atelier|contains|atelier/contrast/color-surface-color-text-muted",
-      "label": "contains",
-      "from": "atelier",
-      "to": "atelier/contrast/color-surface-color-text-muted",
-      "props": {}
+      "props": {
+        "line": 35
+      }
     },
     {
       "id": "atelier|contains|atelier/§visual-theme-atmosphere",

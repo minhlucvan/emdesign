@@ -9,8 +9,9 @@ export const meta = {
   phases: [{ title: 'Enrich Intent' }, { title: 'Fix Element' }, { title: 'Verify' }, { title: 'Reconcile' }],
 }
 
-const { name, type, finding } = args
+const _args = typeof args === "string" ? JSON.parse(args) : (args || {});
 
+const { name, type, finding } = _args
 phase('Enrich Intent')
 log(`[element] Starting ${type} fix for ${name}`)
 

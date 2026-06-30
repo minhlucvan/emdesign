@@ -9,8 +9,9 @@ export const meta = {
   phases: [{ title: 'Discover Impact' }, { title: 'Verify Dependents' }, { title: 'Report' }],
 }
 
-const { nodes = [] } = args
+const _args = typeof args === "string" ? JSON.parse(args) : (args || {});
 
+const { nodes = [] } = _args
 phase('Discover Impact')
 log(`[reconcile] Discovering impact for ${nodes.length} node(s)`)
 

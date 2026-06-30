@@ -22,7 +22,9 @@ export const meta = {
   ],
 }
 
-const { id, designMdPath, source, name: displayName, description: displayDesc, dials: tasteDials } = args
+const _args = typeof args === "string" ? JSON.parse(args) : (args || {});
+
+const { id, designMdPath, source, name: displayName, description: displayDesc, dials: tasteDials } = _args
 if (!id) throw new Error('ds-scaffold: id is required')
 if (!designMdPath) throw new Error('ds-scaffold: designMdPath is required')
 
