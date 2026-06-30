@@ -258,33 +258,30 @@ export async function createHttpBridge(store: Store, paths: RepoPaths, orch?: an
   });
 
   // Import a design system from awesome-design-md by brand name.
-  // Creates a PlatformManager session (visible in sidebar) and spawns
-  // a Claude Code agent to run the ds-import.js workflow.
+  // Creates a Claude Code session that runs the ds-import.js workflow.
   // No programmatic fetching — the agent handles everything.
   app.post('/api/design-systems/import-awesome', async (req, res) => {
     try {
       const { brand, name } = req.body;
       if (!brand) return res.status(400).json({ error: 'brand is required.' });
 
+      const { randomUUID } = await import('node:crypto');
       const displayName = name || brand;
       const systemId = displayName.toLowerCase().replace(/[^a-z0-9-]/g, '-');
+      const claudeSessionId = randomUUID();
 
-      // Register session with PlatformManager so it shows in the sidebar
-      let sessionId: string;
+      // Register with PlatformManager so it shows in emdesignSessions
       if (orch) {
-        const session = await orch.createSession({
+        await orch.createSession({
           type: 'design-system-import',
           workflow: 'ds-import',
           args: { source: `awesome/${brand}`, name: displayName, id: systemId },
           instruction: `Import "${displayName}" from awesome-design-md`,
           origin: 'chat',
         });
-        sessionId = session.id;
-      } else {
-        sessionId = `ses_${Date.now()}`;
       }
 
-      // Spawn Claude Code with the ds-import workflow instruction
+      // Spawn Claude Code — uses UUID for --session-id (Claude requirement)
       const { AgentRunner } = await import('@emdesign/session');
       const { claudeAdapter } = await import('@emdesign/backend');
       const runner = new AgentRunner();
@@ -293,19 +290,15 @@ export async function createHttpBridge(store: Store, paths: RepoPaths, orch?: an
         def: claudeAdapter,
         cwd: paths.root,
         prompt,
-        newSessionId: sessionId,
+        newSessionId: claudeSessionId,
         allowedDirs: [paths.root],
       });
 
-      // Fire and forget — the session is tracked by PlatformManager
       handle.waitForExit().catch((e) => {
         console.error('[emdesign] Import session failed:', e.message);
-        if (orch) {
-          try { orch.getSession(sessionId); } catch {}
-        }
       });
 
-      res.json({ sessionId, id: systemId });
+      res.json({ sessionId: claudeSessionId, id: systemId });
     } catch (e) {
       res.status(500).json({ error: (e as Error).message });
     }
