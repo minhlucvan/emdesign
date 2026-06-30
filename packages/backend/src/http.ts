@@ -258,19 +258,21 @@ export async function createHttpBridge(store: Store, paths: RepoPaths, orch?: an
   });
 
   // Import a design system from awesome-design-md by brand name.
-  // Creates a Claude Code session that runs the ds-import.js workflow.
-  // No programmatic fetching — the agent handles everything.
+  // Creates a single Claude Code session (UUID) and registers it in
+  // both ~/.claude/history.jsonl (claudeSessions) and PlatformManager
+  // (emdesignSessions) so the sidebar picks it up immediately.
   app.post('/api/design-systems/import-awesome', async (req, res) => {
     try {
       const { brand, name } = req.body;
       if (!brand) return res.status(400).json({ error: 'brand is required.' });
 
       const { randomUUID } = await import('node:crypto');
+      const os = await import('node:os');
       const displayName = name || brand;
       const systemId = displayName.toLowerCase().replace(/[^a-z0-9-]/g, '-');
-      const claudeSessionId = randomUUID();
+      const sessionId = randomUUID();
 
-      // Register with PlatformManager so it shows in emdesignSessions
+      // Register in PlatformManager (emdesignSessions in sidebar)
       if (orch) {
         await orch.createSession({
           type: 'design-system-import',
@@ -281,7 +283,22 @@ export async function createHttpBridge(store: Store, paths: RepoPaths, orch?: an
         });
       }
 
-      // Spawn Claude Code — uses UUID for --session-id (Claude requirement)
+      // Register in ~/.claude/history.jsonl so claudeSessions picks it up
+      try {
+        const historyEntry = {
+          sessionId,
+          display: `Import design system: ${displayName} (${brand})`,
+          timestamp: Date.now(),
+          project: paths.root,
+        };
+        const historyPath = path.join(os.homedir(), '.claude', 'history.jsonl');
+        fs.appendFileSync(historyPath, JSON.stringify(historyEntry) + '\n');
+        // Invalidate the in-memory cache so next API call picks it up
+        const { invalidateHistoryCache } = await import('@emdesign/session');
+        invalidateHistoryCache();
+      } catch { /* history registration optional */ }
+
+      // Spawn Claude Code with the ds-import workflow
       const { AgentRunner } = await import('@emdesign/session');
       const { claudeAdapter } = await import('@emdesign/backend');
       const runner = new AgentRunner();
@@ -290,7 +307,7 @@ export async function createHttpBridge(store: Store, paths: RepoPaths, orch?: an
         def: claudeAdapter,
         cwd: paths.root,
         prompt,
-        newSessionId: claudeSessionId,
+        newSessionId: sessionId,
         allowedDirs: [paths.root],
       });
 
@@ -298,7 +315,7 @@ export async function createHttpBridge(store: Store, paths: RepoPaths, orch?: an
         console.error('[emdesign] Import session failed:', e.message);
       });
 
-      res.json({ sessionId: claudeSessionId, id: systemId });
+      res.json({ sessionId, id: systemId });
     } catch (e) {
       res.status(500).json({ error: (e as Error).message });
     }
