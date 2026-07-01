@@ -10,7 +10,7 @@
  * element-level diffs, and agent-friendly feedback pinpointing differences.
  */
 
-export { compareHtmlDocuments, compareFiles, generateDiffImage, measureSimilarity, computeRegionGrid } from './engine.js';
+export { compareHtmlDocuments, compareFiles, compareUrlDocuments, generateDiffImage, measureSimilarity, computeRegionGrid } from './engine.js';
 export { generateFixInstructions, generateHtmlReport } from './report.js';
 export type { FixInstruction } from './report.js';
 export { cropRegion, extractElementText } from './crop.js';

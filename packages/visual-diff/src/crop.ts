@@ -28,7 +28,7 @@ export async function cropRegion(
 ): Promise<{ png: Buffer; actualBbox: { x: number; y: number; width: number; height: number } }> {
   const browser = await chromium.launch({ headless: true });
   try {
-    const page = await browser.newPage({ viewport: { ...viewport, deviceScaleFactor: 2 } });
+    const page = await browser.newPage({ viewport });
     const uri = 'data:text/html;base64,' + Buffer.from(html, 'utf8').toString('base64');
     await page.goto(uri, { waitUntil: 'networkidle' });
     await page.waitForTimeout(800);
@@ -38,7 +38,7 @@ export async function cropRegion(
     if (selector && !cropBbox) {
       cropBbox = await page.evaluate((sel) => {
         const el = document.querySelector(sel);
-        if (!el) return null;
+        if (!el) return undefined;
         const r = el.getBoundingClientRect();
         return { x: r.x, y: r.y, width: r.width, height: r.height };
       }, selector);

@@ -37,10 +37,6 @@ export async function cmdVisualDiff(args: VisualDiffArgs, _paths?: any, _store?:
   // Parse viewport
   const viewport = parseViewport(vp);
 
-  // Load HTML content (support file paths and URLs)
-  const [htmlA, labelA] = await loadSource(sourceA);
-  const [htmlB, labelB] = await loadSource(sourceB);
-
   // Dynamically import the visual-diff engine
   let visualDiff: typeof import('@emdesign/visual-diff');
   try {
@@ -50,18 +46,36 @@ export async function cmdVisualDiff(args: VisualDiffArgs, _paths?: any, _store?:
     process.exit(1);
   }
 
-  if (!json) {
-    process.stderr.write(`[visual-diff] Comparing:\n  A: ${labelA}\n  B: ${labelB}\n`);
-    process.stderr.write(`[visual-diff] Viewport: ${viewport.width}x${viewport.height}\n`);
-  }
+  // Determine comparison method: URLs navigate directly (preserves origin for JS),
+  // file paths are read as HTML and rendered as data URIs.
+  const sourceAIsUrl = sourceA.startsWith('http://') || sourceA.startsWith('https://');
+  const sourceBIsUrl = sourceB.startsWith('http://') || sourceB.startsWith('https://');
 
-  // Run comparison
-  const result = await visualDiff.compareHtmlDocuments(htmlA, htmlB, {
-    viewport,
-    threshold: threshold ?? 0.2,
-    regionGrid: grid ?? '8x8',
-    enableDomFeedback: true,
-  });
+  let result: import('@emdesign/visual-diff').HtmlDiffResult;
+
+  if (sourceAIsUrl || sourceBIsUrl) {
+    // Use URL-based comparison — passes URLs directly to Playwright so the origin
+    // is preserved and JS bundles (e.g. Storybook's /@vite/client) load correctly.
+    // Non-URL sources are read from disk and passed as HTML strings.
+    const resolvedA = sourceAIsUrl ? sourceA : fs.readFileSync(sourceA, 'utf8');
+    const resolvedB = sourceBIsUrl ? sourceB : fs.readFileSync(sourceB, 'utf8');
+    result = await visualDiff.compareUrlDocuments(resolvedA, resolvedB, {
+      viewport,
+      threshold: threshold ?? 0.2,
+      regionGrid: grid ?? '8x8',
+      enableDomFeedback: true,
+    });
+  } else {
+    // Both are file paths — read and compare as HTML strings.
+    const htmlA = fs.readFileSync(sourceA, 'utf8');
+    const htmlB = fs.readFileSync(sourceB, 'utf8');
+    result = await visualDiff.compareHtmlDocuments(htmlA, htmlB, {
+      viewport,
+      threshold: threshold ?? 0.2,
+      regionGrid: grid ?? '8x8',
+      enableDomFeedback: true,
+    });
+  }
 
   // Write diff image if requested
   if (diffOutput && result.pixel.diffPng) {
@@ -139,15 +153,4 @@ function parseViewport(vp?: string): { width: number; height: number } {
   const m = vp.match(/^(\d+)x(\d+)$/);
   if (!m) return { width: 1280, height: 720 };
   return { width: Math.max(320, parseInt(m[1], 10)), height: Math.max(240, parseInt(m[2], 10)) };
-}
-
-async function loadSource(source: string): Promise<[string, string]> {
-  // URL
-  if (source.startsWith('http://') || source.startsWith('https://')) {
-    const resp = await fetch(source);
-    if (!resp.ok) throw new Error(`Failed to fetch ${source}: ${resp.status}`);
-    return [await resp.text(), source];
-  }
-  // File path
-  return [fs.readFileSync(source, 'utf8'), source];
 }

@@ -13,6 +13,7 @@
 
 import { chromium } from 'playwright';
 import { PNG } from 'pngjs';
+// @ts-expect-error - pixelmatch has no types
 import pixelmatch from 'pixelmatch';
 import { Buffer } from 'node:buffer';
 import type {
@@ -678,6 +679,90 @@ async function renderHtml(
   await page.waitForTimeout(500);
   const png = await page.screenshot({ fullPage: false, type: 'png' });
   return { png, page };
+}
+
+/**
+ * Render a URL directly in Playwright. Use for dynamic pages (e.g. Storybook)
+ * that rely on JS bundles with absolute paths — navigating to the URL preserves
+ * the origin so scripts load without CORS issues.
+ */
+async function renderUrl(
+  browser: any,
+  url: string,
+  viewport: { width: number; height: number },
+): Promise<{ png: Buffer; page: any }> {
+  const page = await browser.newPage({ viewport: { ...viewport, deviceScaleFactor: DEVICE_SCALE_FACTOR } });
+  await page.goto(url, { waitUntil: 'networkidle', timeout: 30000 });
+  await page.waitForTimeout(1500);
+  const png = await page.screenshot({ fullPage: false, type: 'png' });
+  return { png, page };
+}
+
+/**
+ * Compare two sources where each source is either an HTML string or a URL.
+ * URLs are navigated to directly (preserving origin for JS bundle loading);
+ * HTML strings are rendered as data URIs (for static content).
+ */
+export async function compareUrlDocuments(
+  sourceA: string,
+  sourceB: string,
+  opts: CompareOptions = {},
+): Promise<HtmlDiffResult> {
+  const viewport = opts.viewport ?? DEFAULT_VIEWPORT;
+  const threshold = opts.threshold ?? DEFAULT_THRESHOLD;
+  const grid = parseGrid(opts.regionGrid);
+  const enableDom = opts.enableDomFeedback !== false;
+  const isUrlA = sourceA.startsWith('http://') || sourceA.startsWith('https://');
+  const isUrlB = sourceB.startsWith('http://') || sourceB.startsWith('https://');
+
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const { png: pngA, page: pageA } = isUrlA
+      ? await renderUrl(browser, sourceA, viewport)
+      : await renderHtml(browser, sourceA, viewport);
+    const { png: pngB, page: pageB } = isUrlB
+      ? await renderUrl(browser, sourceB, viewport)
+      : await renderHtml(browser, sourceB, viewport);
+
+    const imgA = PNG.sync.read(pngA);
+    const imgB = PNG.sync.read(pngB);
+
+    const pixelResult = await computePixelDiff(imgA, imgB, threshold, opts.overlayAlpha);
+    const structureResult = await computeStructureDiff(pageA, pageB);
+    const elementDiffs = await computeElementDiff(pageA, pageB, imgA, imgB, threshold);
+    const regions = computeRegionGrid(imgA, imgB, grid.cols, grid.rows, threshold);
+
+    const feedback: DomElementDiff[] = [];
+    if (enableDom && regions.some(r => r.diffRatio > 0.01)) {
+      const domFeedback = await extractDomFeedback(pageA, pageB, regions, viewport);
+      feedback.push(...domFeedback);
+      for (const region of regions) {
+        const rf = domFeedback.filter(d => isInside(d.box, region));
+        region.domFeedback = {
+          differences: rf,
+          summary: rf.length > 0 ? `${rf.length} diff(s) in ${region.label}` : 'No element diffs',
+        };
+      }
+    }
+
+    await pageA.close();
+    await pageB.close();
+
+    const overallScore = computeOverallScore(pixelResult, structureResult, elementDiffs);
+
+    return {
+      overallScore,
+      pixel: pixelResult,
+      structure: structureResult,
+      elementDiffs,
+      feedback,
+      regions,
+      viewport,
+      timestamp: new Date().toISOString(),
+    };
+  } finally {
+    await browser.close();
+  }
 }
 
 function parseGrid(gridStr?: string): { cols: number; rows: number } {

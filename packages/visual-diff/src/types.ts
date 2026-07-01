@@ -202,6 +202,9 @@ export interface CompareOptions {
   regionGrid?: string;
   overlayAlpha?: number;
   enableDomFeedback?: boolean;
+  /** When set, both pages are cropped to this CSS selector's bounding box before comparison.
+   *  Pixel, structure, and CSS diffs are all scoped to the cropped region. */
+  cropSelector?: string;
 }
 
 export interface FileCompareOptions extends CompareOptions {

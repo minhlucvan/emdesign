@@ -34,3 +34,8 @@ packages/backend/design-systems/
 packages/backend/emdesign.config.json
 packages/backend/src/active-design-system.css
 src/
+design-systems/claude/
+apps/workspace-react/design-systems
+apps/workspace-react/__screenshots__/
+apps/workspace-react/emdesign.config.json.tmp
+.claude/tmp/
