@@ -40,7 +40,7 @@ log('[ds-compose-overview] Creating Overview.tsx')
 const composeResult = await agent(
   'Create the Overview page for DS "' + dsId + '" by composing all section components.\n\n' +
   'Available section components in "' + codeDir + '":\n' +
-  passedSections.map(s => '  - Overview' + s.name + '.tsx (score: ' + s.score + '%)').join('\n') + '\n\n' +
+  passedSections.map(s => '  - Overview' + s.name.replace(/\s+/g, '') + '.tsx (score: ' + s.score + '%)').join('\n') + '\n\n' +
   'Step 1: Write "' + codeDir + '/Overview.tsx":\n' +
   '  - Import all Overview* components from their files (e.g. "./OverviewHero")\n' +
   '  - Render them in the SAME ORDER as the sections appear in the preview\n' +

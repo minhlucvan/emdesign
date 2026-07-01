@@ -34,6 +34,7 @@ const MAX_ITERATIONS = 4
 
 // Build a story ID for this section — each section gets its own story
 const sectionId = section.name.replace(/[^a-zA-Z0-9-]/g, '').toLowerCase()
+const fileSlug = section.name.replace(/\s+/g, '')  // sanitize for filenames
 const storyId = 'pages-overview--section-' + sectionId
 
 log('[ds-reconstruct-section] Reconstructing: "' + section.name + '" for DS "' + dsId + '"')
@@ -132,7 +133,7 @@ phase('Build component')
 log('[ds-reconstruct-section] Building section React component')
 
 const buildResult = await agent(
-  'Create the React component Overview' + section.name + ' for DS "' + dsId + '".\n\n' +
+  'Create the React component Overview' + fileSlug + ' for DS "' + dsId + '".\n\n' +
   'Context:\n' +
   '- Preview section: ' + section.name + ' (selector: ' + section.selector + ')\n' +
   '- Layout: ' + layoutType + '\n' +
@@ -141,18 +142,18 @@ const buildResult = await agent(
   '- Newly crafted primitives: ' + missingPrims.map(p => p.name).join(', ') + '\n' +
   '- Preview HTML: "' + previewPath + '"\n' +
   '- tokens.css: "' + dsPath + '/tokens.css"\n\n' +
-  'Write "' + codeDir + '/Overview' + section.name + '.tsx" with:\n' +
+  'Write "' + codeDir + '/Overview' + fileSlug + '.tsx" with:\n' +
   '1. Import existing primitives from "@ds/<Name>"\n' +
   '2. Import newly crafted primitives from "./<Name>"\n' +
   '3. Compose them in a ' + layoutType + ' layout matching the preview section\n' +
   '4. Use ONLY semantic token classes — NO raw hex or hardcoded values\n' +
-  '5. Export as named function Overview' + section.name + '\n' +
+  '5. Export as named function Overview' + fileSlug + '\n' +
   '6. Accept className?: string in props\n\n' +
   'Return "OK" with component name.',
   { label: 'build-section:' + sectionId, phase: 'Build component' }
 )
 
-log('[ds-reconstruct-section] Component built: Overview' + section.name + '.tsx')
+log('[ds-reconstruct-section] Component built: Overview' + fileSlug + '.tsx')
 
 // ===== PHASE 4: Verify =====
 phase('Verify')
@@ -185,7 +186,7 @@ for (let i = 0; i < MAX_ITERATIONS; i++) {
     'Run visual diff for the "' + section.name + '" section.\n\n' +
     'Command: emdesign visual-diff "' + previewPath + '" "' +
     STORYBOOK_URL + '/iframe.html?id=' + storyId + '&viewMode=story" ' +
-    '--viewport 1280x720 --json 2>&1\n\n' +
+    '--ref-selector "' + section.selector + '" --target-selector "' + section.selector + '" --viewport 1280x720 --json 2>&1\n\n' +
     'Parse the JSON. Extract "overallScore" and "feedback".\n' +
     'Return JSON: { "score": NUMBER, "feedback": ARRAY }',
     {
@@ -220,7 +221,7 @@ for (let i = 0; i < MAX_ITERATIONS; i++) {
       'DOM differences found:\n' +
       JSON.stringify(diffFeedback.slice(0, 10), null, 2) + '\n\n' +
       'Fix the issues in:\n' +
-      '- "' + codeDir + '/Overview' + section.name + '.tsx"\n' +
+      '- "' + codeDir + '/Overview' + fileSlug + '.tsx"\n' +
       '- Any primitive files in "' + codeDir + '/" that need adjustment\n\n' +
       'Match the preview at "' + previewPath + '" selector: ' + section.selector + '\n' +
       'After fixing, restart Storybook to pick up changes.\n' +
@@ -235,7 +236,7 @@ log('[ds-reconstruct-section] Final: "' + section.name + '" = ' + bestScore.toFi
 
 return {
   sectionName: section.name,
-  componentFile: 'Overview' + section.name + '.tsx',
+  componentFile: 'Overview' + fileSlug + '.tsx',
   score: bestScore,
   iterations,
   passed: bestScore >= THRESHOLD,

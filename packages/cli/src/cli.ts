@@ -397,7 +397,9 @@ complete -F _emdesign_completions emdesign
       const threshold = rest.includes('--threshold') ? Number(rest[rest.indexOf('--threshold') + 1]) : undefined;
       const grid = rest.includes('--grid') ? rest[rest.indexOf('--grid') + 1] : undefined;
       const diffOutput = rest.includes('--diff-output') ? rest[rest.indexOf('--diff-output') + 1] : undefined;
-      await cmdVisualDiff({ sourceA, sourceB, viewport, threshold, grid, diffOutput, json }, paths, store);
+      const refSelector = rest.includes('--ref-selector') ? rest[rest.indexOf('--ref-selector') + 1] : undefined;
+      const targetSelector = rest.includes('--target-selector') ? rest[rest.indexOf('--target-selector') + 1] : undefined;
+      await cmdVisualDiff({ sourceA, sourceB, viewport, threshold, grid, diffOutput, json, refSelector, targetSelector }, paths, store);
       break;
     }
 

@@ -10,6 +10,7 @@
  *   emdesign visual-diff preview.html http://localhost:6006/iframe.html?id=...
  *   emdesign visual-diff a.html b.html --viewport 1280x720 --json
  *   emdesign visual-diff a.html b.html --diff-output diff.png --grid 4x4
+ *   emdesign visual-diff ref.html story.html --ref-selector "section#palette" --target-selector "section#palette"
  */
 
 import fs from 'node:fs';
@@ -23,23 +24,46 @@ export interface VisualDiffArgs {
   grid?: string;
   diffOutput?: string;
   json?: boolean;
+  /** Crop the reference page to this CSS selector before comparing. */
+  refSelector?: string;
+  /** Crop the target page to this CSS selector before comparing. */
+  targetSelector?: string;
 }
 
 // Extra params (paths, store) accepted for CLI compatibility but not used.
 export async function cmdVisualDiff(args: VisualDiffArgs, _paths?: any, _store?: any): Promise<void> {
-  const { sourceA, sourceB, viewport: vp, threshold, grid, diffOutput, json } = args;
+  const { sourceA, sourceB, viewport: vp, threshold, grid, diffOutput, json, refSelector, targetSelector } = args;
 
   if (!sourceA || !sourceB) {
-    formatError('usage: emdesign visual-diff <sourceA> <sourceB> [--viewport 1280x720] [--threshold 0.2] [--grid 8x8] [--diff-output diff.png] [--json]');
+    formatError('usage: emdesign visual-diff <sourceA> <sourceB> [--viewport 1280x720] [--threshold 0.2] [--grid 8x8] [--diff-output diff.png] [--ref-selector "css-selector"] [--target-selector "css-selector"] [--json]');
     process.exit(1);
   }
 
   // Parse viewport
   const viewport = parseViewport(vp);
 
-  // Load HTML content (support file paths and URLs)
-  const [htmlA, labelA] = await loadSource(sourceA);
-  const [htmlB, labelB] = await loadSource(sourceB);
+  // Is sourceA a URL? If so pass as referenceUrl directly (preserves relative paths).
+  const isUrlA = sourceA.startsWith('http://') || sourceA.startsWith('https://');
+  const isUrlB = sourceB.startsWith('http://') || sourceB.startsWith('https://');
+
+  // Load HTML content (support file paths; URLs passed through as referenceUrl/targetUrl)
+  let htmlA = '';
+  let labelA = sourceA;
+  if (isUrlA) {
+    labelA = sourceA;
+  } else {
+    const fs = await import('node:fs');
+    htmlA = fs.readFileSync(sourceA, 'utf8');
+  }
+
+  let htmlB = '';
+  let labelB = sourceB;
+  if (isUrlB) {
+    labelB = sourceB;
+  } else {
+    const fs = await import('node:fs');
+    htmlB = fs.readFileSync(sourceB, 'utf8');
+  }
 
   // Dynamically import the visual-diff engine
   let visualDiff: typeof import('@emdesign/visual-diff');
@@ -61,6 +85,10 @@ export async function cmdVisualDiff(args: VisualDiffArgs, _paths?: any, _store?:
     threshold: threshold ?? 0.2,
     regionGrid: grid ?? '8x8',
     enableDomFeedback: true,
+    referenceSelector: refSelector,
+    targetSelector: targetSelector,
+    referenceUrl: isUrlA ? sourceA : undefined,
+    targetUrl: isUrlB ? sourceB : undefined,
   });
 
   // Write diff image if requested

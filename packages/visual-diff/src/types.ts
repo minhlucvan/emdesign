@@ -202,6 +202,14 @@ export interface CompareOptions {
   regionGrid?: string;
   overlayAlpha?: number;
   enableDomFeedback?: boolean;
+  /** CSS selector to crop the baseline (reference) page to before comparison. */
+  referenceSelector?: string;
+  /** CSS selector to crop the target (story) page to before comparison. */
+  targetSelector?: string;
+  /** When provided, render the reference URL directly via page.goto instead of using data URI. */
+  referenceUrl?: string;
+  /** When provided, render the target URL directly via page.goto instead of using data URI. */
+  targetUrl?: string;
 }
 
 export interface FileCompareOptions extends CompareOptions {

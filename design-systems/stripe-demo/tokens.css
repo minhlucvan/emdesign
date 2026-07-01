@@ -1,0 +1,19 @@
+/* Stripe — token contract from reference-example.html */
+:root {
+  --primary: #533afd;
+  --ink: #0d253d;
+  --on-primary: #ffffff;
+  --canvas: #ffffff;
+  --canvas-alt: #f6f9fc;
+  --hairline: #e3e8ee;
+  --muted: #64748d;
+  --accent-2: #ea2261;
+  --featured-bg: #1c1e54;
+  --featured-fg: #ffffff;
+  --rad-button: 9999px;
+  --rad-card: 12px;
+  --rad-input: 6px;
+  --font-display: 'Inter', 'Sohne', 'SF Pro Display', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-mono: ui-monospace, Menlo, Monaco, monospace;
+}

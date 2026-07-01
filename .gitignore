@@ -34,3 +34,5 @@ packages/backend/design-systems/
 packages/backend/emdesign.config.json
 packages/backend/src/active-design-system.css
 src/
+temp-visual-diff/
+*-diff.png

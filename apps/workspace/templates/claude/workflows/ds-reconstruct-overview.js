@@ -216,7 +216,7 @@ for (let si = 0; si < allSections.length; si++) {
       'Run visual diff for "' + section.name + '".\n\n' +
       'Command: emdesign visual-diff "' + previewPath + '" "' +
       STORYBOOK_URL + '/iframe.html?id=' + storyId + '&viewMode=story" ' +
-      '--viewport 1280x720 --json 2>&1\n\n' +
+      '--ref-selector "' + section.selector + '" --target-selector "' + section.selector + '" --viewport 1280x720 --json 2>&1\n\n' +
       'Return { "score": number, "feedback": array, "pixel": object, "structure": object }',
       {
         label: 'diff:' + section.name + '-iter' + currentIterations, phase: 'Verify',
