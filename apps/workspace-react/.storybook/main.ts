@@ -1,17 +1,19 @@
 import type { StorybookConfig } from '@storybook/react-vite';
+import path from 'node:path';
+import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
-/**
- * emdesign Studio = Storybook as the front end.
- * Generated components land in `src/generated/**` as CSF stories and render here;
- * captured (reusable) components live in `src/components/**`.
- * The emdesign addon panel (chat · capture · visual-diff) is registered via `@emdesign/addon`.
- */
+const here = path.dirname(fileURLToPath(import.meta.url));
+// Resolve to the ACTIVE design system only (avoid duplicate IDs from wildcard).
+const activeFile = path.resolve(here, '../.emdesign/active-ds');
+const active = fs.existsSync(activeFile) ? fs.readFileSync(activeFile, 'utf8').trim() : 'atelier';
+
 const config: StorybookConfig = {
   stories: [
     '../src/components/**/*.stories.@(ts|tsx)',
     '../src/generated/**/*.stories.@(ts|tsx)',
-    // The active design system's own primitive showcase.
-    '../../../design-systems/*/code/**/*.stories.@(ts|tsx)',
+    // Only the active design system's story files (not a wildcard scan).
+    `../../../design-systems/${active}/code/**/*.stories.@(ts|tsx)`,
   ],
   addons: [
     '@storybook/addon-essentials',
@@ -21,16 +23,8 @@ const config: StorybookConfig = {
     name: '@storybook/react-vite',
     options: {},
   },
-  // `@ds` always resolves to the ACTIVE design system's primitives. Generated and captured
-  // components import from `@ds`, so swapping the design system re-skins everything.
+  // `@ds` always resolves to the ACTIVE design system's primitives (same active as above).
   viteFinal: async (vite) => {
-    const path = await import('node:path');
-    const fs = await import('node:fs');
-    const { fileURLToPath } = await import('node:url');
-    const here = path.dirname(fileURLToPath(import.meta.url));
-    // Resolve `@ds` to the ACTIVE design system (written by `apply_design_system` → .emdesign/active-ds).
-    const activeFile = path.resolve(here, '../.emdesign/active-ds');
-    const active = fs.existsSync(activeFile) ? fs.readFileSync(activeFile, 'utf8').trim() : 'atelier';
     vite.resolve = vite.resolve ?? {};
     vite.resolve.alias = {
       ...(vite.resolve.alias ?? {}),

@@ -1,0 +1,26 @@
+{
+  "name": "@emdesign/visual-diff",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Comprehensive visual diff engine for HTML documents — pixel-level comparison, per-region breakdown, similarity scoring. Compares two rendered HTML documents and identifies where and how they differ.",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "playwright": "^1.48.0",
+    "pngjs": "^7.0.0",
+    "pixelmatch": "^6.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/pngjs": "^6.0.5",
+    "typescript": "^5.5.0",
+    "vitest": "^2.0.0"
+  }
+}

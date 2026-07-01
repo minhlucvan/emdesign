@@ -31,6 +31,7 @@ import { cmdStorybookHealth } from './commands/storybook.js';
 import { cmdExplore } from './commands/explore.js';
 import { cmdSession, cmdLogs } from './commands/session.js';
 import { cmdIntent, cmdChat } from './commands/intent.js';
+import { cmdVisualDiff } from './commands/diff.js';
 
 const PORT = Number(process.env.EMDESIGN_PORT ?? 4321);
 
@@ -74,7 +75,7 @@ async function main() {
   if (argv.includes('--completion')) {
     const shellIdx = argv.indexOf('--completion');
     const shell = shellIdx >= 0 && shellIdx + 1 < argv.length && !argv[shellIdx + 1].startsWith('--') ? argv[shellIdx + 1] : 'bash';
-    const commands = ['init','attach','update','serve','up','health','ds','design','generate','doctor','vision','capture','capture-baseline','discover','doc','graph','explore','compose','help','session','logs','intent','chat'];
+    const commands = ['init','attach','update','serve','up','health','ds','design','generate','doctor','vision','visual-diff','capture','capture-baseline','discover','doc','graph','explore','compose','help','session','logs','intent','chat'];
     const dsSubs = ['list','create','use','validate','grade','scaffold','customize','update','diff','compare','conflicts','history','bases','base-detail','context','prompt'];
     if (shell === 'zsh') {
       process.stdout.write(`#compdef emdesign
@@ -386,6 +387,17 @@ complete -F _emdesign_completions emdesign
       const provider = rest.includes('--provider') ? rest[rest.indexOf('--provider') + 1] as 'claude' | 'gemini' | 'minimax' : undefined;
       const reference = rest.includes('--reference') ? rest[rest.indexOf('--reference') + 1] : undefined;
       await cmdVision({ component, mode, provider, reference, json }, paths, store);
+      break;
+    }
+
+    // ── Visual Diff ──────────────────────────────────────────────────────
+    case 'visual-diff': {
+      const [sourceA, sourceB] = rest;
+      const viewport = rest.includes('--viewport') ? rest[rest.indexOf('--viewport') + 1] : undefined;
+      const threshold = rest.includes('--threshold') ? Number(rest[rest.indexOf('--threshold') + 1]) : undefined;
+      const grid = rest.includes('--grid') ? rest[rest.indexOf('--grid') + 1] : undefined;
+      const diffOutput = rest.includes('--diff-output') ? rest[rest.indexOf('--diff-output') + 1] : undefined;
+      await cmdVisualDiff({ sourceA, sourceB, viewport, threshold, grid, diffOutput, json }, paths, store);
       break;
     }
 

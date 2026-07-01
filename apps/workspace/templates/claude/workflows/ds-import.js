@@ -20,6 +20,7 @@ export const meta = {
     { title: 'Extract tokens', detail: 'Extract tokens.css and manifest.json from design' },
     { title: 'Decompose primitives', detail: 'Decompose preview HTML into standalone primitives' },
     { title: 'Validate', detail: 'Validate design system completeness' },
+    { title: 'Reconstruct overview', detail: 'Reconstruct preview as React overview page, verify ≥98% visual similarity' },
   ],
 }
 
@@ -330,6 +331,30 @@ if (previewResult?.size > 0) {
   } catch { /* */ }
 }
 
+// ===== RECONSTRUCT OVERVIEW (delegated to sub-workflow) =====
+phase('Reconstruct overview')
+log('[ds-import] Delegating overview reconstruction to ds-reconstruct-overview workflow')
+
+let overviewScore = null
+try {
+  const overviewResult = await workflow('ds-reconstruct-overview', {
+    dsId,
+    dsPath,
+    storybookUrl: process.env.EMDESIGN_STORYBOOK_URL || 'http://localhost:6006',
+  })
+  overviewScore = overviewResult?.overviewScore ?? null
+  if (overviewResult?.passed) {
+    log('[ds-import] ✅ Overview page PASSED at ' + overviewScore + '% (' + (overviewResult.iterations || 1) + ' iteration(s))')
+  } else if (overviewScore !== null) {
+    log('[ds-import] ⚠️  Overview page at ' + overviewScore + '% — below 98% threshold')
+  } else {
+    log('[ds-import] Overview reconstruction skipped (Storybook unavailable)')
+  }
+} catch (e) {
+  log('[ds-import] Overview reconstruction unavailable: ' + (e.message || 'unknown error'))
+  overviewScore = null
+}
+
 // Cleanup
 try { await agent('Cleanup: rm -f ' + mdPath, { label: 'cleanup', phase: 'Scaffold' }) } catch { /* */ }
 
@@ -343,4 +368,5 @@ return {
   tokens: dsPath + '/tokens.css',
   primitives: codeCount,
   validated: valPass,
+  overviewScore,
 }
