@@ -20,6 +20,7 @@
     "@emdesign/backend": "*",
     "@emdesign/graph": "*",
     "@emdesign/vision-critic": "*",
+    "@emdesign/visual-diff": "*",
     "@emdesign/plugin-react-doctor": "*",
     "@emdesign/workspace": "*"
   },
