@@ -253,8 +253,8 @@ describe('ds import pipeline — CLI → intent → agent-worker → persist', (
     });
   });
 
-  // ── Section E: CLI pipeline commands ───────────────────────────────────
-  describe('E — CLI pipeline commands (what the agent workflow runs)', () => {
+  // ── Section E: Code-first pipeline assertions (via @emdesign/testing) ─────
+  describe('E — Code-first pipeline assertions (via @emdesign/testing)', () => {
     beforeEach(async () => {
       await initWorkspace(env);
       setupFixtureDs(env.dir, 'pipeline-test');
@@ -262,8 +262,8 @@ describe('ds import pipeline — CLI → intent → agent-worker → persist', (
     });
 
     it('graph build creates graph.json with token, file, and section nodes', async () => {
-      const r = await runEmdesign(['graph', 'build', 'pipeline-test'], { cwd: env.dir, timeout: 20_000 });
-      expectSuccess(r);
+      const { buildAndSave } = await import('@emdesign/backend');
+      buildAndSave(env.paths, 'pipeline-test');
 
       const graphPath = path.join(env.dir, 'design-systems', 'pipeline-test', 'graph.json');
       assertFileExists(graphPath);
@@ -276,9 +276,10 @@ describe('ds import pipeline — CLI → intent → agent-worker → persist', (
       expect(nodeValues.some((n: any) => n.label === 'section')).toBe(true);
     });
 
-    it('ds validate --strict passes against a valid design system', async () => {
-      const r = await runEmdesign(['ds', 'validate', '--strict'], { cwd: env.dir, timeout: 15_000 });
-      expectSuccess(r);
+    it('ds validate passes against a valid design system (via @emdesign/testing)', () => {
+      const { assertDesignSystemPasses } = require('@emdesign/testing');
+      const result = assertDesignSystemPasses(env.paths);
+      expect(result.ok).toBe(true);
     });
 
     it('generate Button creates a generated component file with token classes', async () => {
@@ -470,37 +471,6 @@ describe('ds import pipeline — CLI → intent → agent-worker → persist', (
     });
   });
 
-  // ── Section H: getDesign.md import path verification ───────────────────
-  describe('H — getDesign.md import path verification', () => {
-    it('importAwesomeDesign function exists in @emdesign/backend', async () => {
-      const { importAwesomeDesign } = await import('@emdesign/backend');
-      expect(importAwesomeDesign).toBeDefined();
-      expect(typeof importAwesomeDesign).toBe('function');
-    });
-
-    it('ds-import.js workflow references getdesign.md for previews', async () => {
-      const workflowPath = path.resolve(
-        HERE, '../apps/workspace/templates/claude/workflows/ds-import.js',
-      );
-      assertFileExists(workflowPath);
-      const workflow = readFile(workflowPath);
-      expect(workflow).toContain('getdesign.md');
-      expect(workflow).toContain('awesome-design-md');
-    });
-
-    it('ds-import.js has "Preview", "Compose", and "Verify overview" phases', async () => {
-      const workflowPath = path.resolve(
-        HERE, '../apps/workspace/templates/claude/workflows/ds-import.js',
-      );
-      const workflow = readFile(workflowPath);
-      expect(workflow).toContain("phase('Preview')");
-      expect(workflow).toContain("phase('Compose')");
-      expect(workflow).toContain("phase('Verify overview')");
-      expect(workflow).toContain("wf('ds-import-build-overview'");
-      expect(workflow).toContain("wf('ds-import-verify-overview'");
-    });
-  });
-
   // ── Section I: Visual Diff Engine Integration ─────────────────────────
   describe('I — Visual diff engine integration', () => {
     it('visual-diff CLI command is registered', async () => {
@@ -530,62 +500,41 @@ describe('ds import pipeline — CLI → intent → agent-worker → persist', (
       expect(engine).toContain('computeOverallScore');
     });
 
-    it('ds-import-decompose-preview sub-workflow exists with discover/analyze/merge logic', async () => {
-      assertFileExists(HERE, '../apps/workspace/templates/claude/workflows/ds-import-decompose-preview.js');
-      const wf = readFile(HERE, '../apps/workspace/templates/claude/workflows/ds-import-decompose-preview.js');
-      expect(wf).toContain('Discover');
-      expect(wf).toContain('phase(\'Analyze sections\')');
+    it('ds-reconstruct-overview v3 uses parallel() and optimized patterns', async () => {
+      const orch = readFile(HERE, '../apps/workspace/templates/claude/workflows/ds-reconstruct-overview.js');
+      expect(orch).toContain('parallel(allSections.map');
+      expect(orch).toContain('parallel(uniqueMissing.map');
+      expect(orch).toContain('Storybook starts ONCE');
+      expect(orch).toContain('fixHistory');
+      expect(orch).toContain('final-diff');
+    });
+
+    it('ds-analyze-preview sub-workflow exists', async () => {
+      assertFileExists(HERE, '../apps/workspace/templates/claude/workflows/ds-analyze-preview.js');
+      const wf = readFile(HERE, '../apps/workspace/templates/claude/workflows/ds-analyze-preview.js');
+      expect(wf).toContain('Identify sections');
       expect(wf).toContain('keyComponents');
     });
 
-    it('ds-import-build-section uses ONE agent per section (no recursion, no inline verify)', async () => {
-      assertFileExists(HERE, '../apps/workspace/templates/claude/workflows/ds-import-build-section.js');
-      const wf = readFile(HERE, '../apps/workspace/templates/claude/workflows/ds-import-build-section.js');
-      expect(wf).toContain("phase('Compose')");
-      expect(wf).toContain('build-context.txt');
-      expect(wf).not.toContain('pipeline(');
-      expect(wf).not.toContain('MAX_ITERATIONS');
-      expect(wf).not.toContain('visual-diff');
+    it('ds-reconstruct-overview v3 uses parallel section processing', async () => {
+      const wf = readFile(HERE, '../apps/workspace/templates/claude/workflows/ds-reconstruct-overview.js');
+      expect(wf).toContain('parallel(allSections.map');
+      expect(wf).toContain('parallel(uniqueMissing.map');
+      expect(wf).toContain('Storybook starts ONCE');
+      expect(wf).toContain('fixHistory');
     });
 
-    it('ds-import-build-element uses simple read + author (no verify, no recursion)', async () => {
-      assertFileExists(HERE, '../apps/workspace/templates/claude/workflows/ds-import-build-element.js');
-      const el = readFile(HERE, '../apps/workspace/templates/claude/workflows/ds-import-build-element.js');
-      expect(el).toContain("phase('Build')");
-      expect(el).toContain('build-context.txt');
-      expect(el).not.toContain('MAX_ITERATIONS');
-      expect(el).not.toContain('workflow(');
-    });
-
-    it('ds-import-build-overview sub-workflow exists with compose + stories', async () => {
-      assertFileExists(HERE, '../apps/workspace/templates/claude/workflows/ds-import-build-overview.js');
-      const wf = readFile(HERE, '../apps/workspace/templates/claude/workflows/ds-import-build-overview.js');
+    it('ds-compose-overview sub-workflow exists', async () => {
+      assertFileExists(HERE, '../apps/workspace/templates/claude/workflows/ds-compose-overview.js');
+      const wf = readFile(HERE, '../apps/workspace/templates/claude/workflows/ds-compose-overview.js');
       expect(wf).toContain('Overview.tsx');
       expect(wf).toContain('Overview.stories.tsx');
     });
 
-    it('ds-import-verify-sections runs parallel visual-diff capped at VERIFY_CONCURRENCY', async () => {
-      assertFileExists(HERE, '../apps/workspace/templates/claude/workflows/ds-import-verify-sections.js');
-      const wf = readFile(HERE, '../apps/workspace/templates/claude/workflows/ds-import-verify-sections.js');
-      expect(wf).toContain('pLimit(VERIFY_CONCURRENCY');
-      expect(wf).toContain('Storybook');
-      expect(wf).toContain('visual-diff');
-    });
-
-    it('ds-import.js orchestrator calls all 8 sub-workflows in simplified DAG order', async () => {
+    it('ds-import.js calls the reconstruct-overview sub-workflow', async () => {
       const workflow = readFile(HERE, '../apps/workspace/templates/claude/workflows/ds-import.js');
-      expect(workflow).toContain("wf('ds-import-fetch'");
-      expect(workflow).toContain("wf('ds-import-prepare'");
-      expect(workflow).toContain("wf('ds-import-preview'");
-      expect(workflow).toContain("wf('ds-import-decompose-preview'");
-      expect(workflow).toContain("wf('ds-import-craft-primitives'");
-      expect(workflow).toContain("wf('ds-import-build-section'");
-      expect(workflow).toContain("wf('ds-import-verify-sections'");
-      expect(workflow).toContain("wf('ds-import-build-overview'");
-      expect(workflow).toContain("wf('ds-import-verify-overview'");
-      expect(workflow).not.toContain("taste-profile");
-      expect(workflow).not.toContain("tasteResult");
-      expect(workflow).not.toContain("agent('Build graph:");
+      expect(workflow).toContain("workflow('ds-reconstruct-overview'");
+      expect(workflow).toContain('overviewScore');
     });
   });
 });

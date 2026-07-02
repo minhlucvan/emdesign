@@ -1,0 +1,183 @@
+/* ============================================================
+   Stripe-Inspired Design System — Design Tokens
+   Source: DESIGN.md (from awesome-design-md)
+   ============================================================ */
+
+:root {
+  /* -------------------------------------------------------
+     Color Tokens (22 unique color values)
+     ------------------------------------------------------- */
+
+  /* Brand & Accent */
+  --color-primary: #533afd;
+  --color-primary-deep: #4434d4;
+  --color-primary-press: #2e2b8c;
+  --color-primary-soft: #665efd;
+  --color-primary-bg-subdued-hover: #b9b9f9;
+  --color-brand-dark-900: #1c1e54;
+
+  /* Text */
+  --color-ink: #0d253d;
+  --color-ink-secondary: #273951;
+  --color-ink-mute: #64748d;
+  --color-ink-mute-2: #61718a;
+  --color-on-primary: #ffffff;
+
+  /* Surface */
+  --color-canvas: #ffffff;
+  --color-canvas-soft: #f6f9fc;
+  --color-canvas-cream: #f5e9d4;
+
+  /* Border */
+  --color-hairline: #e3e8ee;
+  --color-hairline-input: #a8c3de;
+
+  /* Accent (non-CTA) */
+  --color-ruby: #ea2261;
+  --color-magenta: #f96bee;
+  --color-lemon: #9b6829;
+
+  /* Shadow */
+  --color-shadow-blue: #003770;
+
+  /* ---- Semantic Roles ---- */
+  --color-surface: #ffffff;
+  --color-surface-raised: #f6f9fc;
+  --color-text: #0d253d;
+  --color-text-muted: #64748d;
+  --color-accent: #533afd;
+  --color-accent-hover: #4434d4;
+  --color-border: #e3e8ee;
+
+  /* -------------------------------------------------------
+     Typography / Font Tokens
+     ------------------------------------------------------- */
+
+  /* Font Families */
+  --font-sans: "sohne-var", "SF Pro Display", system-ui, -apple-system, sans-serif;
+
+  /* Display XXL — 56px, weight 300, -1.4px tracking */
+  --font-size-display-xxl: 56px;
+  --font-weight-display-xxl: 300;
+  --line-height-display-xxl: 1.03;
+  --letter-spacing-display-xxl: -1.4px;
+
+  /* Display XL — 48px, weight 300, -0.96px tracking */
+  --font-size-display-xl: 48px;
+  --font-weight-display-xl: 300;
+  --line-height-display-xl: 1.15;
+  --letter-spacing-display-xl: -0.96px;
+
+  /* Display LG — 32px, weight 300, -0.64px tracking */
+  --font-size-display-lg: 32px;
+  --font-weight-display-lg: 300;
+  --line-height-display-lg: 1.1;
+  --letter-spacing-display-lg: -0.64px;
+
+  /* Display MD — 26px, weight 300, -0.26px tracking */
+  --font-size-display-md: 26px;
+  --font-weight-display-md: 300;
+  --line-height-display-md: 1.12;
+  --letter-spacing-display-md: -0.26px;
+
+  /* Heading LG — 22px, weight 300, -0.22px tracking */
+  --font-size-heading-lg: 22px;
+  --font-weight-heading-lg: 300;
+  --line-height-heading-lg: 1.1;
+  --letter-spacing-heading-lg: -0.22px;
+
+  /* Heading MD — 20px, weight 300, -0.2px tracking */
+  --font-size-heading-md: 20px;
+  --font-weight-heading-md: 300;
+  --line-height-heading-md: 1.4;
+  --letter-spacing-heading-md: -0.2px;
+
+  /* Heading SM — 18px, weight 300, 0 tracking */
+  --font-size-heading-sm: 18px;
+  --font-weight-heading-sm: 300;
+  --line-height-heading-sm: 1.4;
+  --letter-spacing-heading-sm: 0;
+
+  /* Body LG — 16px, weight 300, 0 tracking */
+  --font-size-body-lg: 16px;
+  --font-weight-body-lg: 300;
+  --line-height-body-lg: 1.4;
+  --letter-spacing-body-lg: 0;
+
+  /* Body MD (default) — 15px, weight 300, 0 tracking */
+  --font-size-body-md: 15px;
+  --font-weight-body-md: 300;
+  --line-height-body-md: 1.4;
+  --letter-spacing-body-md: 0;
+
+  /* Body Tabular — 14px, weight 300, -0.42px, tnum feature */
+  --font-size-body-tabular: 14px;
+  --font-weight-body-tabular: 300;
+  --line-height-body-tabular: 1.4;
+  --letter-spacing-body-tabular: -0.42px;
+  --font-feature-body-tabular: "tnum";
+
+  /* Button MD — 16px, weight 400, 0 tracking */
+  --font-size-button-md: 16px;
+  --font-weight-button-md: 400;
+  --line-height-button-md: 1.0;
+  --letter-spacing-button-md: 0;
+
+  /* Button SM — 14px, weight 400, 0 tracking */
+  --font-size-button-sm: 14px;
+  --font-weight-button-sm: 400;
+  --line-height-button-sm: 1.0;
+  --letter-spacing-button-sm: 0;
+
+  /* Caption — 13px, weight 400, -0.39px, tnum feature */
+  --font-size-caption: 13px;
+  --font-weight-caption: 400;
+  --line-height-caption: 1.4;
+  --letter-spacing-caption: -0.39px;
+  --font-feature-caption: "tnum";
+
+  /* Micro — 11px, weight 300, 0 tracking */
+  --font-size-micro: 11px;
+  --font-weight-micro: 300;
+  --line-height-micro: 1.4;
+  --letter-spacing-micro: 0;
+
+  /* Micro Cap — 10px, weight 400, +0.1px tracking */
+  --font-size-micro-cap: 10px;
+  --font-weight-micro-cap: 400;
+  --line-height-micro-cap: 1.15;
+  --letter-spacing-micro-cap: 0.1px;
+
+  /* -------------------------------------------------------
+     Spacing Tokens
+     ------------------------------------------------------- */
+
+  --space-unit: 8px;
+  --space-xxs: 2px;
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+  --space-xxl: 32px;
+  --space-huge: 64px;
+
+  /* -------------------------------------------------------
+     Border Radius Tokens
+     ------------------------------------------------------- */
+
+  --radius: 8px;
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-pill: 9999px;
+
+  /* -------------------------------------------------------
+     Shadow / Elevation Tokens
+     ------------------------------------------------------- */
+
+  --shadow-level-1: rgba(0,55,112,0.08) 0 1px 3px;
+  --shadow-raised: rgba(0,55,112,0.08) 0 8px 24px, rgba(0,55,112,0.04) 0 2px 6px;
+}

@@ -1,6 +1,6 @@
 {
   "name": "@emdesign/workspace-react",
-  "version": "0.0.0",
+  "version": "0.1.0-alpha.0",
   "private": true,
   "type": "module",
   "description": "emdesign React/Tailwind workspace — Storybook host + the emdesign addon panel; the dogfood instance and the react-tailwind init template source.",
@@ -14,7 +14,7 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
-    "@emdesign/addon": "*",
+    "@emdesign/addon": "^0.1.0-alpha.0",
     "@storybook/addon-essentials": "^8.2.0",
     "@storybook/react-vite": "^8.2.0",
     "@storybook/test-runner": "^0.19.0",

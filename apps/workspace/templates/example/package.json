@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "storybook": "storybook dev -p 6006",
+    "storybook": "storybook dev -p 6006 --config-dir .storybook",
     "build-storybook": "storybook build",
     "test:visual": "test-storybook",
     "backend": "emdesign serve",
@@ -14,8 +14,9 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
-    "@emdesign/addon": "*",
-    "@emdesign/backend": "*",
+    "@emdesign/addon": "^0.1.0-alpha.0",
+    "@emdesign/backend": "^0.1.0-alpha.0",
+    "@emdesign/cli": "^0.1.0-alpha.0",
     "@storybook/addon-essentials": "^8.2.0",
     "@storybook/react-vite": "^8.2.0",
     "@storybook/test-runner": "^0.19.0",

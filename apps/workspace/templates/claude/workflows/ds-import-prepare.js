@@ -5,7 +5,7 @@
 //   - 9-section DESIGN.md copied into design-systems/<id>/DESIGN.md
 //   - tokens.css generated with all 11 SEMANTIC_TOKEN_ROLES
 //   - code/ primitives scaffolded (from atelier by default; overridable)
-//   - skills/build/SKILL.md generated — the per-DS design-language document
+//   - skills/build/SKILL.md generated programmatically from tokens.css (no LLM)
 //   - Design taste extracted (VARIANCE, MOTION, DENSITY dials)
 //   - build-context.txt generated — compact (< 2 KB) reference for all
 //     downstream agents (replaces cat'ing full DESIGN.md + tokens.css)
@@ -206,92 +206,172 @@ log('[ds-import:prepare] tokens.css written')
 
 // ============================================================
 // PHASE 3: BUILD SKILL — design-language document for leaf authors
+// Generated programmatically from tokens.css + DESIGN.md (no LLM)
 // ============================================================
 phase('Build skill')
-log('[ds-import:prepare] Writing skills/build/SKILL.md')
+log('[ds-import:prepare] Generating skills/build/SKILL.md from tokens.css')
 
-await agent(
-  'Write the design-language skill for DS "' + dsId + '" — every leaf author reads this.\n\n' +
-  'Inputs (read these first):\n' +
-  '- cat "' + dsPath + '/DESIGN.md"\n' +
-  '- cat "' + dsPath + '/tokens.css"\n\n' +
-  'Write to: ' + buildSkillPath + '\n\n' +
-  'The skill must include these sections in this order:\n' +
-  '  1. # <Name> Build Skill — short system overview (1 paragraph)\n' +
-  '  2. ## Token Roles — table mapping each of the 11 SEMANTIC_TOKEN_ROLES to:\n' +
-  '     a) its semantic Tailwind class (e.g. `bg-surface`, `text-accent`, `border-border`)\n' +
-  '     b) the underlying CSS var (e.g. `var(--color-surface)`)\n' +
-  '     c) when to use it (1 sentence)\n' +
-  '  3. ## Type Scale — display / h1 / h2 / h3 / body / caption with var name + use case\n' +
-  '  4. ## Spacing Scale — base unit + each stop with var name + use case\n' +
-  '  5. ## Radius & Depth — radius stops, shadow rules, when to use raised vs flat\n' +
-  '  6. ## Motion — fast/base/ease tokens, when motion is allowed (vs static)\n' +
-  '  7. ## Component Patterns — 3-5 short examples showing how primitives compose\n' +
-  '  8. ## Anti-Patterns — explicit DO NOT list (raw hex, hardcoded spacing, etc.)\n' +
-  '  9. ## Reuse vs Author — "if a primitive exists at @ds/<Name>, import it. Never re-author."\n\n' +
-  'This skill is the contract that downstream :craft-primitives, :build-element, and\n' +
-  ':build-section agents read as ground truth. Be concrete. Reference real var names.\n\n' +
-  'Return "done".',
-  { label: 'build-skill:' + dsId, phase: 'Build skill' }
-)
-log('[ds-import:prepare] Build skill written')
+// Read tokens.css and DESIGN.md via shell
+const rawTokens = String(await $`cat "${dsPath}/tokens.css" 2>/dev/null || true`)
+const rawDesignMd = String(await $`cat "${dsPath}/DESIGN.md" 2>/dev/null || true`)
+
+// Parse CSS vars into a map
+const tokenLines = []
+for (const m of rawTokens.matchAll(/--([a-z0-9-]+)\s*:\s*([^;]+);/gi)) {
+  tokenLines.push({ role: m[1], value: m[2].trim() })
+}
+const tokenMap = {}
+for (const t of tokenLines) tokenMap[t.role] = t.value
+
+// Build token roles table
+const tokenOrder = [
+  'color-surface', 'color-surface-raised', 'color-text', 'color-text-muted',
+  'color-accent', 'color-accent-hover', 'color-border',
+  'radius', 'space-unit', 'font-sans', 'shadow-raised',
+]
+const tailwindMap = {
+  'color-surface': 'bg-surface', 'color-surface-raised': 'bg-surface-raised',
+  'color-text': 'text-text', 'color-text-muted': 'text-text-muted',
+  'color-accent': 'text-accent / bg-accent / border-accent',
+  'color-accent-hover': 'hover:bg-accent-hover / hover:text-accent-hover',
+  'color-border': 'border-border',
+  'radius': 'rounded', 'space-unit': '(Tailwind p-2 / gap-2 = 8px)',
+  'font-sans': 'font-[var(--font-sans)]', 'shadow-raised': 'shadow-[var(--shadow-raised)]',
+}
+const usageMap = {
+  'color-surface': 'Page and section backgrounds',
+  'color-surface-raised': 'Cards, inputs, dropdowns, raised blocks',
+  'color-text': 'Primary ink for body copy, headings, button labels',
+  'color-text-muted': 'Secondary metadata, captions, placeholders',
+  'color-accent': 'The one decisive call-to-action, link emphasis, or focus indicator',
+  'color-accent-hover': 'Hover and active state on accent-colored elements',
+  'color-border': 'Hairline rules, card outlines, input borders, dividers',
+  'radius': 'Default component corner rounding',
+  'space-unit': 'Base spacing reference — all spacing derives from this unit',
+  'font-sans': 'Body and UI text font family',
+  'shadow-raised': 'The soft elevated shadow for cards and raised surfaces',
+}
+
+const tokenRows = tokenOrder
+  .filter(r => tokenMap[r])
+  .map(r => '| `' + r + '` | `' + (tailwindMap[r] || '[var(--' + r + ')]') + '` | `var(--' + r + ')` | ' + (usageMap[r] || '—') + ' (`' + tokenMap[r] + '`) |')
+  .join('\n')
+
+const tokenTable = '| Role | Tailwind Class | CSS Variable | Usage |\n|------|----------------|--------------|-------|\n' + tokenRows
+
+// Extract type scale hints from DESIGN.md
+const typeHints = []
+for (const m of rawDesignMd.matchAll(/##\s*3\.?\s*Typography[^#]*/gi)) {
+  const section = m[0]
+  for (const line of section.split('\n')) {
+    if (line.includes('display') || line.includes('heading') || line.includes('body') || line.includes('caption')) {
+      typeHints.push(line.trim())
+    }
+  }
+}
+const typeScaleSection = typeHints.length > 0
+  ? typeHints.map(l => '- ' + l).join('\n')
+  : 'Refer to the DESIGN.md Typography section for the full type scale.'
+
+// Extract spacing scale from DESIGN.md or tokens.css
+const spaceUnit = tokenMap['space-unit'] || '8px'
+const spacingStops = tokenLines
+  .filter(t => t.role.startsWith('space-') && t.role !== 'space-unit')
+  .map(t => '- `--' + t.role + '`: ' + t.value)
+
+const buildSkillContent = '# ' + fetchedName + ' Build Skill\n\n' +
+fetchedName + ' is a design system ' + (fetchedDescription ? ' (' + fetchedDescription + ')' : '') +
+'. Every component must reference the semantic token roles via Tailwind utility classes that map to `:root` custom properties in `tokens.css`. No raw hex, no hardcoded spacing, no off-system fonts.\n\n' +
+'## Token Roles\n\nAll semantic token roles are the non-negotiable primitives of this design system. They are registered in `tokens.css` as `:root` custom properties.\n\n' +
+tokenTable + '\n\n' +
+'**Usage notes:**\n' +
+'- Use `text-text` for all primary foreground copy; `text-text-muted` to de-emphasize.\n' +
+'- Apply borders via the `border border-border` shorthand for a 1px hairline.\n' +
+'- The accent is precious: never exceed two accent-colored elements on a single screen.\n' +
+'- The `rounded` class maps to `--radius`. Use `rounded-[var(--radius-sm)]` for small radius.\n\n' +
+'## Type Scale\n\n' + typeScaleSection + '\n\n' +
+'## Spacing Scale\n\nBase unit: `--space-unit` (' + spaceUnit + ').\nEvery spacing value should be a multiple of the base unit. Never invent intermediate values.\n\n' +
+(spacingStops.length > 0 ? spacingStops.join('\n') + '\n\n' : 'Use Tailwind\'s spacing scale where it aligns: `p-2` (8px), `p-4` (16px), `p-6` (24px), `p-8` (32px).\n\n') +
+'## Radius & Depth\n\n' +
+'- Default radius: `rounded` → `var(--radius)` (`' + (tokenMap['radius'] || '6px') + '`)\n' +
+'- Small radius: `rounded-[var(--radius-sm)]`\n' +
+'- Pill radius: `rounded-[var(--radius-pill)]` (9999px)\n' +
+'- Shadow: `shadow-[var(--shadow-raised)]` is the only shadow in the system.\n\n' +
+'## Motion\n\nRefer to DESIGN.md Motion section. Default tokens:\n' +
+'- Fast: `--motion-fast` (120ms) — hover/focus transitions\n' +
+'- Base: `--motion-base` (220ms) — entrance animations\n' +
+'- Ease: `--ease-standard` — default easing\n\n' +
+'## Component Patterns\n\nPrimitives live in `code/` and are imported via `@ds/<Name>`. Compose from these rather than re-authoring styles from scratch. Refer to the DESIGN.md Components section for detailed component specs.\n\n' +
+'## Anti-Patterns\n\n**DO NOT:**\n' +
+'- Use raw hex colors — always reference semantic roles via Tailwind classes.\n' +
+'- Hardcode spacing outside the approved scale.\n' +
+'- Use the display font for body text or the sans font for headings.\n' +
+'- Exceed two accent-colored elements per screen.\n' +
+'- Use gradient backgrounds, heavy drop-shadows, or glow effects.\n' +
+'- Use emoji as icons, invented metrics, or filler copy.\n' +
+'- Use `focus:ring` or Tailwind\'s default ring utilities — use the focus-visible pattern.\n' +
+'- Use motion on borders, opacity, transforms, or position — only color transitions.\n\n' +
+'## Reuse vs Author\n\nIf a primitive exists at `@ds/<Name>`, import it. Never re-author. Check the `code/` directory for available primitives before creating new ones.\n'
+
+// Write build skill via base64 to avoid shell escaping issues
+const buildB64 = Buffer.from(buildSkillContent).toString('base64')
+await $`mkdir -p "${dsPath}/skills/build" && echo "${buildB64}" | base64 -d > "${buildSkillPath}"`
+log('[ds-import:prepare] Build skill written programmatically (' + buildSkillContent.length + ' bytes)')
 
 // ============================================================
-// PHASE 4: TASTE — extract design taste dials (merged from ds-import:taste-profile)
+// PHASE 4: TASTE — extract design taste dials (programmatic, no LLM)
 // ============================================================
 phase('Taste')
-log('[ds-import:prepare] Extracting taste profile')
+log('[ds-import:prepare] Generating taste profile from DESIGN.md')
 
-const tasteResult = await agent(
-  'Read the DESIGN.md at "' + dsPath + '/DESIGN.md" and generate a taste profile.\n\n' +
-  'Extract:\n' +
-  '1. DESIGN_VARIANCE (1-10): bold/opinionated. 1-3=conventional, 4-6=characterful, 7-10=bold\n' +
-  '2. MOTION_INTENSITY (1-10): 1-3=static, 4-6=purposeful, 7-10=expressive\n' +
-  '3. VISUAL_DENSITY (1-10): 1-3=airy, 4-6=balanced, 7-10=compact\n' +
-  '4. Brand fingerprint (1-2 sentences)\n' +
-  '5. Visual characteristics (1-2 sentences)\n' +
-  '6. Anti-patterns to avoid (1-2 sentences)\n\n' +
-  'Return as structured data.',
-  {
-    label: 'taste:' + dsId, phase: 'Taste',
-    schema: {
-      type: 'object',
-      properties: {
-        VARIANCE: { type: 'number', minimum: 1, maximum: 10 },
-        MOTION: { type: 'number', minimum: 1, maximum: 10 },
-        DENSITY: { type: 'number', minimum: 1, maximum: 10 },
-        brandFingerprint: { type: 'string' },
-        visualCharacteristics: { type: 'string' },
-        antiPatterns: { type: 'string' },
-      },
-      required: ['VARIANCE', 'MOTION', 'DENSITY'],
-    },
-  }
-)
-
-const taste = {
-  VARIANCE: tasteResult?.VARIANCE ?? 5,
-  MOTION: tasteResult?.MOTION ?? 5,
-  DENSITY: tasteResult?.DENSITY ?? 5,
-  brandFingerprint: tasteResult?.brandFingerprint || '',
+// Extract brand fingerprint from DESIGN.md frontmatter + first section
+const fmName = (rawDesignMd.match(/^name:\s*(.+)$/m) || [])[1] || dsId
+const description = (rawDesignMd.match(/^description:\s*(.+)$/m) || [])[1] || ''
+const category = (rawDesignMd.match(/^category:\s*(.+)$/m) || [])[1] || ''
+const themeMatch = rawDesignMd.match(/###\s*1\.?\s*Visual Theme[^#]*/i)
+const themeSection = themeMatch ? themeMatch[0] : ''
+const themeLines = themeSection.split('\n').filter(l => l.trim().length > 0 && !l.startsWith('#'))
+let fingerprint = description
+if (themeLines.length > 1) {
+  const found = themeLines.slice(1).find(l => l.trim().length > 20)
+  if (found) fingerprint = found.trim()
 }
+if (!fingerprint) {
+  fingerprint = fmName + ' — a ' + (category ? category.toLowerCase() + ' ' : '') + 'design system.'
+}
+
+// Heuristic dials based on DESIGN.md content
+let variance = 5, motion = 5, density = 5
+
+// Check for design character signals in DESIGN.md
+const mdLower = rawDesignMd.toLowerCase()
+if (mdLower.includes('minimal') || mdLower.includes('clean') || mdLower.includes('editorial')) { variance = 4; density = 3 }
+if (mdLower.includes('premium') || mdLower.includes('luxury')) { variance = 6; motion = 5 }
+if (mdLower.includes('playful') || mdLower.includes('experimental')) { variance = 8; motion = 7 }
+if (mdLower.includes('enterprise') || mdLower.includes('b2b')) { variance = 3; density = 6 }
+if (mdLower.includes('warm') || mdLower.includes('friendly')) { variance = 5 }
+if (mdLower.includes('dark')) { variance = 5; motion = 4 }
+if (mdLower.includes('bold') || mdLower.includes('provocative')) { variance = 8 }
+if (mdLower.includes('generous') || mdLower.includes('airy') || mdLower.includes('whitespace')) { density = 3 }
+if (mdLower.includes('compact') || mdLower.includes('dense') || mdLower.includes('data')) { density = 7 }
+if (mdLower.includes('animate') || mdLower.includes('motion') || mdLower.includes('transition')) { motion = 6 }
+if (mdLower.includes('static') || mdLower.includes('quiet')) { motion = 2 }
+
+const taste = { VARIANCE: variance, MOTION: motion, DENSITY: density, brandFingerprint: fingerprint }
 log('[ds-import:prepare] Taste: V' + taste.VARIANCE + ' M' + taste.MOTION + ' D' + taste.DENSITY)
 
-// Save taste skill for downstream reference
-await agent(
-  'Save taste skill.\n' +
-  '1. Run: mkdir -p ' + dsPath + '/skills/taste\n' +
-  '2. Write taste profile to ' + dsPath + '/skills/taste/SKILL.md\n\n' +
-  'Content:\n---\nname: ' + dsId + '-taste\ndescription: Taste profile for ' + dsId + '\n' +
-  'dials:\n  DESIGN_VARIANCE: ' + taste.VARIANCE + '\n  MOTION_INTENSITY: ' + taste.MOTION + '\n  VISUAL_DENSITY: ' + taste.DENSITY + '\n---\n\n' +
-  '# ' + dsId + ' Taste Profile\n\n' +
-  (tasteResult?.brandFingerprint ? '**Brand fingerprint:** ' + tasteResult.brandFingerprint + '\n\n' : '') +
-  (tasteResult?.visualCharacteristics ? '**Visual characteristics:** ' + tasteResult.visualCharacteristics + '\n\n' : '') +
-  (tasteResult?.antiPatterns ? '**Anti-patterns:** ' + tasteResult.antiPatterns + '\n' : '') +
-  '\nReturn "done".',
-  { label: 'saveTaste:' + dsId, phase: 'Taste' }
-)
-log('[ds-import:prepare] Taste skill saved')
+// Save taste skill
+const tasteSkillContent = '---\nname: ' + dsId + '-taste\ndescription: Taste profile for ' + dsId + '\n' +
+'dials:\n  DESIGN_VARIANCE: ' + taste.VARIANCE + '\n  MOTION_INTENSITY: ' + taste.MOTION + '\n  VISUAL_DENSITY: ' + taste.DENSITY + '\n' +
+'---\n\n# ' + dsId + ' Taste Profile\n\n' +
+'**Brand fingerprint:** ' + fingerprint + '\n\n' +
+'**Visual characteristics:** Generated from the design system\'s DESIGN.md. Refer to DESIGN.md for the full visual contract.\n\n' +
+'**Anti-patterns:** Avoid raw hex colors, hardcoded spacing outside the approved scale, and off-token values. Every component must reference semantic token roles.\n'
+
+// Write taste skill via base64
+const tasteB64 = Buffer.from(tasteSkillContent).toString('base64')
+await $`mkdir -p "${dsPath}/skills/taste" && echo "${tasteB64}" | base64 -d > "${dsPath}/skills/taste/SKILL.md"`
+log('[ds-import:prepare] Taste skill saved programmatically (' + tasteSkillContent.length + ' bytes)')
 
 // ============================================================
 // PHASE 5: BUILD CONTEXT — compact reference for downstream agents

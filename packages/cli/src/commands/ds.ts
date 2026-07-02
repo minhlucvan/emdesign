@@ -4,7 +4,6 @@ import type { RepoPaths, Store } from '@emdesign/backend';
 import {
   createDesignSystem,
   applyDesignSystem,
-  listDesignSystems,
   listBases,
   gradeDesignSystem,
   renderGrade,
@@ -12,7 +11,6 @@ import {
   normalizeDsRef,
   validateDesignSystem,
   updateDesignSystem,
-  diffDesignSystems,
   compileDesignSystem,
   exportDesignSystem,
   resolveDesignSystem,
@@ -22,9 +20,6 @@ import {
   overlayGenerated,
   ensureDir,
   searchDesignSystems,
-  importGitDesign,
-  importProjectDesign,
-  summarizeReport,
   getDesignSystemInfo,
   getLintRules,
   setLintRule,
@@ -80,163 +75,40 @@ export async function cmdDs(ds: DsArgs, paths: RepoPaths, store: Store): Promise
     }
 
     case 'validate': {
-      const id = paths.activeDesignSystem;
-      const tokenCheck = validateDesignSystem(paths, id);
-      const dsrCheck = runtimeFor(paths).validate(id);
-      const enriched = {
-        id,
-        ok: tokenCheck.ok && dsrCheck.ok,
-        declared: tokenCheck.declared,
-        missingRoles: tokenCheck.missingRoles,
-        note: tokenCheck.note,
-        diagnostics: dsrCheck.diagnostics,
-      };
-      if (ds.json) {
-        formatJson(enriched);
-      } else {
-        process.stdout.write(
-          `Design system: ${id}\n` +
-          `Token contract: ${tokenCheck.ok ? '✅ complete' : '❌ incomplete'} (${tokenCheck.declared} declared roles)\n` +
-          (tokenCheck.missingRoles.length > 0 ? `  Missing roles: ${tokenCheck.missingRoles.join(', ')}\n` : '') +
-          `DSR diagnostics: ${dsrCheck.diagnostics.length} issues (${dsrCheck.diagnostics.filter(d => d.severity === 'P0').length} P0)\n`
-        );
-      }
-      if (ds.gate && !enriched.ok) process.exit(1);
-      // Strict mode: fail on warnings too
-      if (ds.argv.includes('--strict') && (tokenCheck.missingRoles.length > 0 || dsrCheck.diagnostics.length > 0)) {
-        process.exit(1);
-      }
+      // Replaced by: emdesign test validate [<id>] --json
+      const testCmd = await import('./test.js');
+      await testCmd.cmdTest({
+        subcommand: 'validate',
+        args: [a1 || paths.activeDesignSystem].filter(Boolean) as string[],
+        json: ds.json,
+        gate: ds.gate,
+      }, paths);
       break;
     }
 
     case 'audit': {
-      const auditId = a1 || paths.activeDesignSystem;
-      if (!auditId) { formatError('usage: emdesign ds audit <id> [--fix] [--json]'); process.exit(1); }
-      const fixMode = ds.argv.includes('--fix');
-      const strictMode = ds.argv.includes('--strict');
-      const report = auditDesignSystem(paths, auditId, { fix: fixMode });
-      if (ds.json) {
-        formatJson(report);
-      } else {
-        process.stdout.write(
-          `═══ Audit: ${auditId} ═══\n\n` +
-          `Token Contract:        ${report.summary.tokens.pass === report.summary.tokens.total ? '✅' : '❌'} ${report.summary.tokens.pass}/${report.summary.tokens.total}\n` +
-          `DESIGN.md Quality:     ${report.summary.designMd.pass === report.summary.designMd.total ? '✅' : '❌'} ${report.summary.designMd.pass}/${report.summary.designMd.total}\n` +
-          `Taste Alignment:       ${report.summary.taste.pass === report.summary.taste.total ? '✅' : '❌'} ${report.summary.taste.pass}/${report.summary.taste.total}\n` +
-          `Lint Rules:            ${report.summary.lint.pass === report.summary.lint.total ? '✅' : '❌'} ${report.summary.lint.pass}/${report.summary.lint.total}\n` +
-          `Preview:               ${report.summary.preview.pass === report.summary.preview.total ? '✅' : '❌'} ${report.summary.preview.pass}/${report.summary.preview.total}\n` +
-          `\nScore: ${report.score}/100 — ${report.ok ? '✅ PASS' : '❌ FAIL'}\n`
-        );
-        const failing = report.findings.filter(f => !f.pass).slice(0, 5);
-        if (failing.length > 0) {
-          process.stdout.write(`\nIssues (${report.findings.filter(f => !f.pass).length} total, showing first ${failing.length}):\n`);
-          for (const f of failing) {
-            process.stdout.write(`  [${f.severity}] ${f.dimension}: ${f.message}\n`);
-            if (f.fix) process.stdout.write(`         → Fixed: ${f.fix}\n`);
-          }
-        } else {
-          process.stdout.write(`\nNo issues found.\n`);
-        }
-      }
-      if ((strictMode || ds.gate) && !report.ok) process.exit(1);
-      break;
-    }
-
-    case 'compile': {
-      const id = paths.activeDesignSystem;
-      const r = compileDesignSystem(paths, id);
-      const outDir = ds.argv.includes('--out') ? ds.argv[ds.argv.indexOf('--out') + 1] : undefined;
-      if (outDir) {
-        ensureDir(outDir);
-        fs.writeFileSync(path.join(outDir, 'tokens.ts'), r.files.tokensTs);
-        fs.writeFileSync(path.join(outDir, 'types.ts'), r.files.typesTs);
-        fs.writeFileSync(path.join(outDir, 'tokens.css'), r.files.tokensCss);
-      }
-      if (ds.json) {
-        formatJson(r);
-      } else {
-        process.stdout.write(`${id}: ${r.note}\n`);
-        for (const [cat, toks] of Object.entries(r.categories)) {
-          process.stdout.write(`  ${cat}: ${toks!.length} tokens\n`);
-        }
-      }
-      break;
-    }
-
-    case 'export': {
-      const id = paths.activeDesignSystem;
-      const outDir = ds.argv.includes('--out') ? ds.argv[ds.argv.indexOf('--out') + 1] : undefined;
-      const r = exportDesignSystem(paths, id, outDir);
-      out(r, ds.json);
-      break;
-    }
-
-    case 'version': {
-      const bump = a1 as 'major' | 'minor' | 'patch' | undefined;
-      if (!bump || !['major', 'minor', 'patch'].includes(bump)) {
-        formatError('usage: emdesign ds version <major|minor|patch>');
-        process.exit(1);
-      }
-      const id = paths.activeDesignSystem;
-      // Read manifest from the design system directory
-      const dsPath = path.join(process.cwd(), 'design-systems', ...normalizeDsRef(id).split('/'));
-      const manifestFile = path.join(dsPath, 'manifest.json');
-      if (!fs.existsSync(manifestFile)) {
-        formatError(`No manifest found for ${id} at ${manifestFile}`);
-        process.exit(1);
-      }
-      const m = JSON.parse(fs.readFileSync(manifestFile, 'utf8'));
-      const current = m.version ?? '0.1.0';
-      const parts = current.split('.').map(Number);
-      if (bump === 'major') parts[0]++; else if (bump === 'minor') parts[1]++; else parts[2]++;
-      m.version = parts.join('.');
-      fs.writeFileSync(manifestFile, JSON.stringify(m, null, 2) + '\n');
-      const r = { id, previousVersion: current, version: m.version };
-      out(r, ds.json);
-      break;
-    }
-
-    case 'changelog': {
-      const id = paths.activeDesignSystem;
-      const rt = runtimeFor(paths);
-      const h = rt.history(id);
-      if (ds.json) {
-        formatJson({ id, history: h });
-      } else {
-        if (!h || (Array.isArray(h) && h.length === 0)) {
-          process.stdout.write(`No changelog entries for ${id}. Use --snapshot to create one.\n`);
-        } else {
-          process.stdout.write(`Changelog for ${id}:\n`);
-          for (const entry of (Array.isArray(h) ? h : [h])) {
-            process.stdout.write(`  - ${JSON.stringify(entry)}\n`);
-          }
-        }
-      }
+      // Replaced by: emdesign test audit [<id>] --json
+      const testCmd2 = await import('./test.js');
+      await testCmd2.cmdTest({
+        subcommand: 'audit',
+        args: [a1 || paths.activeDesignSystem].filter(Boolean) as string[],
+        json: ds.json,
+      }, paths);
       break;
     }
 
     case 'grade': {
-      const id = paths.activeDesignSystem;
-      const timeoutIdx = ds.argv.indexOf('--timeout');
-      const timeoutMs = timeoutIdx >= 0 ? Number(ds.argv[timeoutIdx + 1]) : 120_000;
-      const ac = new AbortController();
-      const timer = setTimeout(() => ac.abort(new Error(`grade timed out after ${timeoutMs}ms`)), timeoutMs);
-      try {
-        const r = await gradeDesignSystem(paths, id, { signal: ac.signal });
-        const report = renderGrade(r);
-        if (ds.json) {
-          formatJson({ grade: r.grade, matchesGrade: r.matchesGrade, report });
-        } else {
-          process.stdout.write(report + '\n');
-        }
-        if (ds.gate && !r.matchesGrade) process.exit(1);
-      } finally {
-        clearTimeout(timer);
-      }
+      // Replaced by: emdesign test grade [<id>] --json
+      const testCmd3 = await import('./test.js');
+      await testCmd3.cmdTest({
+        subcommand: 'grade',
+        args: [a1 || paths.activeDesignSystem].filter(Boolean) as string[],
+        json: ds.json,
+        gate: ds.gate,
+      }, paths);
       break;
     }
 
-    // ── V3: Registry & Search ─────────────────────────────────────────
     case 'search': {
       // The first positional that's not a flag
       const rawArgs = ds.args.filter((a: string) => !a.startsWith('--'));
@@ -283,57 +155,82 @@ export async function cmdDs(ds: DsArgs, paths: RepoPaths, store: Store): Promise
       }
       const importNameIdx = ds.argv.indexOf('--name');
       const importName = importNameIdx >= 0 ? ds.argv[importNameIdx + 1] : undefined;
-      if (importSrc === 'awesome') {
-        // Queue an intent for the agent — the ds-import.js workflow handles
-        // the full pipeline: fetch DESIGN.md → taste profile → ds-scaffold
-        // (tokens + primitives) → ds-generate-preview (rich preview HTML).
-        const displayName = importName || importId;
-        const cr = store.enqueueIntent({
-          type: 'create-design-system',
-          instruction: `Import the "${importId}" design system from awesome-design-md. Run the ds-import workflow with source "awesome/${importId}" and name "${displayName}". After import, run ds-generate-preview for the rich preview HTML.`,
-        });
-        if (ds.json) {
-          formatJson({ ok: true, changeRequestId: cr.id, note: `Intent queued for agent. Run agent workflow 'ds-import' with source "awesome/${importId}" to process.` });
-        } else {
-          process.stdout.write(`Intent queued (${cr.id}). The agent will run ds-import workflow to fetch DESIGN.md, extract tokens, scaffold primitives, and generate the preview.\n`);
-        }
-      } else if (importSrc === 'git') {
-        const ref = ds.argv.includes('--ref') ? ds.argv[ds.argv.indexOf('--ref') + 1] : undefined;
-        const subPath = ds.argv.includes('--path') ? ds.argv[ds.argv.indexOf('--path') + 1] : undefined;
-        const r = await importGitDesign(paths, importId, { ref, path: subPath, name: importName });
-        out(r, ds.json);
-      } else if (importSrc === 'vendor') {
-        // Reuse existing --mode import
+
+      if (importSrc === 'vendor') {
+        // Synchronous: clone from a vendored base
         const fromBase = `open-design/${importId}`;
         const r = createDesignSystem(paths, { id: importName ?? importId, mode: 'import', from: fromBase });
         out(r, ds.json);
-      } else if (importSrc === 'project') {
-        // Reverse-engineer an existing project into a design system + adopt its components.
-        const projectPath = path.resolve(importId);
-        const idIdx = ds.argv.indexOf('--id');
-        const idOpt = idIdx >= 0 ? ds.argv[idIdx + 1] : undefined;
-        // Stage progress goes to stderr in --json mode so stdout stays clean JSON.
-        const progress = ds.json ? process.stderr : process.stdout;
-        let result;
-        try {
-          result = await importProjectDesign(paths, projectPath, { name: importName, id: idOpt });
-        } catch (e) {
-          formatError(`ds import project failed: ${e instanceof Error ? e.message : String(e)}`);
-          process.exit(1);
-          return;
+        break;
+      }
+
+      // Queue intent for agent processing (awesome, git, project)
+      const displayName = importName || importId;
+      const ref = ds.argv.includes('--ref') ? ds.argv[ds.argv.indexOf('--ref') + 1] : undefined;
+      const subPath = ds.argv.includes('--path') ? ds.argv[ds.argv.indexOf('--path') + 1] : undefined;
+      const projectPath = importSrc === 'project' ? path.resolve(importId) : undefined;
+
+      const cr = store.enqueueIntent({
+        type: 'create-design-system',
+        instruction: importSrc === 'awesome'
+          ? `Import the "${importId}" design system from awesome-design-md. Run the ds-import workflow with source "awesome/${importId}" and name "${displayName}". After import, run ds-generate-preview for the rich preview HTML.`
+          : importSrc === 'git'
+          ? `Import the "${importId}" design system from git. Run the ds-import workflow with source "git/${importId}", ref "${ref ?? 'main'}", path "${subPath ?? ''}", and name "${displayName}". After import, run ds-generate-preview for the rich preview HTML.`
+          : `Import the design system from project at "${projectPath}". Run the ds-import workflow with source "project/${projectPath}" and name "${displayName}". After import, adopt components and generate preview.`,
+      });
+
+      if (ds.json) {
+        formatJson({ ok: true, changeRequestId: cr.id, note: `Intent queued. Agent will import and generate preview.` });
+        break;
+      }
+
+      process.stdout.write(`\n  ⏳ Queued import (${cr.id})\n`);
+
+      // Check if backend is running on port 4321
+      let backendRunning = false;
+      try {
+        const { createConnection } = await import('node:net');
+        backendRunning = await new Promise<boolean>((resolve) => {
+          const sock = createConnection(4321, '127.0.0.1', () => { sock.end(); resolve(true); });
+          sock.on('error', () => resolve(false));
+        });
+      } catch { /* net not available */ }
+
+      if (backendRunning) {
+        process.stdout.write(`  🔄 Backend running (port 4321) — watching for progress...\n`);
+        // Poll state file for status changes
+        let lastStatus = '';
+        const startTime = Date.now();
+        await new Promise<void>((resolve) => {
+          const iv = setInterval(() => {
+            const state = store.get();
+            const item = state.changeRequests.find((c: any) => c.id === cr.id);
+            if (!item) { clearInterval(iv); resolve(); return; }
+            if (item.status !== lastStatus) {
+              const elapsed = Math.round((Date.now() - startTime) / 1000);
+              const icon = item.status === 'pending' ? '⏳' : item.status === 'in_progress' ? '🔄' : item.status === 'done' ? '✅' : '❌';
+              process.stdout.write(`  ${icon} ${item.status}${item.note ? ': ' + item.note : ''} (${elapsed}s)\n`);
+              lastStatus = item.status;
+            }
+            if (item.status === 'done' || item.status === 'error') { clearInterval(iv); resolve(); }
+          }, 2000);
+          setTimeout(() => { clearInterval(iv); resolve(); }, 300_000);
+        });
+        const finalState = store.get();
+        const finalItem = finalState.changeRequests.find((c: any) => c.id === cr.id);
+        if (finalItem?.status === 'done') {
+          process.stdout.write(`\n  ✅ Import complete: "${displayName}"\n`);
+        } else if (finalItem?.status === 'error') {
+          process.stdout.write(`\n  ❌ Import failed: ${finalItem.note || 'unknown error'}\n`);
         }
-        for (const s of result.stages) {
-          progress.write(`  ${s.name}: ${s.status}\n`);
-        }
-        if (ds.json) {
-          formatJson(result.report);
-        } else {
-          process.stdout.write(summarizeReport(result.report) + '\n');
-        }
-        if (ds.gate && result.gate !== 'pass') process.exit(1);
       } else {
-        formatError(`Unknown import source: ${importSrc}. Use: awesome, git, vendor, project`);
-        process.exit(1);
+        process.stdout.write(`  📁 Design system will appear at: design-systems/${importId}/\n`);
+        process.stdout.write(`  \n`);
+        process.stdout.write(`  To process this import, start the backend:\n`);
+        process.stdout.write(`    emdesign serve\n`);
+        process.stdout.write(`  \n`);
+        process.stdout.write(`  The backend's agent manager will detect this intent,\n`);
+        process.stdout.write(`  spawn Claude Code, and run the ds-import workflow.\n`);
       }
       break;
     }
@@ -480,21 +377,11 @@ export async function cmdDs(ds: DsArgs, paths: RepoPaths, store: Store): Promise
     }
 
     case 'diff':
-    case 'compare': {
-      const id1 = a1 ? normalizeDsRef(a1) : normalizeDsRef(paths.activeDesignSystem);
-      const id2 = a2 ? normalizeDsRef(a2) : a1 ? normalizeDsRef(a1) : normalizeDsRef(paths.activeDesignSystem);
-      if (!id1 || !id2 || id1 === id2) {
-        formatError('usage: emdesign ds diff — removed in single-DS mode');
-        process.exit(1);
-      }
-      const r = diffDesignSystems(paths, id1, id2);
-      if (ds.json) {
-        formatJson(r);
-      } else {
-        process.stdout.write(r.note + '\n');
-        if (r.onlyIn1.length > 0) process.stdout.write(`Only in ${id1}: ${r.onlyIn1.join(', ')}\n`);
-        if (r.onlyIn2.length > 0) process.stdout.write(`Only in ${id2}: ${r.onlyIn2.join(', ')}\n`);
-      }
+    case 'compare':
+    case 'conflicts':
+    case 'use': {
+      formatError('ds ' + ds.subcommand + ' — removed: each workspace has one design system. Use ds create/import to set it up.');
+      process.exit(1);
       break;
     }
 
@@ -509,13 +396,6 @@ export async function cmdDs(ds: DsArgs, paths: RepoPaths, store: Store): Promise
         process.exit(1);
       }
       const r = updateDesignSystem(paths, id, { name, description });
-      out(r, ds.json);
-      break;
-    }
-
-    case 'conflicts': {
-      const id = paths.activeDesignSystem;
-      const r = runtimeFor(paths).conflicts(normalizeDsRef(id));
       out(r, ds.json);
       break;
     }
@@ -584,8 +464,19 @@ export async function cmdDs(ds: DsArgs, paths: RepoPaths, store: Store): Promise
 
     case 'list':
     default: {
-      const systems = listDesignSystems(paths);
-      out(systems, ds.json);
+      const id = paths.activeDesignSystem;
+      try {
+        const info = getDesignSystemInfo(paths, id);
+        if (ds.json) {
+          formatJson(info);
+        } else {
+          process.stdout.write(`Active design system: "${info.name}" (${info.id})\n`);
+          process.stdout.write(`  Tokens: ${info.tokens} · Primitives: ${info.primitives.length} · Lint: ${info.preset}\n`);
+        }
+      } catch {
+        formatError(`No design system configured. Use 'ds create' or 'ds import'.`);
+        process.exit(1);
+      }
       break;
     }
   }

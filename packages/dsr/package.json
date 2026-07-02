@@ -1,8 +1,8 @@
 {
   "name": "@emdesign/dsr",
-  "version": "0.0.0",
+  "version": "0.1.0-alpha.0",
   "type": "module",
-  "description": "emdesign design-system runtime \u2014 the DDD domain layer over the @emdesign/graph data model. Load/read/manage a design system like a typed code library: aggregates, value objects, a rule engine, validation, references, conflicts, cache, and history. Design as code.",
+  "description": "emdesign design-system runtime — the DDD domain layer over the @emdesign/graph data model. Load/read/manage a design system like a typed code library: aggregates, value objects, a rule engine, validation, references, conflicts, cache, and history. Design as code.",
   "exports": {
     ".": "./dist/index.js",
     "./charters/runner": "./src/charters/runner.ts",
@@ -13,11 +13,14 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@emdesign/graph": "*"
+    "@emdesign/graph": "^0.1.0-alpha.0"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",
     "typescript": "^5.5.0",
     "vitest": "^2.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

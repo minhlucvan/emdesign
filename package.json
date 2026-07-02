@@ -13,7 +13,7 @@
     "backend": "npm run dev -w @emdesign/cli",
     "studio": "npm run storybook -w @emdesign/workspace-react",
     "dev": "npm run backend & npm run studio",
-    "build": "npm run build --workspaces --if-present",
+    "build": "bash scripts/build.sh",
     "test": "vitest run",
     "test:smoke": "vitest run tests/smoke",
     "test:visual": "npm run test:visual -w @emdesign/workspace-react"
@@ -25,6 +25,7 @@
     "multer": "^2.2.0"
   },
   "devDependencies": {
+    "@types/pixelmatch": "^5.2.6",
     "vitest": "^2.1.9"
   }
 }

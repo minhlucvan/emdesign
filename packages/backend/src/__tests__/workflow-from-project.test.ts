@@ -26,6 +26,8 @@ const STAGES = [
   'extract',
   'synthesize DESIGN.md',
   'tokens',
+  'build-skill',
+  'taste',
   'primitives',
   'adopt',
   'graph',

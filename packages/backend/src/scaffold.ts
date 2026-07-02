@@ -3,7 +3,6 @@ import path from 'node:path';
 import { ensureDir, normalizeDsRef, setActiveDesignSystem, type RepoPaths } from './paths.js';
 import { parseDeclaredTokens, resolveDesignSystem } from './designContext.js';
 import { buildAndSave } from './graph.js';
-import type { AdoptionReport } from './project/report.js';
 import { SEMANTIC_TOKEN_ROLES } from '@emdesign/dsr';
 
 /** Design-system scaffolding — the create/validate engine behind the Design System flow. */
@@ -195,8 +194,27 @@ export function createDesignSystem(
   if (mode === 'import') {
     const from = opts.from;
     if (!from) throw new Error('import mode requires `from` (a design-system id or base ref to clone, e.g. open-design/brutalist).');
-    const fromDir = dsDir(paths, from);
-    if (!fs.existsSync(fromDir)) throw new Error(`Cannot import: design system '${from}' not found.`);
+
+    // Resolve the source directory: try normal ref, then _vendor, then walk up to monorepo root.
+    let fromDir = dsDir(paths, from);
+    if (!fs.existsSync(fromDir)) {
+      // Try _vendor relative to the workspace design-systems dir
+      const vendorDir = path.join(paths.designSystemsDir, '_vendor', from);
+      if (fs.existsSync(vendorDir)) {
+        fromDir = vendorDir;
+      } else {
+        // Walk up from workspace root looking for monorepo-level design-systems/_vendor/<from>
+        let candidate = path.dirname(paths.root);
+        while (candidate !== path.dirname(candidate)) {
+          const monorepoVendor = path.join(candidate, 'design-systems', '_vendor', from);
+          if (fs.existsSync(monorepoVendor)) { fromDir = monorepoVendor; break; }
+          candidate = path.dirname(candidate);
+        }
+        if (!fs.existsSync(fromDir)) {
+          throw new Error(`Cannot import: design system '${from}' not found. Tried dsDir, _vendor, and monorepo root.`);
+        }
+      }
+    }
     ensureDir(dir);
     copyDir(fromDir, dir);
     // Re-id the clone and drop the vendor provenance — it is now the user's own system to evolve.
@@ -483,12 +501,29 @@ export interface DesignSystemBase {
 const VENDOR_BASES_DIR = path.join('_vendor', 'open-design');
 
 /**
+ * Resolve the vendored-bases directory. Tries the workspace-local path first, then walks up
+ * to find the monorepo root's design-systems/_vendor/open-design/ (for example workspaces).
+ */
+function resolveVendorDir(paths: RepoPaths): string | null {
+  const local = path.join(paths.designSystemsDir, VENDOR_BASES_DIR);
+  if (fs.existsSync(local)) return local;
+  let candidate = path.dirname(paths.root);
+  while (candidate !== path.dirname(candidate)) {
+    const monorepoVendor = path.join(candidate, 'design-systems', VENDOR_BASES_DIR);
+    if (fs.existsSync(monorepoVendor)) return monorepoVendor;
+    candidate = path.dirname(candidate);
+  }
+  return null;
+}
+
+/**
  * List the prebuilt bases available as `import` sources — vendored design systems under
  * design-systems/_vendor/open-design/. Prefers the generated catalog.json index, falling back to a
  * filesystem scan. These are intentionally excluded from listDesignSystems (the active-system list).
  */
 export function listBases(paths: RepoPaths): DesignSystemBase[] {
-  const basesDir = path.join(paths.designSystemsDir, VENDOR_BASES_DIR);
+  const basesDir = resolveVendorDir(paths);
+  if (!basesDir) return [];
   // Fast path: the catalog index written by the converter.
   const catalogFile = path.join(basesDir, 'catalog.json');
   try {
@@ -988,52 +1023,13 @@ function listPrimitivesIn(dir: string): string[] {
     .map(f => f.replace('.tsx', ''));
 }
 
-/** Import a design system from awesome-design-md by brand name. */
-export async function importAwesomeDesign(paths: RepoPaths, brand: string, opts?: { name?: string }): Promise<{ id: string; note: string }> {
-  const id = (opts?.name ?? brand).toLowerCase().replace(/[^a-z0-9-]/g, '-');
-  const dir = path.join(paths.designSystemsDir, id);
-  if (fs.existsSync(dir)) throw new Error(`Design system '${id}' already exists at ${dir}`);
-  ensureDir(dir);
+// Programmatic imports (awesome/git/project) removed — all imports go through
+// the agent workflow (ds-import.js) queued via `emdesign ds import <source>`.
 
-  // Fetch DESIGN.md from awesome-design-md (brand dirs are under design-md/)
-  const designMdUrl = `${AWESOME_DESIGN_MD_REPO}/design-md/${brand}/DESIGN.md`;
-  const resp = await fetch(designMdUrl);
-  if (!resp.ok) throw new Error(`Brand '${brand}' not found in awesome-design-md (${resp.status})`);
-  const designMd = await resp.text();
-  fs.writeFileSync(path.join(dir, 'DESIGN.md'), designMd);
+// importGitDesign removed — git imports go through the agent workflow.
+// importProjectDesign removed — project imports go through the agent workflow.
 
-  // Parse YAML frontmatter for tokens
-  const frontmatter = parseYamlFrontmatter(designMd);
-  const tokensCss = frontmatterToTokensCss(frontmatter);
-  fs.writeFileSync(path.join(dir, 'tokens.css'), tokensCss);
-
-  // Create manifest with source attribution
-  const manifest = {
-    schemaVersion: 'od-design-system-project/v1',
-    id,
-    name: opts?.name ?? brand,
-    category: frontmatter.category ?? 'Brand',
-    description: `Imported from awesome-design-md/${brand}. ${frontmatter.description ?? ''}`,
-    source: { type: 'awesome-design-md', brand, url: designMdUrl },
-    files: { design: 'DESIGN.md', tokens: 'tokens.css', components: 'code/' },
-    craft: { applies: ['off-token-color', 'accent-overuse'], exemptions: [] },
-    stats: { tokens: parseDeclaredTokens(tokensCss).length, primitives: 0 },
-  };
-  fs.writeFileSync(path.join(dir, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
-
-  // Scaffold default primitives from atelier
-  try { scaffoldPrimitives(paths, id, 'atelier'); } catch { /* optional */ }
-
-  // Preview HTML is generated by the ds-generate-preview agent workflow
-  // (apps/workspace/templates/claude/workflows/ds-generate-preview.js).
-  // Programmatic preview generation was removed because it can't match the
-  // quality of the agent-driven workflow — run `emdesign ds preview <id>`
-  // or invoke the ds-generate-preview workflow to create reference-example.html.
-
-  const tokens = parseDeclaredTokens(tokensCss).length;
-  return { id, note: `Imported '${brand}' as '${id}': ${tokens} tokens, primitives scaffolded. Run agent workflow 'ds-generate-preview' for the rich preview HTML.` };
-}
-
+/** Parse YAML frontmatter from a DESIGN.md file. */
 export function parseYamlFrontmatter(md: string): Record<string, any> {
   const result: Record<string, any> = {};
   const match = md.match(/^---\n([\s\S]*?)\n---/);
@@ -1043,9 +1039,7 @@ export function parseYamlFrontmatter(md: string): Record<string, any> {
     const kv = line.match(/^\s*(\w+):\s*(.+)/);
     if (kv) {
       let val: any = kv[2].trim();
-      // Handle arrays
       if (val.startsWith('[')) { try { val = JSON.parse(val); } catch { /* keep string */ } }
-      // Handle nested objects
       if (val.startsWith('{')) { try { val = JSON.parse(val); } catch { /* keep string */ } }
       result[kv[1]] = val;
     }
@@ -1053,150 +1047,6 @@ export function parseYamlFrontmatter(md: string): Record<string, any> {
   return result;
 }
 
-function frontmatterToTokensCss(fm: Record<string, any>): string {
-  const colors = typeof fm.colors === 'object' ? fm.colors : {};
-  const typography = typeof fm.typography === 'object' ? fm.typography : {};
-  const spacing = typeof fm.spacing === 'object' ? fm.spacing : {};
-
-  const lines: string[] = [':root {', '  /* Colors */'];
-  // Map common frontmatter keys to CSS variables
-  const colorMap: Record<string, string> = {
-    primary: '--color-accent', background: '--color-surface', text: '--color-text',
-    secondary: '--color-accent-secondary', surface: '--color-surface-raised',
-    border: '--color-border', success: '--color-success', warning: '--color-warning',
-    danger: '--color-danger', info: '--color-info',
-  };
-  for (const [key, varName] of Object.entries(colorMap)) {
-    if (colors[key]) lines.push(`  ${varName}: ${colors[key]};`);
-  }
-  // Also add any custom color keys directly
-  for (const [key, val] of Object.entries(colors)) {
-    if (!colorMap[key]) lines.push(`  --color-${key}: ${val};`);
-  }
-
-  lines.push('', '  /* Typography */');
-  if (typography.heading || typography.sans || fm.font?.heading) {
-    const hFont = typography.heading || fm.font?.heading || 'Inter';
-    lines.push(`  --font-display: "${hFont}", system-ui, sans-serif;`);
-    lines.push(`  --font-sans: "${typography.sans || fm.font?.body || hFont}", system-ui, sans-serif;`);
-    if (fm.font?.mono) lines.push(`  --font-mono: "${fm.font.mono}", monospace;`);
-  } else {
-    lines.push('  --font-display: "Inter", system-ui, sans-serif;');
-    lines.push('  --font-sans: "Inter", system-ui, sans-serif;');
-  }
-
-  lines.push('', '  /* Spacing */');
-  const space = spacing.unit || fm.spacing || 8;
-  lines.push(`  --space-unit: ${space}px;`);
-  lines.push('  --radius: 8px;');
-
-  lines.push('', '  /* Shadows */');
-  lines.push('  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);');
-  lines.push('  --shadow-md: 0 4px 6px rgba(0,0,0,0.07);');
-  lines.push('}');
-  return lines.join('\n');
-}
-
-/** Import a design system from a git repo. */
-export async function importGitDesign(paths: RepoPaths, url: string, opts?: { ref?: string; path?: string; name?: string }): Promise<{ id: string; dir: string; note: string }> {
-  const id = opts?.name ?? path.basename(url.replace(/\.git$/, '')).toLowerCase().replace(/[^a-z0-9-]/g, '-');
-  const dir = path.join(paths.designSystemsDir, id);
-  if (fs.existsSync(dir)) throw new Error(`Design system '${id}' already exists at ${dir}`);
-
-  const tmpDir = `/tmp/emdesign-import-${Date.now()}`;
-  const ref = opts?.ref ?? 'main';
-  const subPath = opts?.path ?? '';
-
-  try {
-    // Shallow clone
-    const { execSync } = await import('node:child_process');
-    execSync(`git clone --depth 1 --branch ${ref} ${url} ${tmpDir} 2>/dev/null`, { stdio: 'pipe', timeout: 30_000 });
-    const src = path.join(tmpDir, subPath);
-    if (!fs.existsSync(src)) throw new Error(`Path '${subPath}' not found in cloned repo`);
-
-    // Copy to design systems
-    ensureDir(dir);
-    if (fs.existsSync(path.join(src, 'DESIGN.md'))) fs.writeFileSync(path.join(dir, 'DESIGN.md'), fs.readFileSync(path.join(src, 'DESIGN.md'), 'utf8'));
-    if (fs.existsSync(path.join(src, 'tokens.css'))) fs.writeFileSync(path.join(dir, 'tokens.css'), fs.readFileSync(path.join(src, 'tokens.css'), 'utf8'));
-    if (fs.existsSync(path.join(src, 'manifest.json'))) {
-      fs.writeFileSync(path.join(dir, 'manifest.json'), fs.readFileSync(path.join(src, 'manifest.json'), 'utf8'));
-    } else {
-      const tokens = fs.existsSync(path.join(dir, 'tokens.css')) ? parseDeclaredTokens(fs.readFileSync(path.join(dir, 'tokens.css'), 'utf8')).length : 0;
-      fs.writeFileSync(path.join(dir, 'manifest.json'), JSON.stringify({
-        schemaVersion: 'od-design-system-project/v1', id, name: opts?.name ?? id, category: 'Imported',
-        description: `Imported from ${url}`, source: { type: 'git', url, ref },
-        files: { design: 'DESIGN.md', tokens: 'tokens.css', components: 'code/' },
-        craft: { applies: ['off-token-color', 'accent-overuse'], exemptions: [] },
-        stats: { tokens, primitives: 0 },
-      }, null, 2) + '\n');
-    }
-
-    // Scaffold primitives
-    try { scaffoldPrimitives(paths, id, 'atelier'); } catch { /* optional */ }
-
-    return { id, dir, note: `Imported from ${url} as '${id}'` };
-  } finally {
-    // Cleanup
-    try { const { execSync } = await import('node:child_process'); execSync(`rm -rf ${tmpDir}`); } catch { /* ignore */ }
-  }
-}
-
-/** The outcome of `ds import project`: the adoption report plus a gate verdict. */
-export interface ImportProjectResult {
-  /** The id the adopted design system was registered under. */
-  id: string;
-  /** True when the token contract validated (and the system was registered). */
-  ok: boolean;
-  /** Gate verdict: `pass` only when validate passed AND every component is loop-ready. */
-  gate: 'pass' | 'fail';
-  /** The machine-readable adoption report. */
-  report: AdoptionReport;
-  /** Human-readable notes: documented defaults + DESIGN.md/code divergences. */
-  notes: string[];
-  /** The orchestrator session id. */
-  sessionId: string;
-  /** Per-stage progress of the ds-from-project workflow. */
-  stages: Array<{ name: string; status: string }>;
-}
-
-/**
- * Drive the ds-from-project workflow in-process (the embedded-engine path behind
- * `ds import project <path>`): reverse-engineer a project into a design system,
- * adopt its components, and return the adoption report plus a gate verdict. The
- * system is registered ONLY once validation passes; an invalid/unsupported path
- * throws and leaves nothing behind.
- */
-export async function importProjectDesign(
-  paths: RepoPaths,
-  projectPath: string,
-  opts: { id?: string; name?: string } = {},
-): Promise<ImportProjectResult> {
-  // Dynamic import avoids a static cycle (workflow.ts depends on scaffold.ts).
-  const { WorkflowOrchestrator } = await import('./workflow.js');
-  const id =
-    opts.id ??
-    (opts.name ?? path.basename(projectPath)).toLowerCase().replace(/[^a-z0-9-]/g, '-');
-  const orchestrator = new WorkflowOrchestrator();
-  const sessionId = `import_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-  const result = await orchestrator.runFromProject(sessionId, {
-    projectPath,
-    workspaceRoot: paths.root,
-    id,
-    name: opts.name,
-  });
-  const session = orchestrator.getSession(sessionId);
-  const stages = (session?.stages ?? []).map((s) => ({ name: s.name, status: s.status }));
-  if (!result.completed) {
-    throw new Error(
-      result.error ?? `ds import project failed at stage '${result.failedStage ?? '?'}'`,
-    );
-  }
-  const report: AdoptionReport = result.report ?? { components: [] };
-  const v = validateDesignSystem(paths, id);
-  const needsManual = report.components.some((c) => c.status === 'needs-manual-fix');
-  const gate: 'pass' | 'fail' = v.ok && !needsManual ? 'pass' : 'fail';
-  return { id, ok: v.ok, gate, report, notes: result.notes ?? [], sessionId, stages };
-}
 
 // ═══════════════════════════════════════════════════════════════════════
 // V3: Design System Info

@@ -1,8 +1,8 @@
 {
   "name": "@emdesign/doctor",
-  "version": "0.0.0",
+  "version": "0.1.0-alpha.0",
   "type": "module",
-  "description": "emdesign design-system doctor \u2014 rule-based production-readiness linting over the dsr/graph data model. Runs core + plugin DesignReviewRules and reports findings (severity, fix, where) + X/Y rules passed.",
+  "description": "emdesign design-system doctor — rule-based production-readiness linting over the dsr/graph data model. Runs core + plugin DesignReviewRules and reports findings (severity, fix, where) + X/Y rules passed.",
   "exports": {
     ".": "./dist/index.js"
   },
@@ -10,10 +10,13 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@emdesign/dsr": "*"
+    "@emdesign/dsr": "^0.1.0-alpha.0"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",
     "typescript": "^5.5.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

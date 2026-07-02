@@ -1,6 +1,6 @@
 {
   "name": "@emdesign/chat-ui",
-  "version": "0.0.0",
+  "version": "0.1.0-alpha.0",
   "private": true,
   "type": "module",
   "description": "Chat UI components for emdesign — adapted from shadcn-chatbot-kit (MIT, github.com/Blazity/shadcn-chatbot-kit). Styled with @storybook/theming.",

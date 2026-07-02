@@ -12,15 +12,12 @@ import {
 import { formatError } from './lib/format.js';
 import { cmdDesign } from './commands/design.js';
 import { cmdGenerate } from './commands/generate.js';
-import { cmdDoctor } from './commands/doctor.js';
-import { cmdVision } from './commands/vision.js';
 import { cmdCapture, cmdCaptureBaseline } from './commands/capture.js';
 import { cmdDiscover, cmdDoc } from './commands/discover.js';
 import { cmdDs } from './commands/ds.js';
 import { cmdGraph } from './commands/graph.js';
 import { cmdInit, cmdAttach, cmdUpdate } from './commands/init.js';
 import { cmdCompose } from './commands/compose.js';
-import { cmdSpatialAudit } from './commands/spatial.js';
 import { cmdRenderAnalyze } from './commands/render.js';
 import { cmdA11y, cmdComponentTest, cmdComponentDiff } from './commands/component.js';
 import { cmdStoryAuto } from './commands/story.js';
@@ -31,7 +28,7 @@ import { cmdStorybookHealth } from './commands/storybook.js';
 import { cmdExplore } from './commands/explore.js';
 import { cmdSession, cmdLogs } from './commands/session.js';
 import { cmdIntent, cmdChat } from './commands/intent.js';
-import { cmdVisualDiff } from './commands/diff.js';
+import { cmdTest } from './commands/test.js';
 
 const PORT = Number(process.env.EMDESIGN_PORT ?? 4321);
 
@@ -75,8 +72,9 @@ async function main() {
   if (argv.includes('--completion')) {
     const shellIdx = argv.indexOf('--completion');
     const shell = shellIdx >= 0 && shellIdx + 1 < argv.length && !argv[shellIdx + 1].startsWith('--') ? argv[shellIdx + 1] : 'bash';
-    const commands = ['init','attach','update','serve','up','health','ds','design','generate','doctor','vision','visual-diff','capture','capture-baseline','discover','doc','graph','explore','compose','help','session','logs','intent','chat'];
-    const dsSubs = ['list','create','use','validate','grade','scaffold','customize','update','diff','compare','conflicts','history','bases','base-detail','context','prompt'];
+    const commands = ['init','attach','update','serve','up','health','ds','design','generate','capture','capture-baseline','discover','doc','graph','explore','test','compose','help','session','logs','intent','chat'];
+    const dsSubs = ['list','create','use','scaffold','customize','update','diff','compare','conflicts','history','bases','base-detail','context','prompt'];
+    const testSubs = ['validate','lint','audit','grade','visual','spatial','render','doctor','charter','contrast','graph','context','all','states','page','behavior'];
     if (shell === 'zsh') {
       process.stdout.write(`#compdef emdesign
 _emdesign() {
@@ -308,100 +306,7 @@ complete -F _emdesign_completions emdesign
       break;
     }
 
-    // ── Doctor: `doctor <kind> <component>` — kind is optional (default: all) ──
-    case 'doctor':
-    case 'lint':
-    case 'visual-test':
-    case 'score':
-    case 'spatial-audit':
-    case 'render-lint':
-    case 'spatial': {
-      // Route to spatial audit command if subcommand is audit/grid
-      const spatialSub = rest[0];
-      if (spatialSub === 'audit' || spatialSub === 'grid') {
-        const [, ...spatialRest] = rest;
-        const component = positional(spatialRest);
-        if (!component) { formatError('usage: emdesign spatial audit|grid <component> [--grid] [--story <name>] [--viewport <WxH>]'); process.exit(1); }
-        const story = spatialRest.includes('--story') ? spatialRest[spatialRest.indexOf('--story') + 1] : undefined;
-        const theme = spatialRest.includes('--theme') ? spatialRest[spatialRest.indexOf('--theme') + 1] as 'light' | 'dark' : undefined;
-        const viewport = spatialRest.includes('--viewport') ? spatialRest[spatialRest.indexOf('--viewport') + 1] : undefined;
-        await cmdSpatialAudit({ component, story, theme, grid: spatialSub === 'grid', viewport, json }, paths);
-        break;
-      }
-
-      // Parse: first positional could be a kind (lint/visual/etc) or a component name.
-      // The doctor check-kinds are: lint, visual, snapshot, spatial, charters, react.
-      const KINDS = new Set(['lint', 'visual', 'snapshot', 'spatial', 'charters', 'react']);
-      const first = positional(rest) ?? '';
-      const second = positional(rest, 1);
-
-      let kind: string;
-      let component: string | undefined;
-
-      // Explicit --kind flag takes precedence over positional parsing
-      if (rest.includes('--kind')) {
-        kind = rest[rest.indexOf('--kind') + 1];
-        component = first;
-      } else if (KINDS.has(first)) {
-        kind = first;
-        component = second;
-      } else {
-        // Legacy aliases set the kind implicitly
-        kind = cmd === 'lint' ? 'lint'
-          : cmd === 'visual-test' ? 'visual'
-          : cmd === 'score' ? 'all'
-          : cmd === 'spatial-audit' || cmd === 'spatial' || cmd === 'render-lint' ? 'spatial'
-          : 'all';
-        component = first || (cmd === 'score' ? (rest.includes('--component') ? rest[rest.indexOf('--component') + 1] : undefined) : undefined);
-      }
-
-      if (!component) {
-        formatError(`usage: emdesign doctor [kind] <component> [--gate] [--json]\n  kinds: lint, visual, snapshot, spatial, charters, react`);
-        process.exit(1);
-      }
-
-      const story = rest.includes('--story') ? rest[rest.indexOf('--story') + 1] : undefined;
-      const theme = rest.includes('--theme') ? rest[rest.indexOf('--theme') + 1] as 'light' | 'dark' : undefined;
-      const timeout = rest.includes('--timeout') ? Number(rest[rest.indexOf('--timeout') + 1]) : undefined;
-      await cmdDoctor({
-        component,
-        kind,
-        story,
-        theme,
-        timeout,
-        detail: rest.includes('--detail'),
-        quiet: rest.includes('--quiet'),
-        evidence: rest.includes('--evidence') ? rest[rest.indexOf('--evidence') + 1] : undefined,
-        gate,
-        json,
-      }, paths, store);
-      break;
-    }
-
-    // ── Vision ───────────────────────────────────────────────────────────
-    case 'vision':
-    case 'vision-critique': {
-      const component = positional(rest);
-      if (!component) { formatError('usage: emdesign vision <component> [--mode] [--provider]'); process.exit(1); }
-      const mode = rest.includes('--mode') ? rest[rest.indexOf('--mode') + 1] as 'standard' | 'compare' : 'standard';
-      const provider = rest.includes('--provider') ? rest[rest.indexOf('--provider') + 1] as 'claude' | 'gemini' | 'minimax' : undefined;
-      const reference = rest.includes('--reference') ? rest[rest.indexOf('--reference') + 1] : undefined;
-      await cmdVision({ component, mode, provider, reference, json }, paths, store);
-      break;
-    }
-
-    // ── Visual Diff ──────────────────────────────────────────────────────
-    case 'visual-diff': {
-      const [sourceA, sourceB] = rest;
-      const viewport = rest.includes('--viewport') ? rest[rest.indexOf('--viewport') + 1] : undefined;
-      const threshold = rest.includes('--threshold') ? Number(rest[rest.indexOf('--threshold') + 1]) : undefined;
-      const grid = rest.includes('--grid') ? rest[rest.indexOf('--grid') + 1] : undefined;
-      const diffOutput = rest.includes('--diff-output') ? rest[rest.indexOf('--diff-output') + 1] : undefined;
-      await cmdVisualDiff({ sourceA, sourceB, viewport, threshold, grid, diffOutput, json }, paths, store);
-      break;
-    }
-
-    // ── Capture ──────────────────────────────────────────────────────────
+    // ── Legacy doctor/vision/visual-diff removed — use `emdesign test <subcommand>` instead ──    // ── Capture ──────────────────────────────────────────────────────────
     case 'capture': {
       // Batch capture all generated components
       if (rest.includes('--all')) {
@@ -634,6 +539,28 @@ complete -F _emdesign_completions emdesign
       const wait = rest.includes('--wait');
       const interactive = rest.includes('--interactive');
       await cmdChat({ message: chatMsg, type: chatType, wait, interactive }, paths);
+      break;
+    }
+
+    // ── Test ─────────────────────────────────────────────────────────────
+    case 'test': {
+      const [testSub, ...testArgs] = rest;
+      const testSource = rest.includes('--source') ? rest[rest.indexOf('--source') + 1] : undefined;
+      const testStory = rest.includes('--story') ? rest[rest.indexOf('--story') + 1] : undefined;
+      const testThreshold = rest.includes('--threshold') ? Number(rest[rest.indexOf('--threshold') + 1]) : undefined;
+      if (!testSub) {
+        formatError('usage: emdesign test <subcommand> [args] [--json] [--gate]\nAvailable subcommands: validate, lint, audit, grade, visual, spatial, render, doctor, charter, contrast, graph, context, all, states, page, behavior');
+        process.exit(1);
+      }
+      await cmdTest({
+        subcommand: testSub,
+        args: testArgs.filter(a => !a.startsWith('--')),
+        source: testSource,
+        story: testStory,
+        json,
+        gate,
+        threshold: testThreshold,
+      }, paths);
       break;
     }
 

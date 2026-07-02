@@ -13,7 +13,6 @@
 
 import { chromium } from 'playwright';
 import { PNG } from 'pngjs';
-// @ts-expect-error - pixelmatch has no types
 import pixelmatch from 'pixelmatch';
 import { Buffer } from 'node:buffer';
 import type {
@@ -64,28 +63,72 @@ export async function compareHtmlDocuments(
 
   const browser = await chromium.launch({ headless: true });
   try {
-    // ── Layer 1: Render + Pixel Diff ──
-    const { png: pngA, page: pageA } = await renderHtml(browser, htmlA, viewport);
-    const { png: pngB, page: pageB } = await renderHtml(browser, htmlB, viewport);
+    // ── Render both pages (no screenshot yet - must scroll first) ──
+    const { page: pageA } = opts.referenceUrl
+      ? await renderUrl(browser, opts.referenceUrl, viewport)
+      : await renderHtml(browser, htmlA, viewport);
+    const { page: pageB } = opts.targetUrl
+      ? await renderUrl(browser, opts.targetUrl, viewport)
+      : await renderHtml(browser, htmlB, viewport);
 
-    const imgA = PNG.sync.read(pngA);
-    const imgB = PNG.sync.read(pngB);
+    // ── Scroll crop targets into view before screenshotting ──
+    // This ensures off-screen elements (e.g. sections far down a long page)
+    // are visible in the viewport screenshot and can be properly cropped.
+    if (opts.referenceSelector) {
+      await scrollToSelector(pageA, opts.referenceSelector);
+    }
+    if (opts.targetSelector) {
+      await scrollToSelector(pageB, opts.targetSelector);
+    }
 
+    // ── Now take screenshots (after scrolling) ──
+    const pngA = await pageA.screenshot({ fullPage: false, type: 'png' });
+    const pngB = await pageB.screenshot({ fullPage: false, type: 'png' });
+
+    // ── Crop by selector if requested (bbox is viewport-relative after scroll) ──
+    let cropBboxA: { x: number; y: number; width: number; height: number } | null = null;
+    let cropBboxB: { x: number; y: number; width: number; height: number } | null = null;
+
+    if (opts.referenceSelector) {
+      cropBboxA = await getElementBbox(pageA, opts.referenceSelector);
+    }
+    if (opts.targetSelector) {
+      cropBboxB = await getElementBbox(pageB, opts.targetSelector);
+    }
+
+    let imgA: PNG = PNG.sync.read(pngA) as unknown as PNG;
+    let imgB: PNG = PNG.sync.read(pngB) as unknown as PNG;
+
+    if (cropBboxA) {
+      imgA = cropImageData(imgA, cropBboxA, DEVICE_SCALE_FACTOR);
+    }
+    if (cropBboxB) {
+      imgB = cropImageData(imgB, cropBboxB, DEVICE_SCALE_FACTOR);
+    }
+
+    // ── Layer 1: Pixel Diff (on cropped images) ──
+    // Ensure both images have the same dimensions before pixel comparison
+    if (imgA.width !== imgB.width || imgA.height !== imgB.height) {
+      const minW = Math.min(imgA.width, imgB.width);
+      const minH = Math.min(imgA.height, imgB.height);
+      imgA = cropToSize(imgA, minW, minH);
+      imgB = cropToSize(imgB, minW, minH);
+    }
     const pixelResult = await computePixelDiff(imgA, imgB, threshold, opts.overlayAlpha);
 
-    // ── Layer 2: Structure Diff ──
-    const structureResult = await computeStructureDiff(pageA, pageB);
+    // ── Layer 2: Structure Diff (filtered to crop region) ──
+    const structureResult = await computeStructureDiff(pageA, pageB, cropBboxA, cropBboxB);
 
-    // ── Layer 3: Element / CSS Diff ──
-    const elementDiffs = await computeElementDiff(pageA, pageB, imgA, imgB, threshold);
+    // ── Layer 3: Element / CSS Diff (filtered to crop region) ──
+    const elementDiffs = await computeElementDiff(pageA, pageB, cropBboxA, cropBboxB);
 
-    // ── Per-region grid breakdown ──
+    // ── Per-region grid breakdown (on cropped dimensions) ──
     const regions = computeRegionGrid(imgA, imgB, grid.cols, grid.rows, threshold);
 
-    // ── DOM-level feedback ──
+    // ── DOM-level feedback (probing within crop region) ──
     const feedback: DomElementDiff[] = [];
     if (enableDom && regions.some(r => r.diffRatio > 0.01)) {
-      const domFeedback = await extractDomFeedback(pageA, pageB, regions, viewport);
+      const domFeedback = await extractDomFeedback(pageA, pageB, regions, cropBboxA, cropBboxB);
       feedback.push(...domFeedback);
       for (const region of regions) {
         const rf = domFeedback.filter(d => isInside(d.box, region));
@@ -262,9 +305,22 @@ function computeConnectedComponents(diffMask: PNG, w: number, h: number): DiffRe
 // Layer 2: Structure Diff
 // ---------------------------------------------------------------------------
 
-async function computeStructureDiff(pageA: any, pageB: any): Promise<StructureDiffResult> {
+async function computeStructureDiff(
+  pageA: any,
+  pageB: any,
+  cropBboxA?: { x: number; y: number; width: number; height: number } | null,
+  cropBboxB?: { x: number; y: number; width: number; height: number } | null,
+): Promise<StructureDiffResult> {
   const elementsA = await extractElements(pageA);
   const elementsB = await extractElements(pageB);
+
+  // Filter to crop region if provided
+  const filteredA = cropBboxA
+    ? elementsA.filter(el => el.box && isWithinBbox(el.box, cropBboxA))
+    : elementsA;
+  const filteredB = cropBboxB
+    ? elementsB.filter(el => el.box && isWithinBbox(el.box, cropBboxB))
+    : elementsB;
 
   // Match by tag + text fingerprint
   const matched: ElementRef[] = [];
@@ -275,13 +331,13 @@ async function computeStructureDiff(pageA: any, pageB: any): Promise<StructureDi
   const usedB = new Set<number>();
 
   // First pass: match by tag + text exact match
-  for (let i = 0; i < elementsA.length; i++) {
-    for (let j = 0; j < elementsB.length; j++) {
+  for (let i = 0; i < filteredA.length; i++) {
+    for (let j = 0; j < filteredB.length; j++) {
       if (usedA.has(i) || usedB.has(j)) continue;
-      if (elementsA[i].tag === elementsB[j].tag &&
-          elementsA[i].text === elementsB[j].text &&
-          elementsA[i].text.length > 0) {
-        matched.push(elementsA[i]);
+      if (filteredA[i].tag === filteredB[j].tag &&
+          filteredA[i].text === filteredB[j].text &&
+          filteredA[i].text.length > 0) {
+        matched.push(filteredA[i]);
         usedA.add(i);
         usedB.add(j);
         break;
@@ -290,17 +346,17 @@ async function computeStructureDiff(pageA: any, pageB: any): Promise<StructureDi
   }
 
   // Second pass: match by tag + position proximity
-  for (let i = 0; i < elementsA.length; i++) {
+  for (let i = 0; i < filteredA.length; i++) {
     if (usedA.has(i)) continue;
-    for (let j = 0; j < elementsB.length; j++) {
+    for (let j = 0; j < filteredB.length; j++) {
       if (usedB.has(j)) continue;
-      if (elementsA[i].tag === elementsB[j].tag && elementsA[i].box && elementsB[j].box) {
+      if (filteredA[i].tag === filteredB[j].tag && filteredA[i].box && filteredB[j].box) {
         const dist = Math.hypot(
-          elementsA[i].box!.x - elementsB[j].box!.x,
-          elementsA[i].box!.y - elementsB[j].box!.y,
+          filteredA[i].box!.x - filteredB[j].box!.x,
+          filteredA[i].box!.y - filteredB[j].box!.y,
         );
         if (dist < 50) {
-          matched.push(elementsA[i]);
+          matched.push(filteredA[i]);
           usedA.add(i);
           usedB.add(j);
           break;
@@ -309,15 +365,15 @@ async function computeStructureDiff(pageA: any, pageB: any): Promise<StructureDi
     }
   }
 
-  for (let i = 0; i < elementsA.length; i++) {
-    if (!usedA.has(i)) missing.push(elementsA[i]);
+  for (let i = 0; i < filteredA.length; i++) {
+    if (!usedA.has(i)) missing.push(filteredA[i]);
   }
-  for (let j = 0; j < elementsB.length; j++) {
-    if (!usedB.has(j)) extra.push(elementsB[j]);
+  for (let j = 0; j < filteredB.length; j++) {
+    if (!usedB.has(j)) extra.push(filteredB[j]);
   }
 
-  const baselineCount = elementsA.length;
-  const targetCount = elementsB.length;
+  const baselineCount = filteredA.length;
+  const targetCount = filteredB.length;
   const score = baselineCount > 0
     ? Math.round((matched.length / Math.max(baselineCount, targetCount)) * 10000) / 100
     : 100;
@@ -369,9 +425,8 @@ async function extractElements(page: any): Promise<ElementRef[]> {
 async function computeElementDiff(
   pageA: any,
   pageB: any,
-  imgA: PNG,
-  imgB: PNG,
-  threshold: number,
+  cropBboxA?: { x: number; y: number; width: number; height: number } | null,
+  cropBboxB?: { x: number; y: number; width: number; height: number } | null,
 ): Promise<ElementDiff[]> {
   const cssProps = [
     'color', 'backgroundColor', 'fontSize', 'fontFamily', 'fontWeight',
@@ -379,10 +434,16 @@ async function computeElementDiff(
     'width', 'height', 'display', 'borderRadius', 'gap', 'textAlign',
   ];
 
-  return extractCssDiffs(pageA, pageB, cssProps);
+  return extractCssDiffs(pageA, pageB, cssProps, cropBboxA, cropBboxB);
 }
 
-async function extractCssDiffs(pageA: any, pageB: any, cssProps: string[]): Promise<ElementDiff[]> {
+async function extractCssDiffs(
+  pageA: any,
+  pageB: any,
+  cssProps: string[],
+  cropBboxA?: { x: number; y: number; width: number; height: number } | null,
+  cropBboxB?: { x: number; y: number; width: number; height: number } | null,
+): Promise<ElementDiff[]> {
   interface ElementSnapshot {
     selector: string;
     tag: string;
@@ -390,10 +451,17 @@ async function extractCssDiffs(pageA: any, pageB: any, cssProps: string[]): Prom
     styles: Record<string, string>;
   }
 
-  async function snapshot(page: any): Promise<ElementSnapshot[]> {
-    return page.evaluate((props: string[]) => {
+  async function snapshot(page: any, bbox?: { x: number; y: number; width: number; height: number } | null): Promise<ElementSnapshot[]> {
+    return page.evaluate(({ props, bbox }: { props: string[]; bbox: { x: number; y: number; width: number; height: number } | null }) => {
       const results: ElementSnapshot[] = [];
       const visited = new Set<Element>();
+
+      function isInBbox(rect: DOMRect): boolean {
+        if (!bbox) return true;
+        return rect.x >= bbox.x && rect.y >= bbox.y &&
+          rect.x + rect.width <= bbox.x + bbox.width &&
+          rect.y + rect.height <= bbox.y + bbox.height;
+      }
 
       function walk(el: Element) {
         if (visited.has(el)) return;
@@ -402,6 +470,7 @@ async function extractCssDiffs(pageA: any, pageB: any, cssProps: string[]): Prom
         if (['script', 'style', 'noscript', 'link', 'meta', 'head', 'template'].includes(tag)) return;
         const rect = el.getBoundingClientRect();
         if (rect.width === 0 || rect.height === 0) return;
+        if (bbox && !isInBbox(rect)) return;
 
         const id = el.id ? `#${el.id}` : '';
         const cls = el.className && typeof el.className === 'string'
@@ -429,11 +498,11 @@ async function extractCssDiffs(pageA: any, pageB: any, cssProps: string[]): Prom
 
       walk(document.body);
       return results;
-    }, cssProps);
+    }, { props: cssProps, bbox: bbox ?? null });
   }
 
-  const snapA = await snapshot(pageA);
-  const snapB = await snapshot(pageB);
+  const snapA = await snapshot(pageA, cropBboxA);
+  const snapB = await snapshot(pageB, cropBboxB);
 
   const diffs: ElementDiff[] = [];
 
@@ -516,7 +585,8 @@ async function extractDomFeedback(
   pageA: any,
   pageB: any,
   regions: RegionDiffCell[],
-  viewport: { width: number; height: number },
+  cropBboxA?: { x: number; y: number; width: number; height: number } | null,
+  cropBboxB?: { x: number; y: number; width: number; height: number } | null,
 ): Promise<DomElementDiff[]> {
   const significant = regions.filter(r => r.diffRatio > 0.01);
   if (significant.length === 0) return [];
@@ -526,8 +596,11 @@ async function extractDomFeedback(
   for (const region of significant) {
     const pts = getProbePoints(region, DEVICE_SCALE_FACTOR);
     for (const pt of pts) {
-      const a = await probePage(pageA, pt.x, pt.y);
-      const b = await probePage(pageB, pt.x, pt.y);
+      // Offset probe points by crop bbox origin so they hit the right element in the full page
+      const probeX = cropBboxA ? pt.x + cropBboxA.x : pt.x;
+      const probeY = cropBboxA ? pt.y + cropBboxA.y : pt.y;
+      const a = await probePage(pageA, probeX, probeY);
+      const b = await probePage(pageB, probeX, probeY);
       if (a && b) {
         if (a.tag !== b.tag) {
           all.push({ selector: a.selector, tag: a.tag, box: { x: pt.x, y: pt.y, width: 0, height: 0 }, property: 'tagName', baselineValue: a.tag, actualValue: b.tag, severity: 'high' });
@@ -672,97 +745,65 @@ async function renderHtml(
   browser: any,
   html: string,
   viewport: { width: number; height: number },
-): Promise<{ png: Buffer; page: any }> {
+): Promise<{ page: any }> {
   const page = await browser.newPage({ viewport: { ...viewport, deviceScaleFactor: DEVICE_SCALE_FACTOR } });
   const dataUri = 'data:text/html;base64,' + Buffer.from(html, 'utf8').toString('base64');
   await page.goto(dataUri, { waitUntil: 'networkidle' });
   await page.waitForTimeout(500);
-  const png = await page.screenshot({ fullPage: false, type: 'png' });
-  return { png, page };
+  return { page };
 }
 
 /**
- * Render a URL directly in Playwright. Use for dynamic pages (e.g. Storybook)
- * that rely on JS bundles with absolute paths — navigating to the URL preserves
- * the origin so scripts load without CORS issues.
+ * Render a page by navigating to a URL directly (supports relative script paths, etc.).
+ * Waits for the page to render any visible content before proceeding.
  */
 async function renderUrl(
   browser: any,
   url: string,
   viewport: { width: number; height: number },
-): Promise<{ png: Buffer; page: any }> {
+): Promise<{ page: any }> {
   const page = await browser.newPage({ viewport: { ...viewport, deviceScaleFactor: DEVICE_SCALE_FACTOR } });
-  await page.goto(url, { waitUntil: 'networkidle', timeout: 30000 });
-  await page.waitForTimeout(1500);
-  const png = await page.screenshot({ fullPage: false, type: 'png' });
-  return { png, page };
+  await page.goto(url, { waitUntil: 'networkidle' });
+  // Wait for visible DOM to render (React/Storybook needs time to hydrate)
+  await page.waitForTimeout(2000);
+  // Wait for the storybook root or any p/h2 element to confirm actual content rendered
+  try {
+    await page.waitForSelector('#storybook-root p, #storybook-root h2, section#typography', { timeout: 5000 });
+  } catch {
+    // Content may have rendered via a different structure; continue anyway
+  }
+  return { page };
 }
 
 /**
- * Compare two sources where each source is either an HTML string or a URL.
- * URLs are navigated to directly (preserving origin for JS bundle loading);
- * HTML strings are rendered as data URIs (for static content).
+ * Scroll a page so the element matching a CSS selector is at the top of the viewport.
+ * This ensures off-screen sections are visible before screenshotting.
  */
-export async function compareUrlDocuments(
-  sourceA: string,
-  sourceB: string,
-  opts: CompareOptions = {},
-): Promise<HtmlDiffResult> {
-  const viewport = opts.viewport ?? DEFAULT_VIEWPORT;
-  const threshold = opts.threshold ?? DEFAULT_THRESHOLD;
-  const grid = parseGrid(opts.regionGrid);
-  const enableDom = opts.enableDomFeedback !== false;
-  const isUrlA = sourceA.startsWith('http://') || sourceA.startsWith('https://');
-  const isUrlB = sourceB.startsWith('http://') || sourceB.startsWith('https://');
+async function scrollToSelector(page: any, selector: string): Promise<void> {
+  await page.evaluate((sel: string) => {
+    const el = document.querySelector(sel);
+    if (el) el.scrollIntoView({ block: 'start' });
+  }, selector);
+  await page.waitForTimeout(300);
+}
 
-  const browser = await chromium.launch({ headless: true });
-  try {
-    const { png: pngA, page: pageA } = isUrlA
-      ? await renderUrl(browser, sourceA, viewport)
-      : await renderHtml(browser, sourceA, viewport);
-    const { png: pngB, page: pageB } = isUrlB
-      ? await renderUrl(browser, sourceB, viewport)
-      : await renderHtml(browser, sourceB, viewport);
-
-    const imgA = PNG.sync.read(pngA);
-    const imgB = PNG.sync.read(pngB);
-
-    const pixelResult = await computePixelDiff(imgA, imgB, threshold, opts.overlayAlpha);
-    const structureResult = await computeStructureDiff(pageA, pageB);
-    const elementDiffs = await computeElementDiff(pageA, pageB, imgA, imgB, threshold);
-    const regions = computeRegionGrid(imgA, imgB, grid.cols, grid.rows, threshold);
-
-    const feedback: DomElementDiff[] = [];
-    if (enableDom && regions.some(r => r.diffRatio > 0.01)) {
-      const domFeedback = await extractDomFeedback(pageA, pageB, regions, viewport);
-      feedback.push(...domFeedback);
-      for (const region of regions) {
-        const rf = domFeedback.filter(d => isInside(d.box, region));
-        region.domFeedback = {
-          differences: rf,
-          summary: rf.length > 0 ? `${rf.length} diff(s) in ${region.label}` : 'No element diffs',
-        };
-      }
+/**
+ * Crop a PNG image to the specified dimensions (taking the top-left portion).
+ */
+function cropToSize(img: PNG, width: number, height: number): PNG {
+  if (img.width === width && img.height === height) return img;
+  const out = new PNG({ width, height });
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const srcIdx = (y * img.width + x) * 4;
+      const dstIdx = (y * width + x) * 4;
+      out.data[dstIdx] = img.data[srcIdx];
+      out.data[dstIdx + 1] = img.data[srcIdx + 1];
+      out.data[dstIdx + 2] = img.data[srcIdx + 2];
+      out.data[dstIdx + 3] = img.data[srcIdx + 3];
     }
-
-    await pageA.close();
-    await pageB.close();
-
-    const overallScore = computeOverallScore(pixelResult, structureResult, elementDiffs);
-
-    return {
-      overallScore,
-      pixel: pixelResult,
-      structure: structureResult,
-      elementDiffs,
-      feedback,
-      regions,
-      viewport,
-      timestamp: new Date().toISOString(),
-    };
-  } finally {
-    await browser.close();
   }
+  return out;
 }
 
 function parseGrid(gridStr?: string): { cols: number; rows: number } {
@@ -797,4 +838,65 @@ function dedupeFeedback(diffs: DomElementDiff[]): DomElementDiff[] {
     seen.add(key);
     return true;
   });
+}
+
+// ---------------------------------------------------------------------------
+// Crop / Region helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Crop a PNG image to a bounding box (CSS pixel coordinates, DPR-adjusted).
+ */
+function cropImageData(
+  img: PNG,
+  bbox: { x: number; y: number; width: number; height: number },
+  dpr: number,
+): PNG {
+  const sx = Math.round(bbox.x * dpr);
+  const sy = Math.round(bbox.y * dpr);
+  const sw = Math.round(bbox.width * dpr);
+  const sh = Math.round(bbox.height * dpr);
+
+  const cropped = new PNG({ width: sw, height: sh });
+  for (let y = 0; y < sh && sy + y < img.height; y++) {
+    for (let x = 0; x < sw && sx + x < img.width; x++) {
+      const srcIdx = ((sy + y) * img.width + (sx + x)) * 4;
+      const dstIdx = (y * sw + x) * 4;
+      cropped.data[dstIdx] = img.data[srcIdx];
+      cropped.data[dstIdx + 1] = img.data[srcIdx + 1];
+      cropped.data[dstIdx + 2] = img.data[srcIdx + 2];
+      cropped.data[dstIdx + 3] = img.data[srcIdx + 3];
+    }
+  }
+  return cropped;
+}
+
+/**
+ * Get the bounding box of an element matching a CSS selector in a rendered page.
+ */
+async function getElementBbox(
+  page: any,
+  selector: string,
+): Promise<{ x: number; y: number; width: number; height: number } | null> {
+  return page.evaluate((sel: string) => {
+    const el = document.querySelector(sel);
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    return { x: r.x, y: r.y, width: r.width, height: r.height };
+  }, selector);
+}
+
+/**
+ * Check if an element's bounding box is entirely within a crop region.
+ */
+function isWithinBbox(
+  elBox: { x: number; y: number; width: number; height: number },
+  bbox: { x: number; y: number; width: number; height: number },
+): boolean {
+  return (
+    elBox.x >= bbox.x &&
+    elBox.y >= bbox.y &&
+    elBox.x + elBox.width <= bbox.x + bbox.width &&
+    elBox.y + elBox.height <= bbox.y + bbox.height
+  );
 }

@@ -12,6 +12,10 @@ export default defineWorkspace([
   'packages/mcp-server',
   // Visual diff engine
   'packages/visual-diff',
+  // Testing SDK (assertion primitives for design system operations)
+  'packages/testbed',
   // Integration & surface tests
   'tests',
+  // Design system primitives & component tests
+  'design-systems',
 ]);
