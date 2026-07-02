@@ -50,9 +50,11 @@ Level 1: DOM      (render probe, mounting)         ← basic rendering
 | 6 Behavior | `assertHasClickHandler`, `assertHasKeyboardSupport`, `assertHasFormSubmit` | Non-interactive UI, missing a11y |
 | 7 Gate | `runDoctor`, `checkAudit`, `checkGrade` | Composite ship/revise decision |
 
-## The RED/GREEN Loop with Vitest
+## The RED/GREEN Loop
 
-Every test scenario follows the same pattern:
+Every component should have BOTH a source-level test and a browser-level test.
+
+### Source-level test (vitest + @emdesign/testbed)
 
 ```
 1. SELECT scenario template from test-scenarios/<scenario>.ts
@@ -66,6 +68,22 @@ Every test scenario follows the same pattern:
    b. Fix the source code (e.g., add tokens, fix overlaps, add ARIA)
    c. Re-run vitest (go to step 3)
 6. If GREEN: done — record evidence
+```
+
+### Browser-level test (@storybook/experimental-addon-test + @emdesign/testdom/playwright)
+
+```
+1. GENERATE src/__tests__/<Name>.browser.test.ts using dom-visual-test.ts template
+2. RUN: $ npx vitest run src/__tests__/<Name>.browser.test.ts --reporter=json
+   (Storybook must be running on :6006)
+3. CHECK exit code and evaluation report:
+   - Exit 0 + report.tokenBinding.passed  → GREEN
+   - Exit != 0 or any check failed         → RED — read report.summary for details
+4. If RED:
+   a. Read evaluatePage() report.summary — it gives actionable fix suggestions
+   b. Fix the rendered output (CSS vars, spacing, contrast, anti-patterns)
+   c. Re-run (go to step 2)
+5. If GREEN: done — component passes both source and browser validation
 ```
 
 ### Why Vitest (not CLI commands)
