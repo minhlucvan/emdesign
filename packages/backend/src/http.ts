@@ -112,8 +112,8 @@ function computeSurface(store: Store, paths: RepoPaths): SurfaceData {
             });
           }
         }
-      } catch {}
-    } catch { /* lint may fail on incomplete DS */ }
+      } catch (e) { console.error('[lint]', e); }
+    } catch (e) { console.error('[lint] incomplete DS:', e); }
   }
 
   return {
@@ -1008,7 +1008,7 @@ export async function createHttpBridge(store: Store, paths: RepoPaths, orch?: an
           appendFileSync(join(homedir(), '.claude', 'history.jsonl'), JSON.stringify(entry) + '\n');
           const { invalidateHistoryCache } = await import('@emdesign/agent-manager');
           invalidateHistoryCache();
-        } catch {}
+        } catch (e) { console.error('[history]', e); }
       },
       cwd: paths.root,
     });
