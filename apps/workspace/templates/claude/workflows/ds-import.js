@@ -305,10 +305,11 @@ Return JSON: { "exists": true/false }`,
     return { name: primName, status: 'skipped' }
   }
 
-  // RED: write failing test
+  // RED: write failing tests (source-level + browser-level)
   log(`  🔴 RED: ${primName}`)
+  const browserTestPath = `${dsDir}/__tests__/${primName}.browser.test.ts`
   await agent(
-    `Write a vitest test for primitive "${primName}" of DS "${dsId}" at "${testPath}".
+    `Write TWO failing tests for primitive "${primName}" of DS "${dsId}".
 
 GROUND TRUTH (read these first):
 - cat "${dsDir}/reference-example.html"   (preview HTML — shows exactly how this component looks)
@@ -316,15 +317,33 @@ GROUND TRUTH (read these first):
 - cat "${dsDir}/tokens.css"               (token values)
 - cat "${dsDir}/skills/build/SKILL.md"    (build rules + anti-patterns)
 
-The component does NOT exist yet at "${primPath}" — the import will fail (RED confirmed).
-The test must check:
-1. Component renders (render from @testing-library/react)
-2. Uses CSS variables (no raw hex values)
-3. Accepts basic props matching the design language
+The component does NOT exist yet at "${primPath}" — imports will fail (RED confirmed).
 
-Write the test to "${testPath}".
-Run: npx vitest run "${testPath}" 2>&1 — confirm it FAILS.
-Return "RED confirmed".`,
+TEST 1 — Source-level (vitest): "${testPath}"
+Imports: import { checkLint, checkBehavior } from '@emdesign/testbed'
+Checks:
+1. Component renders (render from @testing-library/react)
+2. checkLint — mustFix === 0 (no raw hex, no filler copy)
+3. checkBehavior — ok === true (click handlers, ARIA)
+4. Accepts basic props
+
+TEST 2 — Browser-level (Playwright): "${browserTestPath}"
+Uses @storybook/experimental-addon-test + @emdesign/testdom/playwright
+```
+import { test, expect } from '@storybook/experimental-addon-test';
+import { evaluatePage } from '@emdesign/testdom/playwright';
+test('token binding', async ({ page }) => {
+  await test.story();
+  const report = await evaluatePage(page, { /* tokens from tokens.css */ });
+  expect(report.tokenBinding.passed).toBe(true);
+});
+```
+
+Write BOTH test files. The story URL will be: http://localhost:6006/?path=/story/design-system-${dsId}-${primName.toLowerCase()}--default
+
+Run: npx vitest run "${testPath}" 2>&1 — the first MUST FAIL (component missing).
+Also run: npx vitest run "${browserTestPath}" 2>&1 — also must fail.
+Return RED confirmed only if BOTH fail.`,
     { label: `red:${dsId}/${primName}`, phase: 'Build primitives' }
   )
 

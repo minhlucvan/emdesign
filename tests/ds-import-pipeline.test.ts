@@ -253,8 +253,8 @@ describe('ds import pipeline — CLI → intent → agent-worker → persist', (
     });
   });
 
-  // ── Section E: Code-first pipeline assertions (via @emdesign/testing) ─────
-  describe('E — Code-first pipeline assertions (via @emdesign/testing)', () => {
+  // ── Section E: Code-first pipeline assertions (via @emdesign/testbed) ─────
+  describe('E — Code-first pipeline assertions (via @emdesign/testbed)', () => {
     beforeEach(async () => {
       await initWorkspace(env);
       setupFixtureDs(env.dir, 'pipeline-test');
@@ -276,8 +276,8 @@ describe('ds import pipeline — CLI → intent → agent-worker → persist', (
       expect(nodeValues.some((n: any) => n.label === 'section')).toBe(true);
     });
 
-    it('ds validate passes against a valid design system (via @emdesign/testing)', () => {
-      const { assertDesignSystemPasses } = require('@emdesign/testing');
+    it('ds validate passes against a valid design system (via @emdesign/testbed)', () => {
+      const { assertDesignSystemPasses } = require('@emdesign/testbed');
       const result = assertDesignSystemPasses(env.paths);
       expect(result.ok).toBe(true);
     });

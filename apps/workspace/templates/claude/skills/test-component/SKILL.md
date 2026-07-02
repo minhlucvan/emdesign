@@ -36,7 +36,7 @@ Use `skills/test-engineering/test-scenarios/craft-component.ts` as the starting 
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import { resolveRepoPaths } from '@emdesign/backend';
-import { checkLint, checkSpatial, checkBehavior, runDoctor } from '@emdesign/testing';
+import { checkLint, checkSpatial, checkBehavior, runDoctor } from '@emdesign/testbed';
 
 const paths = resolveRepoPaths();
 const name = '<Name>';
