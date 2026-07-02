@@ -1,0 +1,23 @@
+{
+  "currentComponent": null,
+  "changeRequests": [
+    {
+      "id": "cr_1782954252597_0",
+      "type": "create-design-system",
+      "instruction": "Import the \"stripe\" design system from awesome-design-md. Run the ds-import workflow with source \"awesome/stripe\" and name \"stripe\". After import, run ds-generate-preview for the rich preview HTML.",
+      "status": "pending",
+      "createdAt": "2026-07-02T01:04:12.597Z"
+    },
+    {
+      "id": "cr_1782954926001_0",
+      "type": "create-design-system",
+      "instruction": "Import the \"stripe\" design system from awesome-design-md. Run the ds-import workflow with source \"awesome/stripe\" and name \"stripe\". After import, run ds-generate-preview for the rich preview HTML.",
+      "status": "pending",
+      "createdAt": "2026-07-02T01:15:26.001Z"
+    }
+  ],
+  "lastDiff": null,
+  "lintPassing": null,
+  "lastCritique": null,
+  "comments": {}
+}

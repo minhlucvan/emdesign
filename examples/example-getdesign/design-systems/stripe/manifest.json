@@ -1,0 +1,28 @@
+{
+  "id": "stripe",
+  "name": "Stripe-Inspired Design System",
+  "version": "1.0.0",
+  "description": "An inspired interpretation of Stripe's design language — a financial-infrastructure brand built on a deep navy ink, electric indigo primary, and atmospheric gradient mesh.",
+  "source": "https://raw.githubusercontent.com/voltagent/awesome-design-md/main/design-md/stripe/DESIGN.md",
+  "designMd": "DESIGN.md",
+  "tokens": "tokens.css",
+  "tokenCount": 108,
+  "colors": {
+    "total": 19,
+    "primary": "#533afd",
+    "ink": "#0d253d",
+    "surface": "#ffffff"
+  },
+  "typography": {
+    "fontFamily": "sohne-var, SF Pro Display, system-ui, -apple-system, sans-serif",
+    "substitute": "Inter"
+  },
+  "spacing": {
+    "unit": "8px",
+    "scale": ["xxs", "xs", "sm", "md", "lg", "xl", "xxl", "huge"]
+  },
+  "rounded": {
+    "default": "8px",
+    "scale": ["xs", "sm", "md", "lg", "xl", "pill"]
+  }
+}
