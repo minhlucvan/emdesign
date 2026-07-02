@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "od-design-system-project/v1",
+  "id": "ds_1782974490637",
+  "name": "ds_1782974490637",
+  "category": "Imported",
+  "description": "Imported from awesome-design-md.",
+  "files": {
+    "design": "DESIGN.md",
+    "tokens": "tokens.css",
+    "components": "components.html"
+  },
+  "craft": {
+    "applies": [
+      "off-token-color",
+      "ai-default-indigo",
+      "accent-overuse",
+      "token-self-check"
+    ],
+    "exemptions": []
+  },
+  "source": {
+    "type": "awesome",
+    "upstream": "https://github.com/voltagent/awesome-design-md"
+  }
+}

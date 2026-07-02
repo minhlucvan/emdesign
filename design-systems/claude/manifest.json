@@ -1,0 +1,9 @@
+{
+  "id": "claude",
+  "name": "Claude Design",
+  "description": "Import Claude.ai design system",
+  "source": {
+    "type": "imported",
+    "from": "atelier"
+  }
+}

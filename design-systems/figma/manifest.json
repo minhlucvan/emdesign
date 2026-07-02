@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "1.0",
+  "id": "figma",
+  "name": "Figma Marketing Design System",
+  "description": "A confident black-and-white editorial frame interrupted by oversized, hand-cut pastel color blocks. Extracted from figma.com marketing pages.",
+  "version": "alpha",
+  "source": {
+    "url": "https://raw.githubusercontent.com/voltagent/awesome-design-md/main/design-md/figma/DESIGN.md",
+    "type": "design-md",
+    "attribution": "Design system analysis documented via awesome-design-md (https://github.com/voltagent/awesome-design-md). Original design by Figma, Inc."
+  },
+  "createdAt": "2026-07-02T00:00:00.000Z",
+  "files": {
+    "DESIGN.md": "design-systems/figma/DESIGN.md",
+    "tokens.css": "design-systems/figma/tokens.css",
+    "manifest.json": "design-systems/figma/manifest.json"
+  },
+  "tokenCounts": {
+    "colors": 20,
+    "typographyRoles": 12,
+    "spacing": 9,
+    "rounded": 7,
+    "elevation": 4,
+    "componentTokens": 19
+  }
+}

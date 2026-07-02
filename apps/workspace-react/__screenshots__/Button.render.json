@@ -1,0 +1,55 @@
+[
+  {
+    "component": "Button",
+    "storyId": "generated-button--default",
+    "url": "http://localhost:6006/iframe.html?id=generated-button--default&viewMode=story",
+    "theme": "light",
+    "viewport": {
+      "width": 1280,
+      "height": 720,
+      "deviceScaleFactor": 2
+    },
+    "root": {
+      "x": 575.953125,
+      "y": 322,
+      "width": 128.109375,
+      "height": 76
+    },
+    "nodes": [
+      {
+        "selector": "button",
+        "tag": "button",
+        "classes": "inline-flex items-center justify-center gap-2 rounded font-medium transition-[background-color,box-shadow] duration-[120ms] focus-visible:outline-none focus-visible:shadow-[var(--focus-ring)] disabled:opacity-45 disabled:pointer-events-none bg-accent text-white hover:bg-accent-hover px-5 py-3 text-text text-sm  ",
+        "text": "Click me",
+        "box": {
+          "x": 591.953125,
+          "y": 338,
+          "width": 96.109375,
+          "height": 44
+        },
+        "styles": {
+          "color": "rgb(255, 255, 255)",
+          "backgroundColor": "rgb(204, 120, 92)",
+          "backgroundImage": "none",
+          "fontSize": "14px",
+          "fontFamily": "ui-sans-serif, system-ui, sans-serif, \"Apple Color Emoji\", \"Segoe UI Emoji\", \"Segoe UI Symbol\", \"Noto Color Emoji\"",
+          "fontWeight": "500",
+          "lineHeight": "20px",
+          "marginTop": "0px",
+          "marginRight": "0px",
+          "marginBottom": "0px",
+          "marginLeft": "0px",
+          "paddingTop": "12px",
+          "paddingRight": "20px",
+          "paddingBottom": "12px",
+          "paddingLeft": "20px",
+          "gap": "8px",
+          "display": "inline-flex",
+          "position": "static",
+          "zIndex": "auto",
+          "overflow": "visible"
+        }
+      }
+    ]
+  }
+]

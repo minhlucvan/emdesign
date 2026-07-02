@@ -19,7 +19,7 @@ Example: `/mds:test:gate StatsCard --threshold 0.85`
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import { resolveRepoPaths } from '@emdesign/backend';
-import { runDoctor } from '@emdesign/testing';
+import { runDoctor } from '@emdesign/testbed';
 const paths = resolveRepoPaths();
 const name = '<Name>';
 const source = fs.readFileSync('<SourcePath>', 'utf8');

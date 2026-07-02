@@ -6,7 +6,7 @@
 // Levels: Visual (similarity, DOM structure)
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
-import { checkVisualDiff, assertDomSnapshotMatches } from '@emdesign/testing';
+import { checkVisualDiff, assertDomSnapshotMatches } from '@emdesign/testbed';
 
 const baselinePath = '<BaselinePath>';
 const currentPath = '<CurrentPath>';

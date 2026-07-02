@@ -1,0 +1,1175 @@
+{
+  "designSystem": "ds_1782978681584",
+  "nodes": [
+    {
+      "id": "ds_1782978681584",
+      "label": "designSystem",
+      "props": {
+        "name": "ds_1782978681584",
+        "source": {
+          "file": "ds_1782978681584/"
+        }
+      }
+    },
+    {
+      "id": "ds_1782978681584/DESIGN.md",
+      "label": "file",
+      "props": {
+        "path": "DESIGN.md",
+        "type": "design",
+        "source": {
+          "file": "ds_1782978681584/DESIGN.md"
+        }
+      }
+    },
+    {
+      "id": "ds_1782978681584/graph.json",
+      "label": "file",
+      "props": {
+        "path": "graph.json",
+        "type": "asset",
+        "source": {
+          "file": "ds_1782978681584/graph.json"
+        }
+      }
+    },
+    {
+      "id": "ds_1782978681584/manifest.json",
+      "label": "file",
+      "props": {
+        "path": "manifest.json",
+        "type": "manifest",
+        "source": {
+          "file": "ds_1782978681584/manifest.json"
+        }
+      }
+    },
+    {
+      "id": "ds_1782978681584/tokens.css",
+      "label": "file",
+      "props": {
+        "path": "tokens.css",
+        "type": "tokens",
+        "source": {
+          "file": "ds_1782978681584/tokens.css"
+        }
+      }
+    },
+    {
+      "id": "ds_1782978681584/skills/build/SKILL.md",
+      "label": "file",
+      "props": {
+        "path": "skills/build/SKILL.md",
+        "type": "asset",
+        "source": {
+          "file": "ds_1782978681584/skills/build/SKILL.md"
+        }
+      }
+    },
+    {
+      "id": "ds_1782978681584/skills/taste/SKILL.md",
+      "label": "file",
+      "props": {
+        "path": "skills/taste/SKILL.md",
+        "type": "asset",
+        "source": {
+          "file": "ds_1782978681584/skills/taste/SKILL.md"
+        }
+      }
+    },
+    {
+      "id": "ds_1782978681584/--color-surface",
+      "label": "token",
+      "props": {
+        "name": "--color-surface",
+        "kind": "color",
+        "value": "#ffffff",
+        "source": {
+          "file": "ds_1782978681584/tokens.css"
+        }
+      }
+    },
+    {
+      "id": "ds_1782978681584/#ffffff",
+      "label": "color",
+      "props": {
+        "value": "#ffffff"
+      }
+    },
+    {
+      "id": "ds_1782978681584/--color-surface-raised",
+      "label": "token",
+      "props": {
+        "name": "--color-surface-raised",
+        "kind": "color",
+        "value": "#f7f7f8",
+        "source": {
+          "file": "ds_1782978681584/tokens.css"
+        }
+      }
+    },
+    {
+      "id": "ds_1782978681584/#f7f7f8",
+      "label": "color",
+      "props": {
+        "value": "#f7f7f8"
+      }
+    },
+    {
+      "id": "ds_1782978681584/--color-text",
+      "label": "token",
+      "props": {
+        "name": "--color-text",
+        "kind": "color",
+        "value": "#18181b",
+        "source": {
+          "file": "ds_1782978681584/tokens.css"
+        }
+      }
+    },
+    {
+      "id": "ds_1782978681584/#18181b",
+      "label": "color",
+      "props": {
+        "value": "#18181b"
+      }
+    },
+    {
+      "id": "ds_1782978681584/--color-text-muted",
+      "label": "token",
+      "props": {
+        "name": "--color-text-muted",
+        "kind": "color",
+        "value": "#6b7280",
+        "source": {
+          "file": "ds_1782978681584/tokens.css"
+        }
+      }
+    },
+    {
+      "id": "ds_1782978681584/#6b7280",
+      "label": "color",
+      "props": {
+        "value": "#6b7280"
+      }
+    },
+    {
+      "id": "ds_1782978681584/--color-accent",
+      "label": "token",
+      "props": {
+        "name": "--color-accent",
+        "kind": "color",
+        "value": "#2563eb",
+        "source": {
+          "file": "ds_1782978681584/tokens.css"
+        }
+      }
+    },
+    {
+      "id": "ds_1782978681584/#2563eb",
+      "label": "color",
+      "props": {
+        "value": "#2563eb"
+      }
+    },
+    {
+      "id": "ds_1782978681584/--color-accent-hover",
+      "label": "token",
+      "props": {
+        "name": "--color-accent-hover",
+        "kind": "color",
+        "value": "#1d4ed8",
+        "source": {
+          "file": "ds_1782978681584/tokens.css"
+        }
+      }
+    },
+    {
+      "id": "ds_1782978681584/#1d4ed8",
+      "label": "color",
+      "props": {
+        "value": "#1d4ed8"
+      }
+    },
+    {
+      "id": "ds_1782978681584/--color-border",
+      "label": "token",
+      "props": {
+        "name": "--color-border",
+        "kind": "color",
+        "value": "#e5e7eb",
+        "source": {
+          "file": "ds_1782978681584/tokens.css"
+        }
+      }
+    },
+    {
+      "id": "ds_1782978681584/#e5e7eb",
+      "label": "color",
+      "props": {
+        "value": "#e5e7eb"
+      }
+    },
+    {
+      "id": "ds_1782978681584/--color-success",
+      "label": "token",
+      "props": {
+        "name": "--color-success",
+        "kind": "color",
+        "value": "#15803d",
+        "source": {
+          "file": "ds_1782978681584/tokens.css"
+        }
+      }
+    },
+    {
+      "id": "ds_1782978681584/#15803d",
+      "label": "color",
+      "props": {
+        "value": "#15803d"
+      }
+    },
+    {
+      "id": "ds_1782978681584/--color-warn",
+      "label": "token",
+      "props": {
+        "name": "--color-warn",
+        "kind": "color",
+        "value": "#b45309",
+        "source": {
+          "file": "ds_1782978681584/tokens.css"
+        }
+      }
+    },
+    {
+      "id": "ds_1782978681584/#b45309",
+      "label": "color",
+      "props": {
+        "value": "#b45309"
+      }
+    },
+    {
+      "id": "ds_1782978681584/--color-danger",
+      "label": "token",
+      "props": {
+        "name": "--color-danger",
+        "kind": "color",
+        "value": "#b91c1c",
+        "source": {
+          "file": "ds_1782978681584/tokens.css"
+        }
+      }
+    },
+    {
+      "id": "ds_1782978681584/#b91c1c",
+      "label": "color",
+      "props": {
+        "value": "#b91c1c"
+      }
+    },
+    {
+      "id": "ds_1782978681584/--font-display",
+      "label": "token",
+      "props": {
+        "name": "--font-display",
+        "kind": "type",
+        "value": "\"Inter\", system-ui, sans-serif",
+        "source": {
+          "file": "ds_1782978681584/tokens.css"
+        }
+      }
+    },
+    {
+      "id": "ds_1782978681584/face/Inter",
+      "label": "typeface",
+      "props": {
+        "family": "Inter",
+        "role": "sans"
+      }
+    },
+    {
+      "id": "ds_1782978681584/--font-sans",
+      "label": "token",
+      "props": {
+        "name": "--font-sans",
+        "kind": "type",
+        "value": "\"Inter\", system-ui, sans-serif",
+        "source": {
+          "file": "ds_1782978681584/tokens.css"
+        }
+      }
+    },
+    {
+      "id": "ds_1782978681584/--font-mono",
+      "label": "token",
+      "props": {
+        "name": "--font-mono",
+        "kind": "type",
+        "value": "\"JetBrains Mono\", ui-monospace, monospace",
+        "source": {
+          "file": "ds_1782978681584/tokens.css"
+        }
+      }
+    },
+    {
+      "id": "ds_1782978681584/face/JetBrains Mono",
+      "label": "typeface",
+      "props": {
+        "family": "JetBrains Mono",
+        "role": "mono"
+      }
+    },
+    {
+      "id": "ds_1782978681584/--radius",
+      "label": "token",
+      "props": {
+        "name": "--radius",
+        "kind": "radius",
+        "value": "8px",
+        "source": {
+          "file": "ds_1782978681584/tokens.css"
+        }
+      }
+    },
+    {
+      "id": "ds_1782978681584/--radius-sm",
+      "label": "token",
+      "props": {
+        "name": "--radius-sm",
+        "kind": "radius",
+        "value": "5px",
+        "source": {
+          "file": "ds_1782978681584/tokens.css"
+        }
+      }
+    },
+    {
+      "id": "ds_1782978681584/--radius-pill",
+      "label": "token",
+      "props": {
+        "name": "--radius-pill",
+        "kind": "radius",
+        "value": "999px",
+        "source": {
+          "file": "ds_1782978681584/tokens.css"
+        }
+      }
+    },
+    {
+      "id": "ds_1782978681584/--space-unit",
+      "label": "token",
+      "props": {
+        "name": "--space-unit",
+        "kind": "spacing",
+        "value": "8px",
+        "source": {
+          "file": "ds_1782978681584/tokens.css"
+        }
+      }
+    },
+    {
+      "id": "ds_1782978681584/--shadow-raised",
+      "label": "token",
+      "props": {
+        "name": "--shadow-raised",
+        "kind": "shadow",
+        "value": "0 1px 2px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.05)",
+        "source": {
+          "file": "ds_1782978681584/tokens.css"
+        }
+      }
+    },
+    {
+      "id": "ds_1782978681584/--focus-ring",
+      "label": "token",
+      "props": {
+        "name": "--focus-ring",
+        "kind": "shadow",
+        "value": "0 0 0 3px rgba(37,99,235,0.28)",
+        "source": {
+          "file": "ds_1782978681584/tokens.css"
+        }
+      }
+    },
+    {
+      "id": "ds_1782978681584/--motion-fast",
+      "label": "token",
+      "props": {
+        "name": "--motion-fast",
+        "kind": "motion",
+        "value": "120ms",
+        "source": {
+          "file": "ds_1782978681584/tokens.css"
+        }
+      }
+    },
+    {
+      "id": "ds_1782978681584/--motion-base",
+      "label": "token",
+      "props": {
+        "name": "--motion-base",
+        "kind": "motion",
+        "value": "220ms",
+        "source": {
+          "file": "ds_1782978681584/tokens.css"
+        }
+      }
+    },
+    {
+      "id": "ds_1782978681584/--ease-standard",
+      "label": "token",
+      "props": {
+        "name": "--ease-standard",
+        "kind": "motion",
+        "value": "cubic-bezier(0.2, 0, 0, 1)",
+        "source": {
+          "file": "ds_1782978681584/tokens.css"
+        }
+      }
+    },
+    {
+      "id": "ds_1782978681584/--container-max",
+      "label": "token",
+      "props": {
+        "name": "--container-max",
+        "kind": "layout",
+        "value": "1180px",
+        "source": {
+          "file": "ds_1782978681584/tokens.css"
+        }
+      }
+    },
+    {
+      "id": "ds_1782978681584/--section-y",
+      "label": "token",
+      "props": {
+        "name": "--section-y",
+        "kind": "layout",
+        "value": "96px",
+        "source": {
+          "file": "ds_1782978681584/tokens.css"
+        }
+      }
+    },
+    {
+      "id": "ds_1782978681584/contrast/color-surface-color-text",
+      "label": "contrastPair",
+      "props": {
+        "bg": "color-surface",
+        "fg": "color-text",
+        "ratio": 17.72,
+        "aa": true,
+        "aaLarge": true
+      }
+    },
+    {
+      "id": "ds_1782978681584/contrast/color-surface-raised-color-text",
+      "label": "contrastPair",
+      "props": {
+        "bg": "color-surface-raised",
+        "fg": "color-text",
+        "ratio": 16.55,
+        "aa": true,
+        "aaLarge": true
+      }
+    },
+    {
+      "id": "ds_1782978681584/contrast/color-surface-color-text-muted",
+      "label": "contrastPair",
+      "props": {
+        "bg": "color-surface",
+        "fg": "color-text-muted",
+        "ratio": 4.83,
+        "aa": true,
+        "aaLarge": true
+      }
+    },
+    {
+      "id": "rule/off-token-color",
+      "label": "rule",
+      "props": {
+        "ruleId": "off-token-color",
+        "severity": "P1",
+        "message": "Raw hex used where a token role exists.",
+        "appliesTo": "all",
+        "remediation": {
+          "text": "Reference a token role (e.g. bg-accent / text-surface) instead of raw hex.",
+          "sectionHint": "Color"
+        }
+      }
+    },
+    {
+      "id": "rule/unresolved-token",
+      "label": "rule",
+      "props": {
+        "ruleId": "unresolved-token",
+        "severity": "P0",
+        "message": "var(--x) does not resolve to a declared token.",
+        "appliesTo": "all",
+        "remediation": {
+          "text": "Use a declared role, or add the token to tokens.css.",
+          "sectionHint": "Tokens"
+        }
+      }
+    },
+    {
+      "id": "rule/ai-default-indigo",
+      "label": "rule",
+      "props": {
+        "ruleId": "ai-default-indigo",
+        "severity": "P0",
+        "message": "Solid AI-default indigo used outside token definitions.",
+        "appliesTo": "all",
+        "remediation": {
+          "text": "Use the design-system accent token, not a raw indigo hex.",
+          "tokenRole": "color-accent",
+          "sectionHint": "Color"
+        }
+      }
+    },
+    {
+      "id": "rule/purple-gradient",
+      "label": "rule",
+      "props": {
+        "ruleId": "purple-gradient",
+        "severity": "P0",
+        "message": "Indigo/violet/purple gradient — the AI-default look.",
+        "appliesTo": "all",
+        "remediation": {
+          "text": "Use the solid accent token; drop the gradient.",
+          "tokenRole": "color-accent",
+          "sectionHint": "Color"
+        }
+      }
+    },
+    {
+      "id": "rule/trust-gradient",
+      "label": "rule",
+      "props": {
+        "ruleId": "trust-gradient",
+        "severity": "P0",
+        "message": "Blue→cyan \"trust gradient\" hero cliché.",
+        "appliesTo": "all",
+        "remediation": {
+          "text": "Use a flat surface + accent from the design system.",
+          "tokenRole": "color-surface",
+          "sectionHint": "Color"
+        }
+      }
+    },
+    {
+      "id": "rule/emoji-icon",
+      "label": "rule",
+      "props": {
+        "ruleId": "emoji-icon",
+        "severity": "P0",
+        "message": "Emoji used as an icon.",
+        "appliesTo": "all",
+        "remediation": {
+          "text": "Use a real icon or omit it.",
+          "sectionHint": "Anti-patterns"
+        }
+      }
+    },
+    {
+      "id": "rule/left-accent-card",
+      "label": "rule",
+      "props": {
+        "ruleId": "left-accent-card",
+        "severity": "P0",
+        "message": "Rounded card with a colored left border.",
+        "appliesTo": "all",
+        "remediation": {
+          "text": "Hairline border on all sides + the design-system shadow.",
+          "tokenRole": "shadow-raised",
+          "sectionHint": "Components"
+        }
+      }
+    },
+    {
+      "id": "rule/sans-display",
+      "label": "rule",
+      "props": {
+        "ruleId": "sans-display",
+        "severity": "P0",
+        "message": "Sans-serif family on a display heading.",
+        "appliesTo": "headings",
+        "remediation": {
+          "text": "Headings must use the display font.",
+          "tokenRole": "font-display",
+          "sectionHint": "Typography"
+        }
+      }
+    },
+    {
+      "id": "rule/invented-metric",
+      "label": "rule",
+      "props": {
+        "ruleId": "invented-metric",
+        "severity": "P0",
+        "message": "Invented marketing metric.",
+        "appliesTo": "all",
+        "remediation": {
+          "text": "Remove fabricated metrics; use real copy or none.",
+          "sectionHint": "Voice & Brand"
+        }
+      }
+    },
+    {
+      "id": "rule/filler-copy",
+      "label": "rule",
+      "props": {
+        "ruleId": "filler-copy",
+        "severity": "P0",
+        "message": "Filler/placeholder copy.",
+        "appliesTo": "all",
+        "remediation": {
+          "text": "Write real, specific copy.",
+          "sectionHint": "Voice & Brand"
+        }
+      }
+    },
+    {
+      "id": "rule/external-image",
+      "label": "rule",
+      "props": {
+        "ruleId": "external-image",
+        "severity": "P1",
+        "message": "External placeholder image host.",
+        "appliesTo": "all",
+        "remediation": {
+          "text": "Use a local asset or a neutral solid block."
+        }
+      }
+    },
+    {
+      "id": "rule/accent-overuse",
+      "label": "rule",
+      "props": {
+        "ruleId": "accent-overuse",
+        "severity": "P1",
+        "message": "Accent used more than ~2 times per screen.",
+        "appliesTo": "all",
+        "remediation": {
+          "text": "Reserve the accent for the single most important element.",
+          "tokenRole": "color-accent",
+          "sectionHint": "Color"
+        }
+      }
+    },
+    {
+      "id": "skill/emdesign",
+      "label": "skill",
+      "props": {
+        "name": "emdesign",
+        "source": {
+          "file": "skills/emdesign/SKILL.md"
+        }
+      }
+    },
+    {
+      "id": "skill/web-section",
+      "label": "skill",
+      "props": {
+        "name": "web-section",
+        "mode": "component",
+        "scenario": "marketing",
+        "source": {
+          "file": "skills/web-section/SKILL.md"
+        }
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "ds_1782978681584|contains|ds_1782978681584/DESIGN.md",
+      "label": "contains",
+      "from": "ds_1782978681584",
+      "to": "ds_1782978681584/DESIGN.md",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584|contains|ds_1782978681584/graph.json",
+      "label": "contains",
+      "from": "ds_1782978681584",
+      "to": "ds_1782978681584/graph.json",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584|contains|ds_1782978681584/manifest.json",
+      "label": "contains",
+      "from": "ds_1782978681584",
+      "to": "ds_1782978681584/manifest.json",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584|contains|ds_1782978681584/tokens.css",
+      "label": "contains",
+      "from": "ds_1782978681584",
+      "to": "ds_1782978681584/tokens.css",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584|contains|ds_1782978681584/skills/build/SKILL.md",
+      "label": "contains",
+      "from": "ds_1782978681584",
+      "to": "ds_1782978681584/skills/build/SKILL.md",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584|contains|ds_1782978681584/skills/taste/SKILL.md",
+      "label": "contains",
+      "from": "ds_1782978681584",
+      "to": "ds_1782978681584/skills/taste/SKILL.md",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584|contains|ds_1782978681584/--color-surface",
+      "label": "contains",
+      "from": "ds_1782978681584",
+      "to": "ds_1782978681584/--color-surface",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584/--color-surface|declaredIn|ds_1782978681584/tokens.css",
+      "label": "declaredIn",
+      "from": "ds_1782978681584/--color-surface",
+      "to": "ds_1782978681584/tokens.css",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584/--color-surface|tokenValue|ds_1782978681584/#ffffff",
+      "label": "tokenValue",
+      "from": "ds_1782978681584/--color-surface",
+      "to": "ds_1782978681584/#ffffff",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584|contains|ds_1782978681584/--color-surface-raised",
+      "label": "contains",
+      "from": "ds_1782978681584",
+      "to": "ds_1782978681584/--color-surface-raised",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584/--color-surface-raised|declaredIn|ds_1782978681584/tokens.css",
+      "label": "declaredIn",
+      "from": "ds_1782978681584/--color-surface-raised",
+      "to": "ds_1782978681584/tokens.css",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584/--color-surface-raised|tokenValue|ds_1782978681584/#f7f7f8",
+      "label": "tokenValue",
+      "from": "ds_1782978681584/--color-surface-raised",
+      "to": "ds_1782978681584/#f7f7f8",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584|contains|ds_1782978681584/--color-text",
+      "label": "contains",
+      "from": "ds_1782978681584",
+      "to": "ds_1782978681584/--color-text",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584/--color-text|declaredIn|ds_1782978681584/tokens.css",
+      "label": "declaredIn",
+      "from": "ds_1782978681584/--color-text",
+      "to": "ds_1782978681584/tokens.css",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584/--color-text|tokenValue|ds_1782978681584/#18181b",
+      "label": "tokenValue",
+      "from": "ds_1782978681584/--color-text",
+      "to": "ds_1782978681584/#18181b",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584|contains|ds_1782978681584/--color-text-muted",
+      "label": "contains",
+      "from": "ds_1782978681584",
+      "to": "ds_1782978681584/--color-text-muted",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584/--color-text-muted|declaredIn|ds_1782978681584/tokens.css",
+      "label": "declaredIn",
+      "from": "ds_1782978681584/--color-text-muted",
+      "to": "ds_1782978681584/tokens.css",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584/--color-text-muted|tokenValue|ds_1782978681584/#6b7280",
+      "label": "tokenValue",
+      "from": "ds_1782978681584/--color-text-muted",
+      "to": "ds_1782978681584/#6b7280",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584|contains|ds_1782978681584/--color-accent",
+      "label": "contains",
+      "from": "ds_1782978681584",
+      "to": "ds_1782978681584/--color-accent",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584/--color-accent|declaredIn|ds_1782978681584/tokens.css",
+      "label": "declaredIn",
+      "from": "ds_1782978681584/--color-accent",
+      "to": "ds_1782978681584/tokens.css",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584/--color-accent|tokenValue|ds_1782978681584/#2563eb",
+      "label": "tokenValue",
+      "from": "ds_1782978681584/--color-accent",
+      "to": "ds_1782978681584/#2563eb",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584|contains|ds_1782978681584/--color-accent-hover",
+      "label": "contains",
+      "from": "ds_1782978681584",
+      "to": "ds_1782978681584/--color-accent-hover",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584/--color-accent-hover|declaredIn|ds_1782978681584/tokens.css",
+      "label": "declaredIn",
+      "from": "ds_1782978681584/--color-accent-hover",
+      "to": "ds_1782978681584/tokens.css",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584/--color-accent-hover|tokenValue|ds_1782978681584/#1d4ed8",
+      "label": "tokenValue",
+      "from": "ds_1782978681584/--color-accent-hover",
+      "to": "ds_1782978681584/#1d4ed8",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584|contains|ds_1782978681584/--color-border",
+      "label": "contains",
+      "from": "ds_1782978681584",
+      "to": "ds_1782978681584/--color-border",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584/--color-border|declaredIn|ds_1782978681584/tokens.css",
+      "label": "declaredIn",
+      "from": "ds_1782978681584/--color-border",
+      "to": "ds_1782978681584/tokens.css",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584/--color-border|tokenValue|ds_1782978681584/#e5e7eb",
+      "label": "tokenValue",
+      "from": "ds_1782978681584/--color-border",
+      "to": "ds_1782978681584/#e5e7eb",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584|contains|ds_1782978681584/--color-success",
+      "label": "contains",
+      "from": "ds_1782978681584",
+      "to": "ds_1782978681584/--color-success",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584/--color-success|declaredIn|ds_1782978681584/tokens.css",
+      "label": "declaredIn",
+      "from": "ds_1782978681584/--color-success",
+      "to": "ds_1782978681584/tokens.css",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584/--color-success|tokenValue|ds_1782978681584/#15803d",
+      "label": "tokenValue",
+      "from": "ds_1782978681584/--color-success",
+      "to": "ds_1782978681584/#15803d",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584|contains|ds_1782978681584/--color-warn",
+      "label": "contains",
+      "from": "ds_1782978681584",
+      "to": "ds_1782978681584/--color-warn",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584/--color-warn|declaredIn|ds_1782978681584/tokens.css",
+      "label": "declaredIn",
+      "from": "ds_1782978681584/--color-warn",
+      "to": "ds_1782978681584/tokens.css",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584/--color-warn|tokenValue|ds_1782978681584/#b45309",
+      "label": "tokenValue",
+      "from": "ds_1782978681584/--color-warn",
+      "to": "ds_1782978681584/#b45309",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584|contains|ds_1782978681584/--color-danger",
+      "label": "contains",
+      "from": "ds_1782978681584",
+      "to": "ds_1782978681584/--color-danger",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584/--color-danger|declaredIn|ds_1782978681584/tokens.css",
+      "label": "declaredIn",
+      "from": "ds_1782978681584/--color-danger",
+      "to": "ds_1782978681584/tokens.css",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584/--color-danger|tokenValue|ds_1782978681584/#b91c1c",
+      "label": "tokenValue",
+      "from": "ds_1782978681584/--color-danger",
+      "to": "ds_1782978681584/#b91c1c",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584|contains|ds_1782978681584/--font-display",
+      "label": "contains",
+      "from": "ds_1782978681584",
+      "to": "ds_1782978681584/--font-display",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584/--font-display|declaredIn|ds_1782978681584/tokens.css",
+      "label": "declaredIn",
+      "from": "ds_1782978681584/--font-display",
+      "to": "ds_1782978681584/tokens.css",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584/--font-display|usesFont|ds_1782978681584/face/Inter",
+      "label": "usesFont",
+      "from": "ds_1782978681584/--font-display",
+      "to": "ds_1782978681584/face/Inter",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584|contains|ds_1782978681584/--font-sans",
+      "label": "contains",
+      "from": "ds_1782978681584",
+      "to": "ds_1782978681584/--font-sans",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584/--font-sans|declaredIn|ds_1782978681584/tokens.css",
+      "label": "declaredIn",
+      "from": "ds_1782978681584/--font-sans",
+      "to": "ds_1782978681584/tokens.css",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584/--font-sans|usesFont|ds_1782978681584/face/Inter",
+      "label": "usesFont",
+      "from": "ds_1782978681584/--font-sans",
+      "to": "ds_1782978681584/face/Inter",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584|contains|ds_1782978681584/--font-mono",
+      "label": "contains",
+      "from": "ds_1782978681584",
+      "to": "ds_1782978681584/--font-mono",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584/--font-mono|declaredIn|ds_1782978681584/tokens.css",
+      "label": "declaredIn",
+      "from": "ds_1782978681584/--font-mono",
+      "to": "ds_1782978681584/tokens.css",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584/--font-mono|usesFont|ds_1782978681584/face/JetBrains Mono",
+      "label": "usesFont",
+      "from": "ds_1782978681584/--font-mono",
+      "to": "ds_1782978681584/face/JetBrains Mono",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584|contains|ds_1782978681584/--radius",
+      "label": "contains",
+      "from": "ds_1782978681584",
+      "to": "ds_1782978681584/--radius",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584/--radius|declaredIn|ds_1782978681584/tokens.css",
+      "label": "declaredIn",
+      "from": "ds_1782978681584/--radius",
+      "to": "ds_1782978681584/tokens.css",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584|contains|ds_1782978681584/--radius-sm",
+      "label": "contains",
+      "from": "ds_1782978681584",
+      "to": "ds_1782978681584/--radius-sm",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584/--radius-sm|declaredIn|ds_1782978681584/tokens.css",
+      "label": "declaredIn",
+      "from": "ds_1782978681584/--radius-sm",
+      "to": "ds_1782978681584/tokens.css",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584|contains|ds_1782978681584/--radius-pill",
+      "label": "contains",
+      "from": "ds_1782978681584",
+      "to": "ds_1782978681584/--radius-pill",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584/--radius-pill|declaredIn|ds_1782978681584/tokens.css",
+      "label": "declaredIn",
+      "from": "ds_1782978681584/--radius-pill",
+      "to": "ds_1782978681584/tokens.css",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584|contains|ds_1782978681584/--space-unit",
+      "label": "contains",
+      "from": "ds_1782978681584",
+      "to": "ds_1782978681584/--space-unit",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584/--space-unit|declaredIn|ds_1782978681584/tokens.css",
+      "label": "declaredIn",
+      "from": "ds_1782978681584/--space-unit",
+      "to": "ds_1782978681584/tokens.css",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584|contains|ds_1782978681584/--shadow-raised",
+      "label": "contains",
+      "from": "ds_1782978681584",
+      "to": "ds_1782978681584/--shadow-raised",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584/--shadow-raised|declaredIn|ds_1782978681584/tokens.css",
+      "label": "declaredIn",
+      "from": "ds_1782978681584/--shadow-raised",
+      "to": "ds_1782978681584/tokens.css",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584|contains|ds_1782978681584/--focus-ring",
+      "label": "contains",
+      "from": "ds_1782978681584",
+      "to": "ds_1782978681584/--focus-ring",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584/--focus-ring|declaredIn|ds_1782978681584/tokens.css",
+      "label": "declaredIn",
+      "from": "ds_1782978681584/--focus-ring",
+      "to": "ds_1782978681584/tokens.css",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584|contains|ds_1782978681584/--motion-fast",
+      "label": "contains",
+      "from": "ds_1782978681584",
+      "to": "ds_1782978681584/--motion-fast",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584/--motion-fast|declaredIn|ds_1782978681584/tokens.css",
+      "label": "declaredIn",
+      "from": "ds_1782978681584/--motion-fast",
+      "to": "ds_1782978681584/tokens.css",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584|contains|ds_1782978681584/--motion-base",
+      "label": "contains",
+      "from": "ds_1782978681584",
+      "to": "ds_1782978681584/--motion-base",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584/--motion-base|declaredIn|ds_1782978681584/tokens.css",
+      "label": "declaredIn",
+      "from": "ds_1782978681584/--motion-base",
+      "to": "ds_1782978681584/tokens.css",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584|contains|ds_1782978681584/--ease-standard",
+      "label": "contains",
+      "from": "ds_1782978681584",
+      "to": "ds_1782978681584/--ease-standard",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584/--ease-standard|declaredIn|ds_1782978681584/tokens.css",
+      "label": "declaredIn",
+      "from": "ds_1782978681584/--ease-standard",
+      "to": "ds_1782978681584/tokens.css",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584|contains|ds_1782978681584/--container-max",
+      "label": "contains",
+      "from": "ds_1782978681584",
+      "to": "ds_1782978681584/--container-max",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584/--container-max|declaredIn|ds_1782978681584/tokens.css",
+      "label": "declaredIn",
+      "from": "ds_1782978681584/--container-max",
+      "to": "ds_1782978681584/tokens.css",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584|contains|ds_1782978681584/--section-y",
+      "label": "contains",
+      "from": "ds_1782978681584",
+      "to": "ds_1782978681584/--section-y",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584/--section-y|declaredIn|ds_1782978681584/tokens.css",
+      "label": "declaredIn",
+      "from": "ds_1782978681584/--section-y",
+      "to": "ds_1782978681584/tokens.css",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584|contains|ds_1782978681584/contrast/color-surface-color-text",
+      "label": "contains",
+      "from": "ds_1782978681584",
+      "to": "ds_1782978681584/contrast/color-surface-color-text",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584|contains|ds_1782978681584/contrast/color-surface-raised-color-text",
+      "label": "contains",
+      "from": "ds_1782978681584",
+      "to": "ds_1782978681584/contrast/color-surface-raised-color-text",
+      "props": {}
+    },
+    {
+      "id": "ds_1782978681584|contains|ds_1782978681584/contrast/color-surface-color-text-muted",
+      "label": "contains",
+      "from": "ds_1782978681584",
+      "to": "ds_1782978681584/contrast/color-surface-color-text-muted",
+      "props": {}
+    }
+  ]
+}

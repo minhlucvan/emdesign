@@ -1,0 +1,46 @@
+# Design context
+Warm-canvas editorial for Anthropic's claude.ai. Cream floor (#faf9f5), coral CTAs (#cc785c), slab-serif display (Copernicus/Tiempos w400, negative tracking), humanist sans body (StyreneB/Inter), dark navy mockups (#181715). Literary; opposite cool blue/gray.
+
+## Token classes
+CSS var | TW class | Use
+--color-surface | bg-surface | Page/band/nav bg
+--color-surface-raised | bg-surface-raised | Card bg
+--color-text | text-text | Body + headlines
+--color-text-muted | text-text-muted | Captions
+--color-accent | bg-accent/text-accent | CTA
+--color-accent-hover | hover:bg-accent-hover | CTA pressed
+--color-border | border-border | Hairline borders
+--radius | rounded | 8px default
+--space-unit | (TW p-1) | 4px base
+--font-sans | font-sans | Body, nav
+--shadow-raised | shadow-raised | Rare
+
+## Type
+Token | Size/Wt/LH | Trk | Fam | Use
+display-xl | 64/400/1.05 | -1.5 | Sf | Hero h1
+display-lg | 48/400/1.1 | -1 | Sf | Section heads
+display-md | 36/400/1.15 | -0.5 | Sf | Sub-section
+display-sm | 28/400/1.2 | -0.3 | Sf | Pricing h
+title-lg | 22/500/1.3 | 0 | Sn | Plan labels
+title-md | 18/500/1.4 | 0 | Sn | Card titles
+title-sm | 16/500/1.4 | 0 | Sn | Tile titles
+body-md | 16/400/1.55 | 0 | Sn | Paragraphs
+body-sm | 14/400/1.55 | 0 | Sn | Footer
+caption | 13/500/1.4 | 0 | Sn | Badges
+caption-uppercase | 12/500/1.4 | 1.5 | Sn | NEW/BETA
+button | 14/500/1.0 | 0 | Sn | Btn labels
+nav-link | 14/500/1.4 | 0 | Sn | Nav items
+code | 14/400/1.6 | 0 | M | Code blocks
+
+## Spacing
+Base 4px. Stops: 4/8/12/16/24/32/48/96 (TW p-1/2/3/4/6/8/12, py-24).
+Cards: feature/pricing p-8; code/connector p-6; CTA p-12.
+
+## Radius & Depth
+Radius: xs=4, sm=6, md=8(def), lg=12, xl=16, pill/full=9999.
+Depth: color-block first. Flat/hairline/raised cream/dark surface/shadow (0 1px 3px rgba(20,20,19,0.08)). Focus: 3px coral 15%.
+
+## Rules (top 3)
+1. NO raw hex: bg-accent/text-text/border-border
+2. NO hardcoded spacing: p-6 not p-[24px]
+3. NO off-token colors: cream+coral+dark navy only

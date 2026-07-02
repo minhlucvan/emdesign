@@ -1,0 +1,298 @@
+/* ==========================================================================
+   Figma Design System — Design Tokens
+   Source: https://raw.githubusercontent.com/voltagent/awesome-design-md/main/design-md/figma/DESIGN.md
+   This is an analysis of Figma's marketing pages (figma.com).
+   ========================================================================== */
+
+/* -----------------------------------------------------------------------
+   Color Tokens
+   ----------------------------------------------------------------------- */
+
+/* Raw / primitive color values */
+:root {
+  /* Brand & Core */
+  --color-primary: #000000;
+  --color-on-primary: #ffffff;
+  --color-ink: #000000;
+  --color-canvas: #ffffff;
+  --color-inverse-canvas: #000000;
+  --color-inverse-ink: #ffffff;
+  --color-on-inverse-soft: #ffffff;
+  --color-hairline: #e6e6e6;
+  --color-hairline-soft: #f1f1f1;
+  --color-surface-soft: #f7f7f5;
+
+  /* Block / Section Colors */
+  --color-block-lime: #dceeb1;
+  --color-block-lilac: #c5b0f4;
+  --color-block-cream: #f4ecd6;
+  --color-block-pink: #efd4d4;
+  --color-block-mint: #c8e6cd;
+  --color-block-coral: #f3c9b6;
+  --color-block-navy: #1f1d3d;
+
+  /* Accent */
+  --color-accent-magenta: #ff3d8b;
+
+  /* Semantic */
+  --color-semantic-success: #1ea64a;
+  --color-overlay-scrim: #000000;
+
+  /* -----------------------------------------------------------------------
+     Semantic Aliases
+     Use these in components rather than raw color tokens.
+     ----------------------------------------------------------------------- */
+
+  --color-text: var(--color-ink);
+  --color-text-inverse: var(--color-inverse-ink);
+  --color-surface: var(--color-canvas);
+  --color-surface-inverse: var(--color-inverse-canvas);
+  --color-surface-soft: var(--color-surface-soft);
+  --color-accent: var(--color-primary);
+  --color-accent-magenta: var(--color-accent-magenta);
+  --color-border: var(--color-hairline);
+  --color-border-soft: var(--color-hairline-soft);
+  --color-success: var(--color-semantic-success);
+  --color-scrim: var(--color-overlay-scrim);
+}
+
+/* -----------------------------------------------------------------------
+   Spacing Tokens
+   Base unit: 8px
+   ----------------------------------------------------------------------- */
+
+:root {
+  --spacing-hair: 1px;
+  --spacing-xxs: 4px;
+  --spacing-xs: 8px;
+  --spacing-sm: 12px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-xxl: 48px;
+  --spacing-section: 96px;
+}
+
+/* -----------------------------------------------------------------------
+   Border Radius Tokens
+   ----------------------------------------------------------------------- */
+
+:root {
+  --rounded-xs: 2px;
+  --rounded-sm: 6px;
+  --rounded-md: 8px;
+  --rounded-lg: 24px;
+  --rounded-xl: 32px;
+  --rounded-pill: 50px;
+  --rounded-full: 9999px;
+}
+
+/* -----------------------------------------------------------------------
+   Typography Tokens
+   Typeface: figmaSans (variable) / figmaMono (mono)
+   All roles enable OpenType kern.
+   ----------------------------------------------------------------------- */
+
+:root {
+  /* Display XL — 86px / weight 340 / -1.72px tracking */
+  --font-display-xl: 340 86px/1.00 figmaSans, 'SF Pro Display', system-ui, helvetica, sans-serif;
+  --font-size-display-xl: 86px;
+  --font-weight-display-xl: 340;
+  --line-height-display-xl: 1.00;
+  --letter-spacing-display-xl: -1.72px;
+
+  /* Display LG — 64px / weight 340 / -0.96px tracking */
+  --font-display-lg: 340 64px/1.10 figmaSans, 'SF Pro Display', system-ui, helvetica, sans-serif;
+  --font-size-display-lg: 64px;
+  --font-weight-display-lg: 340;
+  --line-height-display-lg: 1.10;
+  --letter-spacing-display-lg: -0.96px;
+
+  /* Headline — 26px / weight 540 / -0.26px tracking */
+  --font-headline: 540 26px/1.35 figmaSans, 'SF Pro Display', system-ui, helvetica, sans-serif;
+  --font-size-headline: 26px;
+  --font-weight-headline: 540;
+  --line-height-headline: 1.35;
+  --letter-spacing-headline: -0.26px;
+
+  /* Subhead — 26px / weight 340 / -0.26px tracking */
+  --font-subhead: 340 26px/1.35 figmaSans, 'SF Pro Display', system-ui, helvetica, sans-serif;
+  --font-size-subhead: 26px;
+  --font-weight-subhead: 340;
+  --line-height-subhead: 1.35;
+  --letter-spacing-subhead: -0.26px;
+
+  /* Card Title — 24px / weight 700 / 0 tracking */
+  --font-card-title: 700 24px/1.45 figmaSans, 'SF Pro Display', system-ui, helvetica, sans-serif;
+  --font-size-card-title: 24px;
+  --font-weight-card-title: 700;
+  --line-height-card-title: 1.45;
+  --letter-spacing-card-title: 0;
+
+  /* Body LG — 20px / weight 330 / -0.14px tracking */
+  --font-body-lg: 330 20px/1.40 figmaSans, 'SF Pro Display', system-ui, helvetica, sans-serif;
+  --font-size-body-lg: 20px;
+  --font-weight-body-lg: 330;
+  --line-height-body-lg: 1.40;
+  --letter-spacing-body-lg: -0.14px;
+
+  /* Body — 18px / weight 320 / -0.26px tracking */
+  --font-body: 320 18px/1.45 figmaSans, 'SF Pro Display', system-ui, helvetica, sans-serif;
+  --font-size-body: 18px;
+  --font-weight-body: 320;
+  --line-height-body: 1.45;
+  --letter-spacing-body: -0.26px;
+
+  /* Body SM — 16px / weight 330 / -0.14px tracking */
+  --font-body-sm: 330 16px/1.45 figmaSans, 'SF Pro Display', system-ui, helvetica, sans-serif;
+  --font-size-body-sm: 16px;
+  --font-weight-body-sm: 330;
+  --line-height-body-sm: 1.45;
+  --letter-spacing-body-sm: -0.14px;
+
+  /* Link — 20px / weight 480 / -0.10px tracking */
+  --font-link: 480 20px/1.40 figmaSans, 'SF Pro Display', system-ui, helvetica, sans-serif;
+  --font-size-link: 20px;
+  --font-weight-link: 480;
+  --line-height-link: 1.40;
+  --letter-spacing-link: -0.10px;
+
+  /* Button — 20px / weight 480 / -0.10px tracking */
+  --font-button: 480 20px/1.40 figmaSans, 'SF Pro Display', system-ui, helvetica, sans-serif;
+  --font-size-button: 20px;
+  --font-weight-button: 480;
+  --line-height-button: 1.40;
+  --letter-spacing-button: -0.10px;
+
+  /* Eyebrow — figmaMono 18px / weight 400 / 0.54px tracking */
+  --font-eyebrow: 400 18px/1.30 figmaMono, 'SF Mono', menlo, monospace;
+  --font-size-eyebrow: 18px;
+  --font-weight-eyebrow: 400;
+  --line-height-eyebrow: 1.30;
+  --letter-spacing-eyebrow: 0.54px;
+
+  /* Caption — figmaMono 12px / weight 400 / 0.60px tracking */
+  --font-caption: 400 12px/1.00 figmaMono, 'SF Mono', menlo, monospace;
+  --font-size-caption: 12px;
+  --font-weight-caption: 400;
+  --line-height-caption: 1.00;
+  --letter-spacing-caption: 0.60px;
+}
+
+/* -----------------------------------------------------------------------
+   Elevation / Shadow Tokens
+   ----------------------------------------------------------------------- */
+
+:root {
+  --elevation-flat: none;
+  --elevation-hairline: 0 0 0 1px var(--color-hairline);
+  --elevation-soft: 0 4px 16px rgba(0, 0, 0, 0.06);
+  --elevation-modal: 0 8px 32px rgba(0, 0, 0, 0.15);
+}
+
+/* -----------------------------------------------------------------------
+   Component Tokens (Composite)
+   ----------------------------------------------------------------------- */
+
+:root {
+  /* Button: Primary (black pill) */
+  --component-button-primary-bg: var(--color-primary);
+  --component-button-primary-text: var(--color-on-primary);
+  --component-button-primary-font: var(--font-button);
+  --component-button-primary-radius: var(--rounded-pill);
+  --component-button-primary-padding: 10px 20px;
+
+  /* Button: Secondary (white pill) */
+  --component-button-secondary-bg: var(--color-canvas);
+  --component-button-secondary-text: var(--color-ink);
+  --component-button-secondary-font: var(--font-button);
+  --component-button-secondary-radius: var(--rounded-pill);
+  --component-button-secondary-padding: 8px 18px 10px;
+
+  /* Button: Tertiary Text */
+  --component-button-tertiary-text-bg: var(--color-canvas);
+  --component-button-tertiary-text-text: var(--color-ink);
+  --component-button-tertiary-text-font: var(--font-link);
+  --component-button-tertiary-text-radius: var(--rounded-full);
+  --component-button-tertiary-text-padding: 8px 12px;
+
+  /* Button: Icon Circular */
+  --component-button-icon-circular-bg: var(--color-surface-soft);
+  --component-button-icon-circular-text: var(--color-ink);
+  --component-button-icon-circular-font: var(--font-button);
+  --component-button-icon-circular-radius: var(--rounded-full);
+  --component-button-icon-circular-size: 40px;
+
+  /* Button: Icon Circular Inverse */
+  --component-button-icon-circular-inverse-bg: var(--color-on-inverse-soft);
+  --component-button-icon-circular-inverse-text: var(--color-inverse-ink);
+  --component-button-icon-circular-inverse-radius: var(--rounded-full);
+  --component-button-icon-circular-inverse-size: 40px;
+
+  /* Button: Magenta Promo */
+  --component-button-magenta-promo-bg: var(--color-accent-magenta);
+  --component-button-magenta-promo-text: var(--color-on-primary);
+  --component-button-magenta-promo-font: var(--font-button);
+  --component-button-magenta-promo-radius: var(--rounded-pill);
+  --component-button-magenta-promo-padding: 10px 18px;
+
+  /* Pricing Tab: Default */
+  --component-pricing-tab-default-bg: var(--color-canvas);
+  --component-pricing-tab-default-text: var(--color-ink);
+  --component-pricing-tab-default-font: var(--font-button);
+  --component-pricing-tab-default-radius: var(--rounded-pill);
+  --component-pricing-tab-default-padding: 8px 18px;
+
+  /* Pricing Tab: Selected */
+  --component-pricing-tab-selected-bg: var(--color-primary);
+  --component-pricing-tab-selected-text: var(--color-on-primary);
+  --component-pricing-tab-selected-font: var(--font-button);
+  --component-pricing-tab-selected-radius: var(--rounded-pill);
+  --component-pricing-tab-selected-padding: 8px 18px;
+
+  /* Text Input */
+  --component-text-input-bg: var(--color-canvas);
+  --component-text-input-text: var(--color-ink);
+  --component-text-input-font: var(--font-body);
+  --component-text-input-radius: var(--rounded-md);
+  --component-text-input-padding: 12px 14px;
+
+  /* Pricing Card */
+  --component-pricing-card-bg: var(--color-canvas);
+  --component-pricing-card-text: var(--color-ink);
+  --component-pricing-card-font: var(--font-body);
+  --component-pricing-card-radius: var(--rounded-lg);
+  --component-pricing-card-padding: 24px;
+
+  /* Color Block Section (lime base) */
+  --component-color-block-section-bg: var(--color-block-lime);
+  --component-color-block-section-text: var(--color-ink);
+  --component-color-block-section-font: var(--font-subhead);
+  --component-color-block-section-radius: var(--rounded-lg);
+  --component-color-block-section-padding: 48px;
+
+  /* Top Nav */
+  --component-top-nav-bg: var(--color-canvas);
+  --component-top-nav-text: var(--color-ink);
+  --component-top-nav-font: var(--font-body-sm);
+  --component-top-nav-height: 56px;
+
+  /* Marquee Strip */
+  --component-marquee-strip-bg: var(--color-inverse-canvas);
+  --component-marquee-strip-text: var(--color-inverse-ink);
+  --component-marquee-strip-font: var(--font-body-sm);
+  --component-marquee-strip-height: 36px;
+
+  /* Footer */
+  --component-footer-bg: var(--color-canvas);
+  --component-footer-text: var(--color-ink);
+  --component-footer-font: var(--font-caption);
+  --component-footer-padding: 64px 32px;
+}
+
+/* -----------------------------------------------------------------------
+   Font Face Declarations (placeholders — use actual font files at build)
+   ----------------------------------------------------------------------- */
+
+/* figmaSans is proprietary; substitute with Inter or Geist for open-source builds.
+   figmaMono is proprietary; substitute with JetBrains Mono or Geist Mono. */

@@ -9,7 +9,7 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import { resolveRepoPaths } from '@emdesign/backend';
-import { checkDiff, checkVisualDiff } from '@emdesign/testing';
+import { checkDiff, checkVisualDiff } from '@emdesign/testbed';
 
 const paths = resolveRepoPaths();
 const dsId = '<DsId>';           // imported/current design system

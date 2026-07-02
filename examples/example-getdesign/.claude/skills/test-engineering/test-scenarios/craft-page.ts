@@ -5,7 +5,7 @@
 // Levels: Page (structure, navigation, responsive, tokens) + Visual (similarity)
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
-import { checkPage, assertHasPageStructure, assertHasNavigation, assertHasResponsiveMeta, checkVisualDiff } from '@emdesign/testing';
+import { checkPage, assertHasPageStructure, assertHasNavigation, assertHasResponsiveMeta, checkVisualDiff } from '@emdesign/testbed';
 
 const name = '<Name>';
 const htmlPath = '<HtmlPath>';       // rendered page HTML

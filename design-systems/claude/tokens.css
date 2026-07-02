@@ -1,0 +1,180 @@
+/* ============================================================
+   tokens.css -- Claude Design System
+   SINGLE SOURCE OF TRUTH for all visual values.
+   Extracted from design-systems/claude/DESIGN.md
+   ============================================================ */
+
+/* -----------------------------------------------------------
+   11 Semantic Token Roles (non-negotiable contract)
+   ----------------------------------------------------------- */
+
+:root {
+  /* ---- Surface ---- */
+  --color-surface: #faf9f5;            /* warm cream canvas -- page floor */
+  --color-surface-raised: #efe9de;     /* light cream feature/card surface */
+  --color-text: #141413;               /* warm dark ink -- headlines & body text */
+  --color-text-muted: #6c6a64;         /* muted text -- sub-headings, breadcrumbs */
+  --color-accent: #cc785c;             /* signature Anthropic coral -- primary CTA */
+  --color-accent-hover: #a9583e;       /* coral active/press -- darker variant */
+  --color-border: #e6dfd8;             /* hairline -- 1px borders on cream surfaces */
+  --radius: 8px;                       /* default (rounded.md) -- buttons, inputs, tabs */
+  --space-unit: 4px;                   /* base spacing unit */
+  --font-sans: "StyreneB", "Inter", -apple-system, BlinkMacSystemFont,
+               "Segoe UI", Roboto, sans-serif;
+  --shadow-raised: 0 1px 3px rgba(20, 20, 19, 0.08);  /* subtle elevated shadow */
+
+  /* ============================================================
+     Extended Color Palette (from DESIGN.md colors block)
+     ============================================================ */
+
+  /* Brand & Accent */
+  --color-primary: #cc785c;            /* coral -- brand signature */
+  --color-primary-active: #a9583e;     /* coral active/press */
+  --color-primary-disabled: #e6dfd8;   /* desaturated cream-tinted disabled */
+  --color-accent-teal: #5db8a6;        /* secondary product surfaces */
+  --color-accent-amber: #e8a55a;       /* companion warm-tone badges */
+
+  /* Surface extended */
+  --color-canvas: #faf9f5;             /* default page floor (alias for surface) */
+  --color-surface-soft: #f5f0e8;       /* section dividers, soft bands */
+  --color-surface-card: #efe9de;       /* feature/card surface (alias for raised) */
+  --color-surface-cream-strong: #e8e0d2;  /* strongest cream -- selected tabs */
+  --color-surface-dark: #181715;       /* dark navy -- code mockups, footer */
+  --color-surface-dark-elevated: #252320;  /* elevated panels inside dark bands */
+  --color-surface-dark-soft: #1f1e1b;  /* code block inner bg in dark cards */
+  --color-hairline: #e6dfd8;          /* 1px border (alias for border) */
+  --color-hairline-soft: #ebe6df;      /* barely-visible divider */
+
+  /* Text extended */
+  --color-ink: #141413;                /* headlines & primary text (alias for text) */
+  --color-body-strong: #252523;        /* emphasized paragraphs */
+  --color-body: #3d3d3a;              /* default running-text */
+  --color-muted: #6c6a64;             /* sub-headings, breadcrumbs (alias for text-muted) */
+  --color-muted-soft: #8e8b82;        /* captions, fine-print */
+
+  /* Text on surfaces */
+  --color-on-primary: #ffffff;          /* text on coral buttons */
+  --color-on-dark: #faf9f5;           /* cream-tinted white on dark surfaces */
+  --color-on-dark-soft: #a09d96;       /* footer body, secondary dark labels */
+
+  /* Semantic feedback */
+  --color-success: #5db872;            /* green status dots */
+  --color-warning: #d4a017;            /* warning callouts */
+  --color-error: #c64545;              /* validation errors */
+
+  /* ============================================================
+     Typography
+     ============================================================ */
+
+  /* Font families */
+  --font-display: "Copernicus", "Tiempos Headline", "Cormorant Garamond",
+                  "EB Garamond", Garamond, "Times New Roman", serif;
+  --font-serif: "Copernicus", "Tiempos Headline", "Cormorant Garamond",
+                "EB Garamond", Garamond, "Times New Roman", serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  /* Type scale */
+  --text-display-xl: 64px;
+  --text-display-xl-weight: 400;
+  --text-display-xl-line: 1.05;
+  --text-display-xl-tracking: -1.5px;
+
+  --text-display-lg: 48px;
+  --text-display-lg-weight: 400;
+  --text-display-lg-line: 1.1;
+  --text-display-lg-tracking: -1px;
+
+  --text-display-md: 36px;
+  --text-display-md-weight: 400;
+  --text-display-md-line: 1.15;
+  --text-display-md-tracking: -0.5px;
+
+  --text-display-sm: 28px;
+  --text-display-sm-weight: 400;
+  --text-display-sm-line: 1.2;
+  --text-display-sm-tracking: -0.3px;
+
+  --text-title-lg: 22px;
+  --text-title-lg-weight: 500;
+  --text-title-lg-line: 1.3;
+
+  --text-title-md: 18px;
+  --text-title-md-weight: 500;
+  --text-title-md-line: 1.4;
+
+  --text-title-sm: 16px;
+  --text-title-sm-weight: 500;
+  --text-title-sm-line: 1.4;
+
+  --text-body-md: 16px;
+  --text-body-md-weight: 400;
+  --text-body-md-line: 1.55;
+
+  --text-body-sm: 14px;
+  --text-body-sm-weight: 400;
+  --text-body-sm-line: 1.55;
+
+  --text-caption: 13px;
+  --text-caption-weight: 500;
+  --text-caption-line: 1.4;
+
+  --text-caption-uppercase: 12px;
+  --text-caption-uppercase-weight: 500;
+  --text-caption-uppercase-line: 1.4;
+  --text-caption-uppercase-tracking: 1.5px;
+
+  --text-button: 14px;
+  --text-button-weight: 500;
+  --text-button-line: 1;
+
+  --text-nav-link: 14px;
+  --text-nav-link-weight: 500;
+  --text-nav-link-line: 1.4;
+
+  --text-code: 14px;
+  --text-code-weight: 400;
+  --text-code-line: 1.6;
+
+  /* ============================================================
+     Spacing Scale (base unit 4px)
+     ============================================================ */
+  --space-xxs: 4px;
+  --space-xs: 8px;
+  --space-sm: 12px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-xxl: 48px;
+  --space-section: 96px;
+
+  /* ============================================================
+     Border Radius
+     ============================================================ */
+  --radius-xs: 4px;        /* badge accents, tiny dropdowns */
+  --radius-sm: 6px;        /* small inline buttons, dropdown items */
+  --radius-md: 8px;        /* default -- CTAs, inputs, tabs (alias for --radius) */
+  --radius-lg: 12px;       /* content cards (feature, pricing, code, model) */
+  --radius-xl: 16px;       /* hero illustration container */
+  --radius-pill: 9999px;   /* badge pills, "NEW" tags */
+  --radius-full: 9999px;   /* avatar substitutes, icon buttons */
+
+  /* ============================================================
+     Shadows
+     ============================================================ */
+  --shadow-raised: 0 1px 3px rgba(20, 20, 19, 0.08);
+  --shadow-focus-ring: 0 0 0 3px rgba(204, 120, 92, 0.15);  /* coral outer ring at 15% */
+
+  /* ============================================================
+     Motion (from DESIGN.md Motion section)
+     ============================================================ */
+  --motion-fast: 200ms;        /* hover lift, color transition, fade-out */
+  --motion-base: 350ms;        /* slide-up reveals, scroll-triggered entrances */
+  --motion-slow: 500ms;        /* fade-in entrances, hero headline reveal */
+  --ease-standard: ease-out;   /* default easing for all brand motion */
+
+  /* ============================================================
+     Layout
+     ============================================================ */
+  --layout-container-max: 1200px;
+  --layout-section-y: 96px;
+}

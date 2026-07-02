@@ -5,19 +5,127 @@
       "id": "cr_1782954252597_0",
       "type": "create-design-system",
       "instruction": "Import the \"stripe\" design system from awesome-design-md. Run the ds-import workflow with source \"awesome/stripe\" and name \"stripe\". After import, run ds-generate-preview for the rich preview HTML.",
-      "status": "pending",
-      "createdAt": "2026-07-02T01:04:12.597Z"
+      "status": "error",
+      "createdAt": "2026-07-02T01:04:12.597Z",
+      "note": "Exit code 1"
     },
     {
       "id": "cr_1782954926001_0",
       "type": "create-design-system",
       "instruction": "Import the \"stripe\" design system from awesome-design-md. Run the ds-import workflow with source \"awesome/stripe\" and name \"stripe\". After import, run ds-generate-preview for the rich preview HTML.",
-      "status": "pending",
-      "createdAt": "2026-07-02T01:15:26.001Z"
+      "status": "error",
+      "createdAt": "2026-07-02T01:15:26.001Z",
+      "note": "Exit code 1"
+    },
+    {
+      "id": "cr_1782965948573_0",
+      "type": "create-design-system",
+      "instruction": "Import the \"stripe\" design system from awesome-design-md. Run the ds-import workflow with source \"awesome/stripe\" and name \"stripe\". After import, run ds-generate-preview for the rich preview HTML.",
+      "status": "error",
+      "createdAt": "2026-07-02T04:19:08.573Z",
+      "note": "Exit code 1"
+    },
+    {
+      "id": "cr_1782966244222_0",
+      "type": "create-design-system",
+      "instruction": "Import the \"figma\" design system from awesome-design-md. Run the ds-import workflow with source \"awesome/figma\" and name \"figma\". After import, run ds-generate-preview for the rich preview HTML.",
+      "status": "error",
+      "createdAt": "2026-07-02T04:24:04.222Z",
+      "note": "Exit code 1"
+    },
+    {
+      "id": "cr_1782967413672_0",
+      "type": "create-design-system",
+      "instruction": "Import the \"figma\" design system from awesome-design-md. Run the ds-import workflow with source \"awesome/figma\" and name \"figma\". After import, run ds-generate-preview for the rich preview HTML.",
+      "status": "error",
+      "createdAt": "2026-07-02T04:43:33.672Z",
+      "note": "Exit code 1"
+    },
+    {
+      "id": "cr_1782974511214_0",
+      "type": "refine-design-system",
+      "instruction": "Make the accent color slightly warmer and increase body text contrast",
+      "status": "error",
+      "createdAt": "2026-07-02T06:41:51.214Z",
+      "payload": {
+        "id": "figma",
+        "scope": "colors"
+      },
+      "note": "Exit code 1"
+    },
+    {
+      "id": "cr_1782974511254_1",
+      "type": "refine-design-system",
+      "instruction": "Update the primary color to a deeper blue",
+      "status": "error",
+      "createdAt": "2026-07-02T06:41:51.254Z",
+      "payload": {
+        "id": "figma",
+        "scope": "colors"
+      },
+      "note": "Exit code 1"
+    },
+    {
+      "id": "cr_1782974511434_2",
+      "type": "refine-design-system",
+      "instruction": "Make the design system feel more premium",
+      "status": "error",
+      "createdAt": "2026-07-02T06:41:51.434Z",
+      "payload": {
+        "id": "figma",
+        "scope": "nonexistent_scope_xyz"
+      },
+      "note": "Exit code 1"
+    },
+    {
+      "id": "cr_1782974717973_3",
+      "type": "refine-design-system",
+      "instruction": "Make the accent color slightly warmer and increase body text contrast",
+      "status": "error",
+      "createdAt": "2026-07-02T06:45:17.973Z",
+      "payload": {
+        "id": "figma",
+        "scope": "colors"
+      },
+      "note": "Exit code 1"
+    },
+    {
+      "id": "cr_1782974718062_4",
+      "type": "refine-design-system",
+      "instruction": "Update the primary color to a deeper blue",
+      "status": "error",
+      "createdAt": "2026-07-02T06:45:18.062Z",
+      "payload": {
+        "id": "figma",
+        "scope": "colors"
+      },
+      "note": "Exit code 1"
+    },
+    {
+      "id": "cr_1782974718330_5",
+      "type": "refine-design-system",
+      "instruction": "Make the design system feel more premium",
+      "status": "error",
+      "createdAt": "2026-07-02T06:45:18.330Z",
+      "payload": {
+        "id": "figma",
+        "scope": "nonexistent_scope_xyz"
+      },
+      "note": "Exit code 1"
     }
   ],
   "lastDiff": null,
   "lintPassing": null,
-  "lastCritique": null,
+  "lastCritique": {
+    "scores": {
+      "tokens": 1,
+      "visual": 0.2,
+      "vision": 0.9,
+      "llm": 0.9
+    },
+    "composite": 0.7473684210526316,
+    "decision": "revise",
+    "mustFix": 0
+  },
   "comments": {}
 }

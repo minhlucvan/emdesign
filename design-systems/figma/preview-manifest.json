@@ -1,0 +1,206 @@
+{
+  "branding": {
+    "name": "Figma",
+    "tagline": "Design System Analysis of Figma",
+    "voice": "confident, editorial, technical with joyful interludes",
+    "personality": "A rigorous monochrome editorial frame that repeatedly drops into oversized pastel color blocks — reads like a designer placing sticky notes on a clean desk. Technical and serious about craft, but not afraid of color.",
+    "targetAudience": "Designers, product teams, and developers evaluating or implementing Figma's marketing design language"
+  },
+  "designLanguage": {
+    "principles": [
+      "Token binding — every color, type, spacing, and radius value is a named token, never hardcoded",
+      "Monochrome core with pastel accent blocks — black-and-white chrome makes color blocks feel intentional",
+      "Pill is the only button shape — no square CTAs anywhere in the system",
+      "Weight-based hierarchy — body hierarchy comes from figmaSans variable weight, not opacity or mid-gray text",
+      "Negative letter-spacing scales with display size — tight tracking on headlines, near-zero on body",
+      "Color blocks as depth device — saturated background panels substitute for traditional elevation and shadow",
+      "Generous section rhythm — 96px vertical gap between major sections, white canvas separates every colored panel"
+    ],
+    "visualConcepts": [
+      "Monochrome canvas — pure white surfaces, pure black ink, black-and-white CTAs",
+      "Oversized pastel color-block sections — lime, lavender, cream, mint, pink, coral, navy",
+      "Sticky-note aesthetic — color blocks read as giant sticky notes placed on a clean desk",
+      "Editorial typography — tight line-heights on display, generous on body, fine weight increments",
+      "Pill-shaped CTAs — every call-to-action is a rounded pill (50px radius)",
+      "Mono taxonomy — figmaMono reserved for eyebrows, captions, and category labels only"
+    ],
+    "layoutPhilosophy": "Max content width ~1280px with generous gutters. Color blocks break the column grid to span full width with rounded corners. White canvas breathing room between every colored panel. Three- and four-column grids for pricing and template galleries. Asymmetric layouts inside color blocks — single editorial column of headline + body with generous side margins.",
+    "spacingPhilosophy": "8px base unit. Generous and rhythmic. Section-to-section gap is 96px. Color-block interior padding is 48px. Card interior padding is 24px. Buttons use 8px vertical / 20-24px horizontal padding. Form inputs use 12px vertical / 14px horizontal.",
+    "typographyHierarchy": "One variable typeface (figmaSans) at fine weight increments (320, 330, 340, 480, 540, 700) carries hierarchy through weight rather than size. figmaMono reserved for uppercase section eyebrows and captions with positive letter-spacing. Display sizes (86px, 64px) use tight line-heights (1.00-1.10) and aggressive negative tracking. Body copy stays at 18px with generous line-height (1.45) and near-zero letter-spacing."
+  },
+  "sections": [
+    {
+      "id": "hero",
+      "name": "Hero",
+      "description": "Full-width hero with oversized headline (80-86px), lead body paragraph, and paired CTA buttons (primary black pill + secondary white pill)",
+      "primitives": ["Button", "Heading", "Text"],
+      "visualNotes": "White canvas hero with 86px display-xl headline at weight 340 with -1.72px letter-spacing. Two pill CTAs: 'Get started for free' (black fill) and 'Contact sales' (white fill with hairline border). Large side margins create generous whitespace.",
+      "order": 1
+    },
+    {
+      "id": "palette",
+      "name": "Color Palette",
+      "description": "Full color system documentation showing every token swatch with hex value and usage role",
+      "primitives": ["Swatch", "Text"],
+      "visualNotes": "Organized in groups: Brand & Accent (black, white, magenta), Surface (canvas, inverse-canvas, surface-soft, hairline, 7 color blocks), Text (ink, inverse-ink), Semantic (success green). Each swatch shows color preview, name, hex, and role description.",
+      "order": 2
+    },
+    {
+      "id": "typography",
+      "name": "Typography Scale",
+      "description": "Full type scale with 12 roles from display-xl down to caption, each showing sample text and token metadata",
+      "primitives": ["Heading", "Text", "Caption"],
+      "visualNotes": "Displayed on surface-soft background. Each type role shown as a row with token metadata (size, weight, line-height, letter-spacing, font family) alongside a sample text. Key roles: display-xl (86px), display-lg (64px), headline (26px), subhead (26px), card-title (24px), body-lg (20px), body (18px), body-sm (16px), link, button, eyebrow (mono), caption (mono).",
+      "order": 3
+    },
+    {
+      "id": "components",
+      "name": "Button Variants",
+      "description": "All button component variants: primary, secondary, tertiary text, icon circle, magenta promo, and pricing tab toggles",
+      "primitives": ["Button", "IconButton"],
+      "visualNotes": "Shows all 6 button variants plus pricing tab (default and selected) in a card grid. Each variant shown with both light and dark (navy) background where applicable. All CTAs are pills (50px radius); icon buttons are circles (9999px radius). Black primary pill is the signature CTA.",
+      "order": 4
+    },
+    {
+      "id": "blocks",
+      "name": "Color Blocks",
+      "description": "The signature pastel color-block sections showing all 7 variants: lime, lilac, cream, mint, pink, coral, and navy",
+      "primitives": ["ColorBlock", "Text", "Button"],
+      "visualNotes": "Each block shown at full width with 24px rounded corners, 48px interior padding, and a headline + body + CTA composition. Navy block uses inverse white text. Blocks represent the core narrative device of the Figma marketing system.",
+      "order": 5
+    },
+    {
+      "id": "cards",
+      "name": "Cards & Pricing",
+      "description": "Pricing tier cards, template cards, and feature illustration tiles",
+      "primitives": ["Card", "PricingCard", "TemplateCard", "Text"],
+      "visualNotes": "Pricing cards use 24px rounded corners with hairline border (no shadow). Template cards use 8px rounded corners on surface-soft background. Each card shows tier name, price, feature list, and CTA.",
+      "order": 6
+    },
+    {
+      "id": "forms",
+      "name": "Forms & Inputs",
+      "description": "Form fields, labels, text inputs, and textareas shown with focused and default states",
+      "primitives": ["TextInput", "Textarea", "Label"],
+      "visualNotes": "Form inputs use 8px rounded corners, 1px hairline border, 12px vertical / 14px horizontal padding, and 18px body type. Focused state uses black ring. Eye label uses figmaMono uppercase. Promo banner in lilac with magenta CTA sits above the form.",
+      "order": 7
+    },
+    {
+      "id": "marquee",
+      "name": "Marquee Strip",
+      "description": "Thin black ribbon with scrolling customer logos in white",
+      "primitives": ["Text"],
+      "visualNotes": "36px tall black strip with white text in figmaMono uppercase. Full width, minimal height — reads as a brand signal banner directly under navigation.",
+      "order": 8
+    },
+    {
+      "id": "spacing-radius-elevation",
+      "name": "Spacing, Radius & Elevation",
+      "description": "Visual documentation of the spacing scale, border radius stops, and elevation levels",
+      "primitives": ["Text"],
+      "visualNotes": "Spacing scale from hair (1px) to section (96px) shown as horizontal bars. Radius scale from xs (2px) to full (9999px) shown as colored squares. Elevation levels 0-3 shown as cards on surface-soft background with box-shadow treatments. All values traceable to DESIGN.md tokens.",
+      "order": 9
+    },
+    {
+      "id": "responsive",
+      "name": "Responsive Behavior",
+      "description": "Breakpoint table showing 7 device widths from 4K (1920px) to mobile XS (559px)",
+      "primitives": ["Text"],
+      "visualNotes": "Table of breakpoints with key changes per viewport. Device ladder visualization showing relative widths. Key changes: pricing collapses 4-up to 2-up at 960px, display-xl reduces from 86px to ~48px on mobile, color blocks become full-bleed below 768px.",
+      "order": 10
+    },
+    {
+      "id": "footer",
+      "name": "Footer",
+      "description": "Dense link grid on white canvas with 4-column layout and brand wordmark",
+      "primitives": ["Text"],
+      "visualNotes": "White canvas footer with 4-column grid of link lists. figmaMono column headings. Large top/bottom padding (96px section spacing). Hairline-soft border between columns.",
+      "order": 11
+    }
+  ],
+  "primitives": {
+    "Button": {
+      "variants": ["primary", "secondary", "tertiary-text", "icon-circular", "icon-circular-inverse", "magenta-promo", "pricing-tab-default", "pricing-tab-selected"],
+      "sizes": ["md"],
+      "behavior": "All CTAs are pill-shaped (50px radius). Primary is black fill with white text. Secondary is white fill with black text and hairline border. Tertiary is text-only with transparent background. Icon buttons are 40px circles. Magenta promo is a reserved accent for limited use. Pricing tabs toggle between default white and selected black surfaces.",
+      "states": ["default", "pressed", "selected"]
+    },
+    "Heading": {
+      "levels": [1, 2, 3],
+      "roles": ["display-xl", "display-lg", "headline", "subhead", "card-title"]
+    },
+    "Text": {
+      "roles": ["body-lg", "body", "body-sm", "link", "button", "eyebrow", "caption"],
+      "note": "Eyebrow and caption use figmaMono uppercase with positive tracking. Body hierarchy via weight not opacity."
+    },
+    "ColorBlock": {
+      "variants": ["lime", "lilac", "cream", "mint", "pink", "coral", "navy"],
+      "properties": {
+        "borderRadius": "24px",
+        "padding": "48px",
+        "width": "full content width",
+        "note": "Navy variant uses inverse white text. All others use black ink."
+      }
+    },
+    "Card": {
+      "variants": ["pricing-card", "template-card", "feature-illustration-tile"],
+      "properties": {
+        "pricing-card": "24px rounded corners, hairline border, 24px padding",
+        "template-card": "8px rounded corners, surface-soft background, 16px padding",
+        "feature-illustration-tile": "8px rounded corners, surface-soft background, 24px padding"
+      }
+    },
+    "TextInput": {
+      "states": ["default", "focused"],
+      "properties": {
+        "borderRadius": "8px",
+        "padding": "12px 14px",
+        "border": "1px hairline",
+        "fontSize": "18px",
+        "fontWeight": 320
+      }
+    },
+    "PricingTab": {
+      "variants": ["default", "selected"],
+      "properties": {
+        "default": "white background, black text, pill shape",
+        "selected": "black background, white text, pill shape"
+      }
+    }
+  },
+  "visual": {
+    "colorStory": "A deliberate contrast between rigorous monochrome (pure black on pure white) and oversized pastel color blocks. The black-and-white chrome — nav, buttons, body type, footer — establishes an editorial, technical credibility. Then each story section drops into a saturated lime, lavender, cream, mint, pink, coral, or navy panel that reads as a sticky note on a clean desk. The result is both serious and joyful. Magenta is the only accent color, used scarcely for promotional CTAs.",
+    "tokens": {
+      "surface": "#ffffff",
+      "text": "#000000",
+      "primary": "#000000",
+      "accent": "#ff3d8b",
+      "block-lime": "#dceeb1",
+      "block-lilac": "#c5b0f4",
+      "block-cream": "#f4ecd6",
+      "block-mint": "#c8e6cd",
+      "block-pink": "#efd4d4",
+      "block-coral": "#f3c9b6",
+      "block-navy": "#1f1d3d"
+    },
+    "typography": {
+      "display": "figmaSans",
+      "body": "figmaSans",
+      "mono": "figmaMono",
+      "fallback": "Inter for sans, JetBrains Mono for mono"
+    },
+    "spacing": {
+      "unit": "8px",
+      "character": "generous and rhythmic",
+      "keyStops": ["1px", "4px", "8px", "12px", "16px", "24px", "32px", "48px", "96px"]
+    },
+    "radius": {
+      "default": "8px",
+      "character": "pill-shaped CTAs (50px), rounded cards (24px), sharp forms (8px), circular icons (9999px)",
+      "keyStops": ["2px", "6px", "8px", "24px", "32px", "50px", "9999px"]
+    },
+    "motion": {
+      "character": "Not explicitly documented in the static analysis. Template cards use lazy-load fade-in on scroll. Color blocks appear to render statically. Animations exist on the marquee strip but are not detailed."
+    }
+  }
+}

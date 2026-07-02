@@ -20,6 +20,7 @@ export interface DomViolation {
     expected: string;
     actual: string;
     severity: 'error' | 'warning';
+    fix?: string;
 }
 export interface EvaluateRulesInput {
     /** The design system's declared CSS token map (name → value). */
