@@ -21,14 +21,17 @@ export const meta = {
 }
 
 const parsedArgs = typeof args === 'string' ? JSON.parse(args) : (args || {})
-const { source, id: explicitId, name } = parsedArgs
+const { source, id: explicitId, name, cwd } = parsedArgs
 if (!source) throw new Error('ds-import: source is required')
+
+// Change to target directory if provided
+const BASE = cwd || process.cwd()
 
 const AWESOME_MD = 'https://raw.githubusercontent.com/voltagent/awesome-design-md/main'
 const brand = source.replace('awesome/', '')
 const dsId = explicitId || brand.toLowerCase().replace(/[^a-z0-9-]/g, '-')
 const dsName = name || dsId
-const dsDir = `design-systems/${dsId}`
+const dsDir = `${BASE}/design-systems/${dsId}`
 const codeDir = `${dsDir}/code`
 
 log(`[ds-import] Importing "${dsName}" (${dsId}) from ${source}`)
