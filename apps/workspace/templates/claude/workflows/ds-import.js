@@ -12,6 +12,7 @@ export const meta = {
   description: 'Import DESIGN.md from awesome-design-md, scaffold primitives, delegate overview to ds-compose-overview.',
   phases: [
     { title: 'Fetch & tokens', detail: 'Fetch DESIGN.md, extract tokens.css, write manifest' },
+    { title: 'Generate skills', detail: 'Generate skills/build/SKILL.md + skills/taste/SKILL.md' },
     { title: 'Craft primitives', detail: 'Generate code/ React components from DESIGN.md' },
     { title: 'Compose overview', detail: 'Delegate to ds-compose-overview (Red-Green workflow)' },
   ],
@@ -68,6 +69,49 @@ Return a JSON summary of what was created: { tokens: number, colors: number, fon
 )
 
 log(`[ds-import] Token count: ${fetchResult?.tokens ?? '?'}`)
+
+// ═══════════════════════════════════════════════════════════════════════
+// Phase 1.5: Generate per-DS skills (build skill + taste profile)
+// ═══════════════════════════════════════════════════════════════════════
+phase('Generate skills')
+log('[ds-import] Generating skills/build/SKILL.md and skills/taste/SKILL.md')
+
+await agent(
+  `Generate the design-language build skill and taste profile for DS "${dsId}" at ${dsDir}.
+
+Inputs (read these first):
+- cat "${dsDir}/DESIGN.md"
+- cat "${dsDir}/tokens.css"
+
+Write to:
+1. ${dsDir}/skills/build/SKILL.md — the build skill with these 8 sections:
+   # <Name> Build Skill
+   ## Token Roles — table each SEMANTIC_TOKEN_ROLE with Tailwind class + CSS var + usage
+   ## Type Scale — display / h1 / h2 / h3 / body / caption
+   ## Spacing Scale — base unit + each stop
+   ## Radius & Depth — radius stops, shadow rules
+   ## Motion — fast/base/ease tokens
+   ## Component Patterns — 3-5 examples
+   ## Anti-Patterns — explicit DO NOT list
+   ## Reuse vs Author — "if @ds/<Name> exists, import, don't re-author"
+
+2. ${dsDir}/skills/taste/SKILL.md — the taste profile with YAML frontmatter:
+   ---
+   name: ${dsId}-taste
+   dials:
+     DESIGN_VARIANCE: <1-10>
+     MOTION_INTENSITY: <1-10>
+     VISUAL_DENSITY: <1-10>
+   ---
+   # ${dsId} Taste Profile
+   **Brand fingerprint:** <1-2 sentences>
+   **Visual characteristics:** <1-2 sentences>
+   **Anti-patterns:** <1-2 sentences>
+
+Return "done".`,
+  { label: `skills:${dsId}`, phase: 'Generate skills' }
+)
+log(`[ds-import] Skills generated for "${dsId}"`)
 
 // ═══════════════════════════════════════════════════════════════════════
 // Phase 2: Craft React primitives from DESIGN.md
