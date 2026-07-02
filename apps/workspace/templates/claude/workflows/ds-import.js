@@ -9,13 +9,13 @@
 
 export const meta = {
   name: 'ds-import',
-  description: 'Import DESIGN.md from awesome-design-md: fetch → tokens → analyze preview → skills → validate. Overview build is delegated to ds-compose-overview.',
+  description: 'Import DS from awesome-design-md: fetch → tokens → preview → analyze → build primitives RED/GREEN per manifest → compose overview.',
   phases: [
     { title: 'Fetch & tokens', detail: 'Fetch DESIGN.md, LLM extracts tokens.css + manifest' },
     { title: 'Fetch preview', detail: 'Fetch reference preview HTML (visual reality)' },
     { title: 'Analyze preview', detail: 'Extract branding, design language, sections, primitives → manifest' },
     { title: 'Generate skills', detail: 'Build + taste skills from DESIGN.md + tokens + preview + manifest' },
-    { title: 'Validate & primitives', detail: 'Validate contract + RED/GREEN missing primitives + barrel export' },
+    { title: 'Build primitives', detail: 'RED/GREEN each manifest primitive with preview HTML as ground truth' },
     { title: 'Compose overview', detail: 'Build React overview page matching preview via ds-compose-overview' },
   ],
 }
@@ -240,43 +240,98 @@ Return "done".`,
 log(`[ds-import] Skills generated for "${dsId}"`)
 
 // ═══════════════════════════════════════════════════════════════════════
-// Phase 5: Validate — ensure design system has all required primitives + tokens
+// Phase 5: Build primitives — RED/GREEN each primitive from manifest
+// Ground truth: preview HTML + DESIGN.md + tokens.css + build skill
 // ═══════════════════════════════════════════════════════════════════════
-phase('Validate')
-log('[ds-import] Validating design system contract + primitives')
+phase('Build primitives')
+log('[ds-import] Building primitives from manifest — RED/GREEN each with preview as ground truth')
 
-await agent(
-  `Validate that DS "${dsId}" at "${dsDir}" meets the contract requirements.
+// Collect all unique primitives from manifest sections
+const primitivesNeeded = [...new Set((sections || []).flatMap(s => s.primitives || []))].filter(Boolean)
+log(`[ds-import] Manifest requires ${primitivesNeeded.length} primitives: ${primitivesNeeded.join(', ')}`)
 
-Read these files:
-- cat "${dsDir}/DESIGN.md"          (should have 9 sections)
-- cat "${dsDir}/tokens.css"         (should have 11 SEMANTIC_TOKEN_ROLES)
-- cat "${dsDir}/preview-manifest.json"  (expected primitives list)
-- ls "${dsDir}/code/"               (actual primitives)
+// Build each primitive via RED/GREEN in parallel
+const primitiveResults = await parallel(primitivesNeeded.map((primName) => async () => {
+  const primPath = `${codeDir}/${primName}.tsx`
+  const testPath = `${dsDir}/__tests__/${primName}.test.ts`
 
-Check:
-1. DESIGN.md has all 9 required sections (Visual Theme, Color, Typography, Spacing, Layout, Components, Motion, Voice, Anti-patterns)
-2. tokens.css declares all 11 semantic roles (color-surface, color-surface-raised, color-text, color-text-muted, color-accent, color-accent-hover, color-border, radius, space-unit, font-sans, shadow-raised)
-3. All primitives listed in preview-manifest.json have corresponding .tsx files in code/
-4. Missing primitives must be created (RED/GREEN: write test → implement → pass)
+  // Check if already built
+  const checkResult = await agent(
+    `Check if "${primName}" already exists for DS "${dsId}" at "${primPath}".
+Run: test -f "${primPath}" && echo "EXISTS" || echo "MISSING"
+Return JSON: { "exists": true/false }`,
+    {
+      label: `check:${dsId}/${primName}`, phase: 'Build primitives',
+      schema: { type: 'object', properties: { exists: { type: 'boolean' } }, required: ['exists'] },
+    }
+  )
+  if (checkResult?.exists) {
+    log(`  ✅ ${primName} already exists — skipping`)
+    return { name: primName, status: 'skipped' }
+  }
 
-For each missing primitive, create it with:
-- A vitest test that fails initially (RED)
-- Then implement the component (GREEN)
+  // RED: write failing test
+  log(`  🔴 RED: ${primName}`)
+  await agent(
+    `Write a vitest test for primitive "${primName}" of DS "${dsId}" at "${testPath}".
 
-Return JSON: { ok: boolean, missingRoles: string[], missingPrimitives: string[], primitivesCreated: number, note: string }`,
-  { label: `validate:${dsId}`, phase: 'Validate', schema: {
-    type: 'object', properties: {
-      ok: { type: 'boolean' },
-      missingRoles: { type: 'array', items: { type: 'string' } },
-      missingPrimitives: { type: 'array', items: { type: 'string' } },
-      primitivesCreated: { type: 'number' },
-      note: { type: 'string' },
-    }, required: ['ok'],
-  }}
-)
+GROUND TRUTH (read these first):
+- cat "${dsDir}/reference-example.html"   (preview HTML — shows exactly how this component looks)
+- cat "${dsDir}/DESIGN.md"                (design contract)
+- cat "${dsDir}/tokens.css"               (token values)
+- cat "${dsDir}/skills/build/SKILL.md"    (build rules + anti-patterns)
 
-log(`[ds-import] ✅ Design system validated: "${dsName}" (${dsId})`)
+The component does NOT exist yet at "${primPath}" — the import will fail (RED confirmed).
+The test must check:
+1. Component renders (render from @testing-library/react)
+2. Uses CSS variables (no raw hex values)
+3. Accepts basic props matching the design language
+
+Write the test to "${testPath}".
+Run: npx vitest run "${testPath}" 2>&1 — confirm it FAILS.
+Return "RED confirmed".`,
+    { label: `red:${dsId}/${primName}`, phase: 'Build primitives' }
+  )
+
+  // GREEN: implement
+  log(`  🟩 GREEN: ${primName}`)
+  await agent(
+    `Implement primitive "${primName}" for DS "${dsId}" at "${primPath}".
+
+GROUND TRUTH (read these ALL before implementing):
+- cat "${dsDir}/reference-example.html"   (PREVIEW HTML — shows exactly how this component looks/behaves)
+- cat "${dsDir}/DESIGN.md"                (design contract)
+- cat "${dsDir}/tokens.css"               (exact token values)
+- cat "${dsDir}/skills/build/SKILL.md"    (build rules, anti-patterns, reuse rules)
+
+The preview HTML is the PRIMARY source of truth — match the visual appearance exactly.
+Cross-validate against DESIGN.md + tokens.css + build skill for correctness.
+
+Requirements:
+- CSS variables (var(--token-*)) for ALL colors, spacing, typography — NO hardcoded values
+- React.forwardRef
+- TypeScript prop interface with JSDoc
+- displayName
+- Interactive states (hover, focus, active, disabled) matching preview behavior
+- Default type="button" for Button components
+
+Write to "${primPath}".
+Run: npx vitest run "${testPath}" 2>&1 — must PASS (GREEN).
+If fails, fix and re-run until GREEN.
+Return JSON: { "file": "${primName}.tsx", "green": true }`,
+    {
+      label: `green:${dsId}/${primName}`, phase: 'Build primitives',
+      schema: { type: 'object', properties: { file: { type: 'string' }, green: { type: 'boolean' } }, required: ['file'] },
+    }
+  )
+
+  log(`  ✅ ${primName} built via RED/GREEN`)
+  return { name: primName, status: 'built' }
+}))
+
+const built = primitiveResults.filter(r => r?.status === 'built').length
+const skipped = primitiveResults.filter(r => r?.status === 'skipped').length
+log(`[ds-import] Primitives: ${built} built, ${skipped} skipped of ${primitivesNeeded.length}`)
 
 // Generate barrel export from code/ directory
 const tsxResult = await agent(
