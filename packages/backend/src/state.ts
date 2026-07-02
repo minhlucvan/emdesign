@@ -41,6 +41,8 @@ export interface ChangeRequest {
   payload?: Record<string, unknown>;
   /** Set by the agent when it finishes acting on this request. */
   note?: string;
+  /** Error message when status is 'error'. */
+  error?: string;
 }
 
 /** A persisted comment pin with its chat session reference. */
@@ -163,7 +165,9 @@ export class Store {
   setChangeRequestStatus(id: string, status: ChangeRequestStatus, note?: string): void {
     this.get(); // sync cross-process writes (HTTP bridge may have enqueued intents)
     this.state.changeRequests = this.state.changeRequests.map((cr) =>
-      cr.id === id ? { ...cr, status, ...(note ? { note } : {}) } : cr,
+      cr.id === id
+        ? { ...cr, status, ...(status === 'error' && note ? { error: note, note } : note ? { note } : {}) }
+        : cr,
     );
     this.persist();
   }

@@ -164,7 +164,48 @@ export async function cmdDs(ds: DsArgs, paths: RepoPaths, store: Store): Promise
         break;
       }
 
-      // Queue intent for agent processing (awesome, git, project)
+      // Inline import for awesome (fetch DESIGN.md from GitHub, run pipeline)
+      if (importSrc === 'awesome') {
+        const displayName = importName || importId;
+        process.stdout.write(`\n  📥 Fetching "${displayName}" from awesome-design-md...\n`);
+
+        const url = `https://raw.githubusercontent.com/voltagent/awesome-design-md/main/design-md/${importId}/DESIGN.md`;
+        let content: string;
+        try {
+          const resp = await fetch(url);
+          if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
+          content = await resp.text();
+          if (content.length < 100) throw new Error('DESIGN.md too short — likely not found');
+        } catch (e: any) {
+          formatError(`Failed to fetch DESIGN.md from awesome-design-md: ${e.message}`);
+          process.exit(1);
+          return;
+        }
+        process.stdout.write(`  ✅ Fetched DESIGN.md (${content.length} bytes)\n`);
+
+        // Run the pipeline inline
+        const { WorkflowOrchestrator } = await import('@emdesign/backend');
+        const orch = new WorkflowOrchestrator();
+        const result = await orch.runFromDesignMd({
+          content,
+          id: importId,
+          name: displayName,
+          workspaceRoot: paths.root,
+        });
+
+        if (result.completed) {
+          process.stdout.write(`\n  ✅ Import complete: "${displayName}"\n`);
+          process.stdout.write(`     📁 design-systems/${importId}/\n`);
+          process.stdout.write(`     skills/build/SKILL.md, skills/taste/SKILL.md\n`);
+          out({ ok: true, name: displayName, id: importId }, ds.json);
+        } else {
+          formatError(`Import failed at stage "${result.failedStage}": ${result.error}`);
+          process.exit(1);
+        }
+        break;
+      }
+
+      // Queue intent for agent processing (git, project)
       const displayName = importName || importId;
       const ref = ds.argv.includes('--ref') ? ds.argv[ds.argv.indexOf('--ref') + 1] : undefined;
       const subPath = ds.argv.includes('--path') ? ds.argv[ds.argv.indexOf('--path') + 1] : undefined;
@@ -172,9 +213,7 @@ export async function cmdDs(ds: DsArgs, paths: RepoPaths, store: Store): Promise
 
       const cr = store.enqueueIntent({
         type: 'create-design-system',
-        instruction: importSrc === 'awesome'
-          ? `Import the "${importId}" design system from awesome-design-md. Run the ds-import workflow with source "awesome/${importId}" and name "${displayName}". After import, run ds-generate-preview for the rich preview HTML.`
-          : importSrc === 'git'
+        instruction: importSrc === 'git'
           ? `Import the "${importId}" design system from git. Run the ds-import workflow with source "git/${importId}", ref "${ref ?? 'main'}", path "${subPath ?? ''}", and name "${displayName}". After import, run ds-generate-preview for the rich preview HTML.`
           : `Import the design system from project at "${projectPath}". Run the ds-import workflow with source "project/${projectPath}" and name "${displayName}". After import, adopt components and generate preview.`,
       });

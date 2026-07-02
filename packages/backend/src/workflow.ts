@@ -166,6 +166,8 @@ export interface RunFromDesignMdInput {
   content: string;
   name?: string;
   id?: string;
+  /** Workspace root the new design system is written into (defaults to cwd). */
+  workspaceRoot?: string;
 }
 
 export interface RunFromProjectInput {
@@ -506,10 +508,19 @@ export class WorkflowOrchestrator {
   /** Run the create-from-design-md workflow stages. */
   async runFromDesignMd(input: RunFromDesignMdInput): Promise<RunResult> {
     const sessionId = input.id ?? `wf_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const workspaceRoot = input.workspaceRoot ?? process.cwd();
+    const paths = resolveRepoPaths(workspaceRoot);
+    const id = input.id ?? `ds_${Date.now()}`;
+    const name = input.name ?? id;
+    const dir = path.join(paths.designSystemsDir, id);
+    const artifacts: Record<string, string> = {};
+
     const stages: WorkflowStage[] = [
       { name: 'parse', status: 'pending', progress: 0 },
       { name: 'extract-tokens', status: 'pending', progress: 0 },
       { name: 'generate-tokens-css', status: 'pending', progress: 0 },
+      { name: 'build-skill', status: 'pending', progress: 0 },
+      { name: 'taste', status: 'pending', progress: 0 },
       { name: 'scaffold-primitives', status: 'pending', progress: 0 },
       { name: 'build-graph', status: 'pending', progress: 0 },
       { name: 'validate', status: 'pending', progress: 0 },
@@ -517,7 +528,6 @@ export class WorkflowOrchestrator {
 
     this.store.create(sessionId, stages);
 
-    // Check for immediate cancellation (timeout=0)
     if (this.options.timeout === 0) {
       this.store.updateStage(sessionId, 'parse', 'error', 0, 'Workflow timed out');
       const session = this.store.get(sessionId);
@@ -525,25 +535,119 @@ export class WorkflowOrchestrator {
       return { sessionId, completed: false };
     }
 
+    let tokensCss = '';
+
     try {
-      await this.runStage(sessionId, 'parse', 15);
-      await this.runStage(sessionId, 'extract-tokens', 35);
-      await this.runStage(sessionId, 'generate-tokens-css', 55);
-      await this.runStage(sessionId, 'scaffold-primitives', 75);
-      await this.runStage(sessionId, 'build-graph', 90);
-      await this.runStage(sessionId, 'validate', 100);
+      await this.runStage(sessionId, 'parse', 10, () => {
+        ensureDir(dir);
+        fs.writeFileSync(path.join(dir, 'DESIGN.md'), input.content);
+        artifacts['DESIGN.md'] = input.content;
+      });
+
+      await this.runStage(sessionId, 'extract-tokens', 25, () => {
+        // Parse token declarations from DESIGN.md frontmatter
+        const fmMatch = input.content.match(/^---\n([\s\S]*?)\n---/);
+        if (fmMatch) {
+          const yaml = fmMatch[1];
+          const lines: string[] = [];
+          const colorsMatch = yaml.match(/colors:[\s\S]*?(?=\n\w|$)/);
+          if (colorsMatch) {
+            for (const m of colorsMatch[0].matchAll(/^\s{2}([\w-]+):\s*"(#[0-9a-fA-F]+)"/gm)) {
+              lines.push(`  --color-${m[1].replace(/_/g, '-')}: ${m[2]};`);
+            }
+          }
+          if (lines.length > 0) artifacts['extracted-tokens'] = `${lines.length} tokens extracted`;
+        }
+      });
+
+      await this.runStage(sessionId, 'generate-tokens-css', 45, () => {
+        // Generate tokens.css from base + override with DESIGN.md values
+        const overrides = new Map<string, string>();
+        const fmMatch = input.content.match(/^---\n([\s\S]*?)\n---/);
+        if (fmMatch) {
+          const yaml = fmMatch[1];
+          const colorsMatch = yaml.match(/colors:[\s\S]*?(?=\n\w|$)/);
+          if (colorsMatch) {
+            for (const m of colorsMatch[0].matchAll(/^\s{2}([\w-]+):\s*"(#[0-9a-fA-F]+)"/gm)) {
+              overrides.set(m[1].replace(/_/g, '-'), m[2]);
+            }
+          }
+        }
+        tokensCss = buildProjectTokensCss(overrides);
+        fs.writeFileSync(path.join(dir, 'tokens.css'), tokensCss);
+        artifacts['tokens.css'] = tokensCss;
+      });
+
+      await this.runStage(sessionId, 'build-skill', 60, () => {
+        const buildSkill = generateBuildSkill(name, dir);
+        const skillsDir = path.join(dir, 'skills', 'build');
+        fs.mkdirSync(skillsDir, { recursive: true });
+        fs.writeFileSync(path.join(skillsDir, 'SKILL.md'), buildSkill);
+        artifacts['skills/build/SKILL.md'] = 'generated';
+      });
+
+      await this.runStage(sessionId, 'taste', 68, () => {
+        const tasteSkill = generateTasteSkill(name, dir);
+        const tasteDir = path.join(dir, 'skills', 'taste');
+        fs.mkdirSync(tasteDir, { recursive: true });
+        fs.writeFileSync(path.join(tasteDir, 'SKILL.md'), tasteSkill);
+        artifacts['skills/taste/SKILL.md'] = 'generated';
+      });
+
+      await this.runStage(sessionId, 'scaffold-primitives', 78, () => {
+        scaffoldPrimitives(paths, id, 'atelier');
+      });
+
+      await this.runStage(sessionId, 'build-graph', 90, () => {
+        buildAndSave(paths, id);
+      });
+
+      await this.runStage(sessionId, 'validate', 100, () => {
+        const v = validateDesignSystem(paths, id);
+        if (!v.ok) throw new Error(`Design system validation failed: ${v.note}`);
+      });
+
+      // Register after validate passes
+      fs.writeFileSync(
+        path.join(dir, 'manifest.json'),
+        manifestJson(id, name, {
+          category: 'Imported',
+          description: `Imported from awesome-design-md.`,
+          source: { type: 'awesome', upstream: `https://github.com/voltagent/awesome-design-md` },
+        }),
+      );
+      setActiveDesignSystem(paths.root, id);
 
       const session = this.store.get(sessionId);
       if (session) session.status = 'completed';
 
-      return { sessionId, completed: true };
+      return { sessionId, completed: true, artifacts };
     } catch (e) {
       const errMsg = e instanceof Error ? e.message : String(e);
-      this.store.updateStage(sessionId, 'parse', 'error', 0, errMsg);
+      const current = stages.find(s => s.status === 'running')?.name ?? 'parse';
+      this.store.updateStage(sessionId, current, 'error', 0, errMsg);
       const session = this.store.get(sessionId);
-      if (session) session.status = 'failed';
-      return { sessionId, completed: false };
+      if (session) {
+        session.status = 'failed';
+        session.error = errMsg;
+      }
+      try { fs.rmSync(dir, { recursive: true, force: true }); } catch { /* nothing to clean */ }
+      return { sessionId, completed: false, failedStage: current, error: errMsg };
     }
+  }
+
+  // Overload runStage to accept an optional fn parameter
+  private async runStage(sessionId: string, name: string, progress: number, fn?: () => void | Promise<void>): Promise<void> {
+    const session = this.store.get(sessionId);
+    if (!session || session.cancelled || session.status === 'cancelled') {
+      throw new Error('Workflow cancelled');
+    }
+    if (session.status === 'failed') {
+      throw new Error(session.error || 'Workflow failed');
+    }
+    this.store.updateStage(sessionId, name, 'running', Math.max(0, progress - 5));
+    if (fn) await fn();
+    this.store.updateStage(sessionId, name, 'done', progress);
   }
 
   /**
@@ -725,20 +829,6 @@ export class WorkflowOrchestrator {
   /** Expose the underlying store for SSE streaming. */
   getStore(): WorkflowStore {
     return this.store;
-  }
-
-  private async runStage(sessionId: string, name: string, progress: number): Promise<void> {
-    const session = this.store.get(sessionId);
-    if (!session || session.cancelled || session.status === 'cancelled') {
-      throw new Error('Workflow cancelled');
-    }
-    if (session.status === 'failed') {
-      throw new Error(session.error || 'Workflow failed');
-    }
-    this.store.updateStage(sessionId, name, 'running', progress);
-    // Simulate async work
-    await new Promise(resolve => setImmediate(resolve));
-    this.store.updateStage(sessionId, name, 'done', progress);
   }
 
   private setTimeout(sessionId: string): void {
