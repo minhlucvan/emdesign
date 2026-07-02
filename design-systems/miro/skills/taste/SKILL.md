@@ -1,0 +1,15 @@
+---
+name: miro-taste
+dials:
+  DESIGN_VARIANCE: 7
+  MOTION_INTENSITY: 3
+  VISUAL_DENSITY: 4
+---
+
+# miro Taste Profile
+
+**Brand fingerprint:** Miro's brand is built on the metaphor of a blank canvas — a stark white page anchored by a small canary-yellow wordmark (--miro-brand-yellow: #ffd02f) that signals "start here, create anything." The system lives in the tension between minimal white space and the explosion of pastel color — rose, coral, teal, yellow — that echoes the real sticky-note palette of the live whiteboard product. Black-pill primary CTAs (--miro-primary: #1c1c1e, --radius-pill: 9999px) ground the playful pastels with a confident interaction layer. The brand navigates between "enterprise-ready" and "playful sandbox" on every surface: generous whitespace next to dense comparison tables, flat card layouts with strategic shadow depth on hero mockups, pastel feature panels beside dark CTA banners. There is no gradient, no heavy texture, no decorative illustration — the product imagery is the decoration.
+
+**Visual characteristics:** The system runs on five visual anchors. (1) Stark white canvas — page backgrounds are white, the wordmark is small and yellow, making the canvas itself feel empty and ready. (2) Pastel color-block sections — rose, coral, teal, and yellow feature cards (--radius-xxxl: 28px) create the narrative rhythm of every long-form page, acting as giant sticky notes placed on a clean desk. (3) Pill-shaped black CTAs are the only button shape — every call-to-action is a 9999px pill in black, blue, yellow, or white-on-dark. (4) Roobert PRO as the single typeface across every surface — from 80px hero displays (weight 500, line-height 1.05, letter-spacing -2px) down to 11px micro labels (weight 600, letter-spacing 0.5px), the face's geometric slightly-rounded character matches the playful product positioning. (5) Real Miro-board mockup imagery — actual product UI screenshots with sticky notes, kanban boards, and mind maps serve as the system's primary illustration language, never stock photography.
+
+**Anti-patterns:** Never use --miro-brand-yellow on CTAs or large background surfaces (it is reserved for the wordmark, top promo banner, and small tag chips); never introduce additional accent colors beyond the established pastel palette (yellow, rose, coral, teal); never apply corner radii other than --radius-pill to buttons (the pill shape is a brand signature); never set display typography line-height above 1.10 (the tight leading is deliberate editorial character); never apply drop shadows to documentation or pricing cards (elevation is reserved for whiteboard mockups and modals); never use stock photography — always show the live Miro-board product UI; never use spacing values between the defined tokens (every gap, padding, and margin must map to a --space-* token); never add borders to pastel feature cards (they are borderless by design); never introduce a second font family — Roobert PRO is the single system typeface across every surface.

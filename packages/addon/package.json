@@ -26,7 +26,7 @@
     "typescript": "^5.5.0"
   },
   "dependencies": {
-    "@emdesign/chat-ui": "^0.0.0",
+    "@emdesign/chat-ui": "*",
     "@emdesign/dsr": "^0.1.0-alpha.0",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1"

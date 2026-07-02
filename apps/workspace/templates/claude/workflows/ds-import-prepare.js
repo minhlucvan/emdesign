@@ -211,9 +211,17 @@ log('[ds-import:prepare] tokens.css written')
 phase('Build skill')
 log('[ds-import:prepare] Generating skills/build/SKILL.md from tokens.css')
 
-// Read tokens.css and DESIGN.md via shell
-const rawTokens = String(await $`cat "${dsPath}/tokens.css" 2>/dev/null || true`)
-const rawDesignMd = String(await $`cat "${dsPath}/DESIGN.md" 2>/dev/null || true`)
+// Read tokens.css and DESIGN.md via agent
+const rawTokensFetch = await agent(
+  'Read the tokens.css file at "' + dsPath + '/tokens.css" and return its full content as a string.',
+  { label: 'read-tokens:' + dsId, phase: 'Build skill' }
+)
+const rawTokens = String(rawTokensFetch || '')
+const rawDesignMdFetch = await agent(
+  'Read the DESIGN.md file at "' + dsPath + '/DESIGN.md" and return its full content as a string.',
+  { label: 'read-designmd:' + dsId, phase: 'Build skill' }
+)
+const rawDesignMd = String(rawDesignMdFetch || '')
 
 // Parse CSS vars into a map
 const tokenLines = []
@@ -313,9 +321,14 @@ tokenTable + '\n\n' +
 '- Use motion on borders, opacity, transforms, or position — only color transitions.\n\n' +
 '## Reuse vs Author\n\nIf a primitive exists at `@ds/<Name>`, import it. Never re-author. Check the `code/` directory for available primitives before creating new ones.\n'
 
-// Write build skill via base64 to avoid shell escaping issues
-const buildB64 = Buffer.from(buildSkillContent).toString('base64')
-await $`mkdir -p "${dsPath}/skills/build" && echo "${buildB64}" | base64 -d > "${buildSkillPath}"`
+  await agent(
+    'Write the build skill for DS "' + dsId + '".\n\n' +
+    'Create the file at "' + buildSkillPath + '" with the provided content.\n' +
+    'Run: mkdir -p "' + dsPath + '/skills/build"\n' +
+    'Write the file.\n' +
+    'Return "done".',
+    { label: 'write-build-skill:' + dsId, phase: 'Build skill' }
+  )
 log('[ds-import:prepare] Build skill written programmatically (' + buildSkillContent.length + ' bytes)')
 
 // ============================================================
@@ -368,9 +381,14 @@ const tasteSkillContent = '---\nname: ' + dsId + '-taste\ndescription: Taste pro
 '**Visual characteristics:** Generated from the design system\'s DESIGN.md. Refer to DESIGN.md for the full visual contract.\n\n' +
 '**Anti-patterns:** Avoid raw hex colors, hardcoded spacing outside the approved scale, and off-token values. Every component must reference semantic token roles.\n'
 
-// Write taste skill via base64
-const tasteB64 = Buffer.from(tasteSkillContent).toString('base64')
-await $`mkdir -p "${dsPath}/skills/taste" && echo "${tasteB64}" | base64 -d > "${dsPath}/skills/taste/SKILL.md"`
+  await agent(
+    'Write the taste skill for DS "' + dsId + '".\n\n' +
+    'Create the file at "' + dsPath + '/skills/taste/SKILL.md with the provided content.\n' +
+    'Run: mkdir -p "' + dsPath + '/skills/taste"\n' +
+    'Write the file.\n' +
+    'Return "done".',
+    { label: 'write-taste:' + dsId, phase: 'Taste' }
+  )
 log('[ds-import:prepare] Taste skill saved programmatically (' + tasteSkillContent.length + ' bytes)')
 
 // ============================================================

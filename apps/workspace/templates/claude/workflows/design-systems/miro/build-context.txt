@@ -1,0 +1,38 @@
+# Design context — Miro
+AI-powered visual workspace, playful brand anchored by canary yellow wordmark on white. Black-pill CTAs (--miro-primary), pastel feature cards (rose,teal,coral,yellow) echoing sticky-note palette, Roobert PRO typeface on every surface. Flat default; depth reserved for mockups/modals only.
+
+## Token classes
+--color-surface → bg-surface — sections, search-pill
+--color-surface-raised → bg-surface-raised — cards
+--color-text → text-default — body, headlines
+--color-text-muted → text-muted — secondary text
+--color-accent → text/bg-accent (#4262ff) — links
+--color-accent-hover → accent-hover (#2a41b6)
+--color-border → border-default — dividers, inputs
+--radius → rounded-default (8px)
+--font-sans → Roobert PRO,Noto Sans,sans-serif
+--shadow-raised → rgba(5,0,56,6%) 0 4px 12px
+
+## Type
+hero-display → 80/500/1.05/-2px — hero headline
+heading-1 → 48/500/1.15/-1px — page headline
+heading-2 → 36/500/1.20/-0.5px — subsection
+body-md → 16/400/1.50 — primary body
+body-sm → 14/400/1.50 — secondary body
+caption → 13/400/1.40 — helper text
+micro → 12/500/1.40 — footer microcopy
+button-md → 14/500/1.30 — pill labels
+stat-display → 64/500/1.10/-1.5px — stats
+All Roobert PRO. Weights: 400/500/600.
+
+## Spacing
+Base 4px. Stops: 4/8/12/16/20/24/32/40/48/64/96/120. 8px inc 8-40, then section jumps. Never values between tokens.
+
+## Radius & Depth
+Radius: 4/6/8/12/16/20/28/32/9999px. Pill(9999px)=ALL buttons/tabs/badges.
+Depth: subtle card mockup modal. Shadow=rgba(5,0,56,__%). Flat=hairline, no shadow.
+
+## Rules — 3 anti-patterns
+1. NO raw hex — use --miro-* / --color-* tokens. Raw hex fails lint.
+2. NO hardcoded spacing — use --space-* only. Off-scale values rejected.
+3. NO off-token colors — dark CTAs use --miro-primary. Pastel cards use only the 4 approved tints: --miro-brand-yellow, --miro-coral-light, --miro-teal-light, --miro-rose-light.
