@@ -9,13 +9,13 @@
 
 export const meta = {
   name: 'ds-import',
-  description: 'Import DESIGN.md from awesome-design-md, scaffold primitives, delegate overview to ds-compose-overview.',
+  description: 'Import DESIGN.md from awesome-design-md: fetch → tokens → analyze preview → skills → validate. Overview build is delegated to ds-compose-overview.',
   phases: [
     { title: 'Fetch & tokens', detail: 'Fetch DESIGN.md, LLM extracts tokens.css + manifest' },
     { title: 'Fetch preview', detail: 'Fetch reference preview HTML (visual reality)' },
-    { title: 'Analyze preview', detail: 'Extract branding, design language, sections, primitives → preview-manifest.json' },
-    { title: 'Generate skills', detail: 'Skills/build + taste from DESIGN.md + tokens.css + preview + manifest' },
-    { title: 'Build sections', detail: 'Loop manifest sections: RED/GREEN each primitive, compose section story' },
+    { title: 'Analyze preview', detail: 'Extract branding, design language, sections, primitives → manifest' },
+    { title: 'Generate skills', detail: 'Build + taste skills from DESIGN.md + tokens + preview + manifest' },
+    { title: 'Validate', detail: 'Validate contract + RED/GREEN missing primitives + barrel export' },
   ],
 }
 
@@ -235,100 +235,51 @@ Return "done".`,
 )
 log(`[ds-import] Skills generated for "${dsId}"`)
 
-// ── Helper: build one section (RED/GREEN its primitives, compose section story) ──
-async function buildSection(section, dsDir, dsId) {
-  const sectionId = section.id || section.name.toLowerCase().replace(/\s+/g, '-')
-  const sectionName = section.name
-  const neededPrimitives = section.primitives || []
-  let builtCount = 0
-
-  for (const primName of neededPrimitives) {
-    const primPath = `${dsDir}/code/${primName}.tsx`
-    const checkResult = await agent(
-      `Check if the file "${primPath}" exists for the "${dsId}" design system.
-Run: test -f "${primPath}" && echo "exists" || echo "not_found"
-Return JSON: { "exists": true/false }`,
-      { label: `check:${dsId}/${primName}`, phase: 'Build sections', schema: {
-        type: 'object', properties: { exists: { type: 'boolean' } }, required: ['exists'],
-      }}
-    )
-    const fileExists = checkResult?.exists === true
-    if (fileExists) { builtCount++; continue }
-
-    // RED: write test
-    log(`  🔴 ${sectionName}: ${primName} (RED — test that fails)`)
-    await agent(
-      `Write a vitest test for "${primName}" at "${dsDir}/__tests__/${primName}.test.ts".
-Read "${dsDir}/DESIGN.md" and "${dsDir}/reference-example.html" first.
-The component does NOT exist yet at "${primPath}".
-Write the test file, then run "npx vitest run \"${dsDir}/__tests__/${primName}.test.ts\"" — it must fail.
-Return "RED confirmed: test failed".`,
-      { label: `red:${dsId}/${primName}`, phase: 'Build sections' }
-    )
-
-    // GREEN: implement
-    log(`  🟩 ${sectionName}: ${primName} (GREEN — implement)`)
-    await agent(
-      `Implement "${primName}" component for design system at "${dsDir}".
-Read "${dsDir}/DESIGN.md", "${dsDir}/tokens.css", "${dsDir}/skills/build/SKILL.md" first.
-Also look at "${dsDir}/reference-example.html" to see how this component is used in context.
-
-Write to "${primPath}".
-Requirements: CSS variables for all values, forwardRef, TypeScript props, displayName, interactive states.
-Then run "npx vitest run \"${dsDir}/__tests__/${primName}.test.ts\"" — must pass.
-Return JSON: { "file": "${primName}.tsx", "green": true }`,
-      { label: `green:${dsId}/${primName}`, phase: 'Build sections', schema: {
-        type: 'object', properties: { file: { type: 'string' }, green: { type: 'boolean' } }, required: ['file'],
-      }}
-    )
-    builtCount++
-  }
-
-  // Compose section story from primitives
-  const storyPath = `${dsDir}/code/${sectionName}.stories.tsx`
-  log(`  📝 ${sectionName}: composing section story`)
-  await agent(
-    `Compose a React Storybook story for the "${sectionName}" section of the "${dsId}" design system.
-Read "${dsDir}/DESIGN.md", "${dsDir}/reference-example.html", and the existing primitives
-at "${dsDir}/code/" to understand how this section looks and what components it uses.
-
-Write a story file at "${storyPath}" that:
-- Imports primitives from './index'
-- Arranges them to match the reference preview HTML layout
-- Uses CSS variables (var(--token-*)) for all styling
-- Has proper Storybook meta with title "Design System/${dsId}/${sectionName}"
-
-Write the file and run "npx vitest run \"${dsDir}/__tests__/${sectionName}.test.ts\"" if it exists — must pass.
-Return "ok".`,
-    { label: `story:${dsId}/${sectionName}`, phase: 'Build sections' }
-  )
-
-  log(`  ✅ ${sectionName} done — ${builtCount} primitive(s) built`)
-  return { section: sectionName, primitivesBuilt: builtCount }
-}
-
 // ═══════════════════════════════════════════════════════════════════════
-// Phase 5: Per-section RED/GREEN primitives + compose section story
-// Loop through manifest, spawn sub-workflow per section in parallel
+// Phase 5: Validate — ensure design system has all required primitives + tokens
 // ═══════════════════════════════════════════════════════════════════════
-phase('Build sections')
-log('[ds-import] Building sections from preview-manifest — RED/GREEN per primitive')
+phase('Validate')
+log('[ds-import] Validating design system contract + primitives')
 
-const sectionResults = await parallel(sections.map((section) => () => buildSection(section, dsDir, dsId)))
+await agent(
+  `Validate that DS "${dsId}" at "${dsDir}" meets the contract requirements.
 
-const successfulSections = sectionResults.filter(Boolean).length
-log(`[ds-import] Sections: ${successfulSections}/${sections.length} built`)
+Read these files:
+- cat "${dsDir}/DESIGN.md"          (should have 9 sections)
+- cat "${dsDir}/tokens.css"         (should have 11 SEMANTIC_TOKEN_ROLES)
+- cat "${dsDir}/preview-manifest.json"  (expected primitives list)
+- ls "${dsDir}/code/"               (actual primitives)
 
-// ═══════════════════════════════════════════════════════════════════════
-// Summary
-// ═══════════════════════════════════════════════════════════════════════
-log(`[ds-import] ✅ Complete: "${dsName}" (${dsId})`)
-// Generate barrel export from all non-story .tsx files in code/
+Check:
+1. DESIGN.md has all 9 required sections (Visual Theme, Color, Typography, Spacing, Layout, Components, Motion, Voice, Anti-patterns)
+2. tokens.css declares all 11 semantic roles (color-surface, color-surface-raised, color-text, color-text-muted, color-accent, color-accent-hover, color-border, radius, space-unit, font-sans, shadow-raised)
+3. All primitives listed in preview-manifest.json have corresponding .tsx files in code/
+4. Missing primitives must be created (RED/GREEN: write test → implement → pass)
+
+For each missing primitive, create it with:
+- A vitest test that fails initially (RED)
+- Then implement the component (GREEN)
+
+Return JSON: { ok: boolean, missingRoles: string[], missingPrimitives: string[], primitivesCreated: number, note: string }`,
+  { label: `validate:${dsId}`, phase: 'Validate', schema: {
+    type: 'object', properties: {
+      ok: { type: 'boolean' },
+      missingRoles: { type: 'array', items: { type: 'string' } },
+      missingPrimitives: { type: 'array', items: { type: 'string' } },
+      primitivesCreated: { type: 'number' },
+      note: { type: 'string' },
+    }, required: ['ok'],
+  }}
+)
+
+log(`[ds-import] ✅ Design system validated: "${dsName}" (${dsId})`)
+
+// Generate barrel export from code/ directory
 const tsxResult = await agent(
   `List the component files in "${codeDir}/" that are NOT story files.
 Run: ls "${codeDir}"/*.tsx 2>/dev/null
 Return a JSON array of filenames (just the .tsx files that aren't .stories.tsx).`,
-  { label: `scanCode:${dsId}`, phase: 'Build sections', schema: {
+  { label: `scanCode:${dsId}`, phase: 'Validate', schema: {
     type: 'object', properties: { files: { type: 'array', items: { type: 'string' } } }, required: ['files'],
   }}
 )
@@ -343,18 +294,25 @@ if (components.length > 0) {
     `Generate the barrel export for "${dsDir}/code/index.ts".
 Write the following content to "${codeDir}/index.ts":
 ${indexLines.join('\n')}
-First run: mkdir -p "${codeDir}"
+Run: mkdir -p "${codeDir}"
 Then write the file.
 Return "done".`,
-    { label: `index:${dsId}`, phase: 'Build sections' }
+    { label: `index:${dsId}`, phase: 'Validate' }
   )
   log(`[ds-import] Barrel export: ${components.length} components in index.ts`)
 }
 
+// Summary
 log(`[ds-import]   Tokens: ${dsDir}/tokens.css (${fetchResult?.tokens ?? '?'} tokens)`)
 log(`[ds-import]   Primitives: ${components.length} in ${codeDir}/`)
-log(`[ds-import]   Overview: ${overviewResult?.overviewFile ?? 'N/A'}`)
-log(`[ds-import]   Tests: ${overviewResult?.testFile ?? 'none'} (${overviewResult?.testsPassed ? 'pass' : 'fail'})`)
+log(`[ds-import]   Preview manifest: ${dsDir}/preview-manifest.json`)
+log(`[ds-import]   Skills: ${dsDir}/skills/build/SKILL.md, skills/taste/SKILL.md`)
+
+log(`[ds-import]   Next: build overview page matching preview — run ds-compose-overview workflow:
+  Workflow({ scriptPath: 'apps/workspace/templates/claude/workflows/ds-compose-overview.js',
+    args: { dsId: "${dsId}", dsPath: "${dsDir}" } })
+`)
+log(`[ds-import]   This will: read preview HTML + manifest → build React section stories → compose Showcase → verify visual match`)
 
 return {
   id: dsId,
@@ -362,7 +320,6 @@ return {
   path: dsDir,
   tokens: fetchResult?.tokens ?? 0,
   primitives: components.length,
-  overviewFile: overviewResult?.overviewFile,
-  testFile: overviewResult?.testFile,
-  testsPassed: overviewResult?.testsPassed,
+  manifestPath: `${dsDir}/preview-manifest.json`,
+  skillsGenerated: true,
 }
