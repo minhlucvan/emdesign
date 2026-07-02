@@ -14,7 +14,11 @@ const config: StorybookConfig = {
     '../src/generated/**/*.stories.@(ts|tsx)',
     '../design-systems/*/code/**/*.stories.@(ts|tsx)',
   ],
-  addons: ['@storybook/addon-essentials', '@emdesign/addon'],
+  addons: [
+    '@storybook/addon-essentials',
+    '@emdesign/addon',
+    '@storybook/experimental-addon-test',
+  ],
   framework: { name: '@storybook/react-vite', options: {} },
   viteFinal: async (vite) => {
     vite.resolve = vite.resolve ?? {};

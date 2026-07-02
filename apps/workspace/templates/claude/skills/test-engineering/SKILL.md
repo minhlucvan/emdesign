@@ -5,7 +5,28 @@ description: Master testing skill for emdesign. Defines the 7-level testing pyra
 
 # Test Engineering
 
-The emdesign testing system is code-first: agents write **Vitest `.test.ts` files** that import `@emdesign/testbed` primitives directly, then run `npx vitest run <file>` to get a RED (fail) or GREEN (pass) verdict. No custom CLI commands — just standard Vitest.
+The emdesign testing system has two stacks:
+
+## Stack 1: Integration tests (source-level)
+Agents write **Vitest `.test.ts` files** that import `@emdesign/testbed` primitives, then run `npx vitest run <file>` to get RED (fail) or GREEN (pass). Source-code checks only — no browser needed.
+
+## Stack 2: Visual + DOM tests (browser-level)
+Agents write **`.test.ts` files** using `@storybook/experimental-addon-test` + `@emdesign/testdom`.
+`@storybook/experimental-addon-test` renders each story in a real headless Playwright browser.
+`@emdesign/testdom` evaluates design rules (token binding, anti-patterns, spacing, contrast) against
+the rendered DOM. Run with `npx vitest run` — the addon handles browser lifecycle automatically.
+
+```typescript
+import { test, expect } from '@storybook/experimental-addon-test';
+import { evaluatePage } from '@emdesign/testdom/playwright';
+
+test('token binding', async ({ page }) => {
+  await test.story();                            // renders story in Playwright
+  const report = await evaluatePage(page, tokens); // evaluates design rules
+  expect(report.tokenBinding.passed).toBe(true);
+  console.log(report.summary);                   // actionable feedback
+});
+```
 
 ## The 7-Level Testing Pyramid
 

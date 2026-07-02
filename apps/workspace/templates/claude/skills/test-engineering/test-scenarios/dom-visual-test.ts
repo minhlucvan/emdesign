@@ -1,58 +1,47 @@
 // Test template: dom-visual-test
-// Agent: copy this file, replace <Name> + <Url> + <Tokens>, write to e2e/<Name>.spec.ts
-// Then run: $ npx playwright test e2e/<Name>.spec.ts
+// Agent: copy this file, replace <Name> + <Tokens>, write to src/__tests__/<Name>.test.ts
+// Then run: $ npx vitest run src/__tests__/<Name>.test.ts --reporter=json
 //
-// Two test sets:
-//   1. Integration (vitest):   source lint + structural checks
-//   2. Visual + DOM (Playwright): browser rendering + rule eval + screenshot diff
+// Uses @storybook/experimental-addon-test to render stories in a real browser
+// + @emdesign/testdom/playwright to evaluate design rules on the rendered DOM.
 //
-// Clean DX: import { evaluatePage } from '@emdesign/testdom/playwright'
-//   → navigates, injects testdom, evaluates rules, returns structured report + summary
-import { test, expect } from '@playwright/test';
+// Storybook renders the story in headless Playwright → we inject testdom →
+// evaluate token binding, anti-patterns, spacing, contrast → get structured report.
+import { test, expect } from '@storybook/experimental-addon-test';
 import { evaluatePage } from '@emdesign/testdom/playwright';
 
 const name = '<Name>';
-const storyUrl = '<Url>'; // e.g. http://localhost:6006/iframe.html?id=...
+const tokens = { /* <TokenMap> — declare from tokens.css */ };
 
-// Design system tokens (replace with actual from tokens.css)
-const tokens = {
-  'color-surface': '#ffffff',
-  'color-text': '#000000',
-  'color-accent': '#000000',
-  'color-border': '#e6e6e6',
-  'radius': '8px',
-  'space-unit': '8px',
-  'font-sans': 'Inter, system-ui',
-};
+test.describe(`${name} — design rule validation`, () => {
 
-test.describe(`${name} — visual + DOM validation`, () => {
-
-  test('DOM: token binding + anti-patterns + contrast', async ({ page }) => {
-    const report = await evaluatePage(page, tokens, { url: storyUrl });
-
-    // Assertions
+  test('renders with correct token binding (no raw hex)', async ({ page }) => {
+    await test.story(); // renders the current story in a real browser
+    const report = await evaluatePage(page, tokens);
     expect(report.tokenBinding.passed).toBe(true);
-    expect(report.antiPatterns.score).toBeGreaterThanOrEqual(0.9);
-    expect(report.contrast.score).toBeGreaterThanOrEqual(0.8);
-
-    // Print actionable feedback (useful in CI)
-    console.log(report.summary);
+    if (!report.tokenBinding.passed) console.log(report.summary);
   });
 
-  test('Visual: screenshot matches baseline', async ({ page }) => {
-    await page.goto(storyUrl, { waitUntil: 'networkidle' });
-    const screenshot = await page.screenshot({ fullPage: true });
+  test('has no AI anti-patterns', async ({ page }) => {
+    await test.story();
+    const report = await evaluatePage(page, tokens);
+    expect(report.antiPatterns.score).toBeGreaterThanOrEqual(0.9);
+    if (report.antiPatterns.violations.length) console.log(report.summary);
+  });
 
-    const { existsSync, readFileSync, writeFileSync, mkdirSync } = await import('node:fs');
-    const baselinePath = `__screenshots__/${name}.baseline.png`;
+  test('meets WCAG contrast minimum', async ({ page }) => {
+    await test.story();
+    const report = await evaluatePage(page, tokens, { minContrast: 4.5 });
+    expect(report.contrast.passed).toBe(true);
+    if (!report.contrast.passed) console.log(report.summary);
+  });
 
-    if (existsSync(baselinePath)) {
-      const baseline = readFileSync(baselinePath);
-      expect(screenshot.length).toBeGreaterThan(1000);
-      // TODO: add pixelmatch comparison
-    } else {
-      mkdirSync('__screenshots__', { recursive: true });
-      writeFileSync(baselinePath, screenshot);
-    }
+  test('spacing aligns with design system scale', async ({ page }) => {
+    await test.story();
+    const report = await evaluatePage(page, tokens, {
+      spacingScale: ['4px', '8px', '12px', '16px', '24px', '32px', '48px', '64px'],
+    });
+    expect(report.spacing.score).toBeGreaterThanOrEqual(0.8);
+    if (report.spacing.violations.length) console.log(report.summary);
   });
 });
