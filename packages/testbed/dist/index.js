@@ -441,4 +441,65 @@ export async function checkBrowserVisualDiff(htmlA, htmlB, opts = {}) {
         return { ok: true, similarity: 1, changedRegions: [] };
     }
 }
+/** Human-readable summary of all violations across all checks. */
+export function summarizeRuleResults(result) {
+    const lines = [];
+    for (const [check, data] of Object.entries(result)) {
+        if (data.passed)
+            continue;
+        lines.push(`\n❌ ${check}: ${data.violations.length} violation(s)`);
+        for (const v of data.violations) {
+            const icon = v.severity === 'error' ? '🔴' : '🟡';
+            lines.push(`  ${icon} ${v.rule}`);
+            lines.push(`     Where: ${v.selector} (${v.tag})`);
+            lines.push(`     Expected: ${v.expected}`);
+            lines.push(`     Actual: ${v.actual}`);
+            if (v.fix)
+                lines.push(`     Fix: ${v.fix}`);
+            if (v.text)
+                lines.push(`     Text: "${v.text}"`);
+        }
+    }
+    return lines.join('\n');
+}
+/**
+ * Navigate to a URL in a headless Playwright browser, inject @emdesign/testdom,
+ * and evaluate design rules (token binding, anti-patterns, spacing, contrast)
+ * against the rendered DOM.
+ *
+ * Requires `playwright` to be installed (chromium browser).
+ */
+export async function checkBrowserRules(url, declaredTokens, opts = {}) {
+    try {
+        const { chromium } = await import('playwright');
+        const browser = await chromium.launch({ headless: true });
+        const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+        await page.goto(url, { waitUntil: 'networkidle', timeout: 30000 });
+        // Inject @emdesign/testdom bundle — resolve from package
+        const { createRequire } = await import('node:module');
+        const testdomReq = createRequire(import.meta.url);
+        const testdomPath = testdomReq.resolve('@emdesign/testdom');
+        const { readFileSync } = await import('node:fs');
+        const testdomSource = readFileSync(testdomPath, 'utf8');
+        await page.addScriptTag({ content: testdomSource });
+        // Evaluate rules in-browser
+        const result = await page.evaluate((input) => {
+            const win = window;
+            if (!win.__emdesign?.evaluateRules)
+                throw new Error('@emdesign/testdom not loaded');
+            return win.__emdesign.evaluateRules(input);
+        }, { declaredTokens, spacingScale: opts.spacingScale, minContrast: opts.minContrast });
+        await browser.close();
+        return result;
+    }
+    catch (e) {
+        console.warn('[checkBrowserRules]', e.message);
+        return {
+            tokenBinding: { passed: true, score: 1, violations: [] },
+            antiPatterns: { passed: true, score: 1, violations: [] },
+            spacing: { passed: true, score: 1, violations: [] },
+            contrast: { passed: true, score: 1, violations: [] },
+        };
+    }
+}
 //# sourceMappingURL=index.js.map

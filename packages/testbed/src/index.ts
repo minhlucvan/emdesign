@@ -606,11 +606,48 @@ export async function checkBrowserVisualDiff(
 // Browser-based rule evaluation (injects @emdesign/testdom into page)
 // ═══════════════════════════════════════════════════════════════════════
 
+export interface DomViolationResult {
+  rule: string;
+  selector: string;
+  tag: string;
+  text?: string;
+  expected: string;
+  actual: string;
+  severity: 'error' | 'warning';
+  /** Human-readable fix suggestion. */
+  fix?: string;
+}
+
+export interface DomCheckResult {
+  passed: boolean;
+  score: number;
+  violations: DomViolationResult[];
+}
+
 export interface BrowserRuleResult {
-  tokenBinding: { passed: boolean; score: number; violations: Array<{ rule: string; selector: string; expected: string; actual: string }> };
-  antiPatterns: { passed: boolean; score: number; violations: Array<{ rule: string; selector: string }> };
-  spacing: { passed: boolean; score: number; violations: Array<{ rule: string; selector: string }> };
-  contrast: { passed: boolean; score: number; violations: Array<{ rule: string; selector: string }> };
+  tokenBinding: DomCheckResult;
+  antiPatterns: DomCheckResult;
+  spacing: DomCheckResult;
+  contrast: DomCheckResult;
+}
+
+/** Human-readable summary of all violations across all checks. */
+export function summarizeRuleResults(result: BrowserRuleResult): string {
+  const lines: string[] = [];
+  for (const [check, data] of Object.entries(result) as [string, DomCheckResult][]) {
+    if (data.passed) continue;
+    lines.push(`\n❌ ${check}: ${data.violations.length} violation(s)`);
+    for (const v of data.violations) {
+      const icon = v.severity === 'error' ? '🔴' : '🟡';
+      lines.push(`  ${icon} ${v.rule}`);
+      lines.push(`     Where: ${v.selector} (${v.tag})`);
+      lines.push(`     Expected: ${v.expected}`);
+      lines.push(`     Actual: ${v.actual}`);
+      if (v.fix) lines.push(`     Fix: ${v.fix}`);
+      if (v.text) lines.push(`     Text: "${v.text}"`);
+    }
+  }
+  return lines.join('\n');
 }
 
 /**
@@ -632,10 +669,11 @@ export async function checkBrowserRules(
 
     await page.goto(url, { waitUntil: 'networkidle', timeout: 30000 });
 
-    // Inject @emdesign/testdom bundle
+    // Inject @emdesign/testdom bundle — resolve from package
+    const { createRequire } = await import('node:module');
+    const testdomReq = createRequire(import.meta.url);
+    const testdomPath = testdomReq.resolve('@emdesign/testdom');
     const { readFileSync } = await import('node:fs');
-    const { join } = await import('node:path');
-    const testdomPath = join(process.cwd(), 'packages', 'testdom', 'dist', 'index.js');
     const testdomSource = readFileSync(testdomPath, 'utf8');
     await page.addScriptTag({ content: testdomSource });
 

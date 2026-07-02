@@ -29,6 +29,7 @@ export function checkTokenBinding(declaredTokens) {
                 // Check if any token resolves to this hex
                 const tokenMatch = Object.entries(declaredTokens).find(([, v]) => normalizeHex(v) === hex);
                 if (!tokenMatch) {
+                    const nearestToken = findNearestToken(hex, declaredTokens);
                     violations.push({
                         selector: getSelector(el),
                         tag: el.tagName,
@@ -37,6 +38,9 @@ export function checkTokenBinding(declaredTokens) {
                         expected: `var(--color-*) token matching ${hex}`,
                         actual: `raw hex ${hex} in ${prop}`,
                         severity: 'error',
+                        fix: nearestToken
+                            ? `Replace with var(--${nearestToken}) — nearest token match`
+                            : `Add a token for ${hex} or use an existing semantic token`,
                     });
                 }
             }
@@ -75,6 +79,7 @@ export function checkAntiPatterns(declaredTokens) {
                 expected: 'no purple/indigo gradients (AI default look)',
                 actual: `gradient with AI-purple stop`,
                 severity: 'error',
+                fix: 'Replace the purple/indigo gradient with the design system\'s accent gradient or a neutral alternative',
             });
         }
         // 2. Emoji as icon
@@ -251,6 +256,30 @@ function parseRgb(value) {
     if (!m)
         return null;
     return [parseInt(m[1]), parseInt(m[2]), parseInt(m[3])];
+}
+/** Find the closest semantic token for a given hex value. */
+function findNearestToken(hex, tokens) {
+    const target = hexToRgb(hex);
+    if (!target)
+        return null;
+    let best = null;
+    for (const [name, val] of Object.entries(tokens)) {
+        const rgb = hexToRgb(normalizeHex(val));
+        if (!rgb)
+            continue;
+        const dist = Math.sqrt((target[0] - rgb[0]) ** 2 +
+            (target[1] - rgb[1]) ** 2 +
+            (target[2] - rgb[2]) ** 2);
+        if (!best || dist < best.dist)
+            best = { name, dist };
+    }
+    return best && best.dist < 100 ? best.name : null;
+}
+function hexToRgb(hex) {
+    const h = hex.replace(/^#/, '');
+    if (h.length < 6)
+        return null;
+    return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
 }
 function relativeLuminance([r, g, b]) {
     const [rs, gs, bs] = [r, g, b].map(c => {
