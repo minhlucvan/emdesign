@@ -114,49 +114,99 @@ Return "done".`,
 log(`[ds-import] Skills generated for "${dsId}"`)
 
 // ═══════════════════════════════════════════════════════════════════════
-// Phase 2: Craft React primitives from DESIGN.md
+// Phase 2: Craft React primitives — RED/GREEN per primitive
 // ═══════════════════════════════════════════════════════════════════════
 phase('Craft primitives')
-log('[ds-import] Generating React primitive components')
+log('[ds-import] RED/GREEN: React primitive components')
 
-const primitivesResult = await agent(
-  `You are building React primitive components for the "${dsName}" design system at ${codeDir}/.
+const PRIMITIVES = [
+  { name: 'Button', desc: 'variants: primary/secondary/ghost. Sizes: sm/md/lg. Disabled state.' },
+  { name: 'Card', desc: 'container with border, padding, rounded corners. Variants: default, elevated.' },
+  { name: 'Input', desc: 'text input with label, placeholder, focus/error states.' },
+  { name: 'Badge', desc: 'small label with color variants (accent, success, warn, danger).' },
+  { name: 'Heading', desc: 'h1-h6 using --font-display with proper sizes from the type scale.' },
+  { name: 'Text', desc: 'body text using --font-sans. Variants: body, body-sm, caption, code.' },
+  { name: 'Link', desc: 'anchor styled with --color-link, hover state.' },
+  { name: 'Stack', desc: 'flex layout wrapper. Variants: row, col with gap prop.' },
+  { name: 'Swatch', desc: 'color swatch showing a token value with label and hex.' },
+]
 
-Read the DESIGN.md at ${dsDir}/DESIGN.md and tokens.css at ${dsDir}/tokens.css to understand the visual language.
+let createdCount = 0
 
-Generate React .tsx component files for these primitives. Each component MUST:
-- Use the token CSS variables (var(--color-accent), var(--font-sans), var(--space-md), etc.)
-- Have proper TypeScript prop types with JSDoc
-- NOT hardcode hex values — always reference CSS custom properties
-- Be a functional component with inline styles referencing the tokens
+for (const p of PRIMITIVES) {
+  const filePath = `${codeDir}/${p.name}.tsx`
+  // Check if already exists
+  const exists = String(await $`test -f "${filePath}" && echo "yes" || echo "no"`).trim()
+  if (exists === 'yes') {
+    log(`[ds-import]  ${p.name}.tsx already exists — skipping`)
+    continue
+  }
 
-Create these files:
-1. **Button.tsx** — variants: primary (--color-accent bg), secondary (outline), ghost. Sizes: sm/md/lg. Support disabled.
-2. **Card.tsx** — container with border, padding, rounded corners. Variants: default, elevated (with shadow).
-3. **Input.tsx** — text input with label, placeholder, focus/error states.
-4. **Badge.tsx** — small label with color variants (accent, success, warn, danger).
-5. **Heading.tsx** — h1-h6 using --font-display with proper sizes from the type scale.
-6. **Text.tsx** — body text using --font-sans. Variants: body, body-sm, caption, code.
-7. **Link.tsx** — anchor styled with --color-link, hover state.
-8. **Stack.tsx** — flex layout wrapper. Variants: row, col with gap prop.
-9. **Swatch.tsx** — color swatch showing a token value with label and hex.
+  // RED: write a failing test
+  log(`[ds-import]  🔴 RED: ${p.name}`)
+  await agent(
+    `Write a VITEST test file for a React component "${p.name}" that does NOT exist yet.
 
-Also generate an **index.ts** that re-exports all components.
+The component will live at "${filePath}".
+The test file goes at "${dsDir}/__tests__/${p.name}.test.ts".
 
-Each file should be written using the Write tool (NOT shell commands).
-Return an array of file paths created.`,
-  { label: `primitives:${dsId}`, phase: 'Craft primitives', schema: {
-    type: 'object',
-    properties: {
-      files: { type: 'array', items: { type: 'string' } },
-      count: { type: 'number' },
-    },
-    required: ['files'],
-  }}
-)
+The test should import the component (which doesn't exist yet — the import will fail = RED confirmed).
+Write a test that checks:
+- It renders without crashing (render from @testing-library/react)
+- It accepts basic props
+- It uses CSS variables (check the source for var(--token-*) patterns)
 
-const componentCount = primitivesResult?.count ?? primitivesResult?.files?.length ?? 0
-log(`[ds-import] Created ${componentCount} primitive component(s)`)
+The component description: ${p.desc}
+Design system: "${dsName}" at ${dsDir}
+
+Read the DESIGN.md at ${dsDir}/DESIGN.md and tokens.css at ${dsDir}/tokens.css first.
+Write the test to "${dsDir}/__tests__/${p.name}.test.ts".
+
+Then run: npx vitest run "${dsDir}/__tests__/${p.name}.test.ts" 2>&1
+Confirm the test FAILS (RED confirmed). Return "RED confirmed: test failed".`,
+    { label: `red:${dsId}/${p.name}`, phase: 'Craft primitives' }
+  )
+
+  // GREEN: implement the component
+  log(`[ds-import]  🟩 GREEN: ${p.name}`)
+  await agent(
+    `Implement the React component "${p.name}" for design system "${dsName}" at ${dsDir}.
+
+Read these first:
+- cat "${dsDir}/DESIGN.md"
+- cat "${dsDir}/tokens.css"
+- cat "${dsDir}/skills/build/SKILL.md"
+
+The component "${p.name}" description: ${p.desc}
+
+Write to: ${filePath}
+
+Requirements:
+- Use CSS variables (var(--token-*)) for ALL colors, spacing, typography
+- Never hardcode hex values or pixel values
+- Use React.forwardRef for form elements
+- Add proper TypeScript prop interfaces with JSDoc
+- Add displayName
+- Include hover/focus/active interactive states where applicable
+- Default type="button" for Button
+
+Then run: npx vitest run "${dsDir}/__tests__/${p.name}.test.ts" 2>&1
+If tests fail, fix the component and re-run until GREEN.
+
+Return JSON: { file: "${p.name}.tsx", green: true }`,
+    { label: `green:${dsId}/${p.name}`, phase: 'Craft primitives', schema: {
+      type: 'object', properties: { file: { type: 'string' }, green: { type: 'boolean' } }, required: ['file'],
+    }}
+  )
+  createdCount++
+}
+
+// Write barrel export
+const indexContent = PRIMITIVES.map(p =>
+  `export { ${p.name} } from './${p.name}';\nexport type { ${p.name}Props } from './${p.name}';`
+).join('\n')
+await $`mkdir -p "${codeDir}" && echo '${indexContent}' > "${codeDir}/index.ts"`
+log(`[ds-import] Created ${createdCount} primitive(s) via RED/GREEN, index.ts re-exports all`)
 
 // ═══════════════════════════════════════════════════════════════════════
 // Phase 3: Delegate overview to ds-compose-overview (Red-Green)
