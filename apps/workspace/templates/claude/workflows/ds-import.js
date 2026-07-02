@@ -178,7 +178,10 @@ note the exact variants observed in the preview.`,
 const sections = manifestResult?.sections ?? []
 const primitives = manifestResult?.primitives ?? {}
 const manifestPath = `${dsDir}/preview-manifest.json`
-await $`mkdir -p "${dsDir}" && echo '${JSON.stringify(manifestResult, null, 2)}' > "${manifestPath}"`
+await agent(
+  `Save the preview manifest to "${manifestPath}".\nRun: mkdir -p "${dsDir}"\nWrite the JSON to file.\nReturn "done".`,
+  { label: `saveManifest:${dsId}`, phase: 'Analyze preview' }
+)
 log(`[ds-import] Preview manifest: ${sections.length} sections, ${Object.keys(primitives).length} primitives`)
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -241,8 +244,16 @@ async function buildSection(section, dsDir, dsId) {
 
   for (const primName of neededPrimitives) {
     const primPath = `${dsDir}/code/${primName}.tsx`
-    const exists = String(await $`test -f "${primPath}" && echo "yes" || echo "no"`).trim()
-    if (exists === 'yes') { builtCount++; continue }
+    const checkResult = await agent(
+      `Check if the file "${primPath}" exists for the "${dsId}" design system.
+Run: test -f "${primPath}" && echo "exists" || echo "not_found"
+Return JSON: { "exists": true/false }`,
+      { label: `check:${dsId}/${primName}`, phase: 'Build sections', schema: {
+        type: 'object', properties: { exists: { type: 'boolean' } }, required: ['exists'],
+      }}
+    )
+    const fileExists = checkResult?.exists === true
+    if (fileExists) { builtCount++; continue }
 
     // RED: write test
     log(`  🔴 ${sectionName}: ${primName} (RED — test that fails)`)
@@ -313,18 +324,30 @@ log(`[ds-import] Sections: ${successfulSections}/${sections.length} built`)
 // ═══════════════════════════════════════════════════════════════════════
 log(`[ds-import] ✅ Complete: "${dsName}" (${dsId})`)
 // Generate barrel export from all non-story .tsx files in code/
-const tsxFiles = String(await $`ls "${codeDir}"/*.tsx 2>/dev/null || true`).trim().split('\n').filter(Boolean)
-const components = tsxFiles
-  .filter(f => !f.endsWith('.stories.tsx'))
-  .map(f => f.replace(/.*\/(\w+)\.tsx$/, '$1'))
-  .filter(Boolean)
+const tsxResult = await agent(
+  `List the component files in "${codeDir}/" that are NOT story files.
+Run: ls "${codeDir}"/*.tsx 2>/dev/null
+Return a JSON array of filenames (just the .tsx files that aren't .stories.tsx).`,
+  { label: `scanCode:${dsId}`, phase: 'Build sections', schema: {
+    type: 'object', properties: { files: { type: 'array', items: { type: 'string' } } }, required: ['files'],
+  }}
+)
+const components = (tsxResult?.files || []).filter(f => !f.endsWith('.stories.tsx')).map(f => f.replace(/\.tsx$/, ''))
 
 if (components.length > 0) {
   const indexLines = components.flatMap(c => [
     `export { ${c} } from './${c}';`,
     `export type { ${c}Props } from './${c}';`,
   ])
-  await $`mkdir -p "${codeDir}" && echo '${indexLines.join('\n')}' > "${codeDir}/index.ts"`
+  await agent(
+    `Generate the barrel export for "${dsDir}/code/index.ts".
+Write the following content to "${codeDir}/index.ts":
+${indexLines.join('\n')}
+First run: mkdir -p "${codeDir}"
+Then write the file.
+Return "done".`,
+    { label: `index:${dsId}`, phase: 'Build sections' }
+  )
   log(`[ds-import] Barrel export: ${components.length} components in index.ts`)
 }
 
