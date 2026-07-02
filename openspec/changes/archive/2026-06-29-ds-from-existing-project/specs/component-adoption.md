@@ -51,12 +51,7 @@ which require attention before they enter the loop.
 - **WHEN** requested without `--json`
 - **THEN** the system prints a human-readable summary with counts and the triage list
 
-### Requirement: Adoption is exposed as an MCP tool
+### Requirement: Adoption is exposed via CLI and API
 
-The system SHALL expose component adoption as an MCP tool (`adopt_components`) so the agent loop can
-run or preview adoption and receive the structured adoption report.
-
-#### Scenario: Agent invokes adoption in run or preview mode
-- **WHEN** the agent calls the `adopt_components` tool with a run or preview mode argument
-- **THEN** in run mode the system performs adoption (place, rebind, classify) and in preview mode it computes the planned rebinds and classification without writing files
-- **THEN** it returns the structured adoption report (per-component status, rebinds, blocking values) as defined by the adoption-report requirement above
+The system SHALL expose component adoption via the `ds import project <path>` CLI command and
+backend API so the agent can run or preview adoption and receive the structured adoption report.

@@ -24,9 +24,7 @@ SSE-streamed progress:
   `uses`/`references`/`violates` edges, each with `{ file, line }` provenance; built via
   `buildAndSave` and overlaid via `overlayGenerated`/`overlayArtifact` in
   `packages/backend/src/graph.ts`.
-- MCP tools are registered in `packages/mcp-server/src/mcp.ts` via
-  `server.registerTool(name, { description, inputSchema: z.object(...) }, handler)` returning
-  `text(JSON.stringify(...))`.
+- (MCP server package removed — tools not applicable in current architecture)
 
 What is missing is the inverse direction: starting from an existing project and producing the
 standardized contract by **mining the decisions already in the code**, then adopting the project's
@@ -89,10 +87,8 @@ decision is persisted in this change (re-running adoption re-derives the report)
 shape/contents of the adoption report are owned by the `component-adoption` capability; other
 capabilities reference it rather than re-enumerating its fields.
 
-**5. New MCP tools mirror the existing pattern.**
-Add `analyze_project` (path → extracted values, proposed roles, confidence, provenance) and
-`adopt_components` (run/preview adoption, return the report) via `registerTool` with Zod schemas, so
-an MCP-driven agent can run the same flow the CLI/UI trigger.
+**5. MCP tools removed.** (MCP server package removed — extraction and adoption are
+available via CLI and API instead.)
 
 **6. CLI command slots into existing `cmdDs` dispatch.**
 `ds import project <path>` adds an `else if (importSrc === 'project')` branch calling a new

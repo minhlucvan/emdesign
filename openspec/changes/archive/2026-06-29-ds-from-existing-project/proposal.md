@@ -72,8 +72,7 @@ first-class citizens of the loop (design / edit / doctor / capture / critique).
 - **Backend** (`packages/backend/`): new `ds-from-project` workflow orchestrator, project-analysis
   and adoption modules, new `/api/*` endpoints with SSE progress, adoption-report model.
 - **CLI** (`packages/cli/`): new `ds import project <path>` command (and `--json`/`--gate` support).
-- **MCP tools** (`packages/mcp-server/src/mcp.ts`): new tools for project analysis / extraction / component
-  adoption added to the tool surface.
+- **CLI + API**: extraction and component adoption available via `ds import project <path>` CLI command and backend API endpoints.
 - **Graph** (`@emdesign/graph`): adopted components and their inferred tokens are added to
   `graph.json` with provenance.
 - **Frontend** (`packages/addon/`): new "From Existing Project" path in the System tab creator,
