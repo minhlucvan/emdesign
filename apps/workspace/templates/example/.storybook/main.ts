@@ -27,6 +27,8 @@ const config: StorybookConfig = {
     const existing = Array.isArray(vite.server.watch.ignored) ? vite.server.watch.ignored : [];
     if (!existing.includes('**/design-systems/**')) existing.push('**/design-systems/**');
     vite.server.watch.ignored = existing;
+    vite.server.fs = vite.server.fs ?? {};
+    vite.server.fs.allow = ['../../..', ...(vite.server.fs.allow ?? [])];
     return vite;
   },
 };

@@ -1,0 +1,18 @@
+{
+  "name": "@emdesign/testdom",
+  "version": "0.1.0-alpha.0",
+  "description": "Browser-injectable design rule evaluation — token binding, anti-patterns, spacing, contrast. Runs in the rendered DOM via Playwright.",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}

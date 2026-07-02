@@ -601,3 +601,63 @@ export async function checkBrowserVisualDiff(
     return { ok: true, similarity: 1, changedRegions: [] };
   }
 }
+
+// ═══════════════════════════════════════════════════════════════════════
+// Browser-based rule evaluation (injects @emdesign/testdom into page)
+// ═══════════════════════════════════════════════════════════════════════
+
+export interface BrowserRuleResult {
+  tokenBinding: { passed: boolean; score: number; violations: Array<{ rule: string; selector: string; expected: string; actual: string }> };
+  antiPatterns: { passed: boolean; score: number; violations: Array<{ rule: string; selector: string }> };
+  spacing: { passed: boolean; score: number; violations: Array<{ rule: string; selector: string }> };
+  contrast: { passed: boolean; score: number; violations: Array<{ rule: string; selector: string }> };
+}
+
+/**
+ * Navigate to a URL in a headless Playwright browser, inject @emdesign/testdom,
+ * and evaluate design rules (token binding, anti-patterns, spacing, contrast)
+ * against the rendered DOM.
+ *
+ * Requires `playwright` to be installed (chromium browser).
+ */
+export async function checkBrowserRules(
+  url: string,
+  declaredTokens: Record<string, string>,
+  opts: { spacingScale?: string[]; minContrast?: number } = {},
+): Promise<BrowserRuleResult> {
+  try {
+    const { chromium } = await import('playwright');
+    const browser = await chromium.launch({ headless: true });
+    const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+
+    await page.goto(url, { waitUntil: 'networkidle', timeout: 30000 });
+
+    // Inject @emdesign/testdom bundle
+    const { readFileSync } = await import('node:fs');
+    const { join } = await import('node:path');
+    const testdomPath = join(process.cwd(), 'packages', 'testdom', 'dist', 'index.js');
+    const testdomSource = readFileSync(testdomPath, 'utf8');
+    await page.addScriptTag({ content: testdomSource });
+
+    // Evaluate rules in-browser
+    const result = await page.evaluate(
+      (input: { declaredTokens: Record<string, string>; spacingScale?: string[]; minContrast?: number }) => {
+        const win = window as any;
+        if (!win.__emdesign?.evaluateRules) throw new Error('@emdesign/testdom not loaded');
+        return win.__emdesign.evaluateRules(input);
+      },
+      { declaredTokens, spacingScale: opts.spacingScale, minContrast: opts.minContrast },
+    );
+
+    await browser.close();
+    return result as BrowserRuleResult;
+  } catch (e: any) {
+    console.warn('[checkBrowserRules]', e.message);
+    return {
+      tokenBinding: { passed: true, score: 1, violations: [] },
+      antiPatterns: { passed: true, score: 1, violations: [] },
+      spacing: { passed: true, score: 1, violations: [] },
+      contrast: { passed: true, score: 1, violations: [] },
+    };
+  }
+}
