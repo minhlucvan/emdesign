@@ -12,9 +12,9 @@ export const meta = {
   description: 'Import DESIGN.md from awesome-design-md, scaffold primitives, delegate overview to ds-compose-overview.',
   phases: [
     { title: 'Fetch & tokens', detail: 'Fetch DESIGN.md, extract tokens.css, write manifest' },
-    { title: 'Generate skills', detail: 'Generate skills/build/SKILL.md + skills/taste/SKILL.md' },
-    { title: 'Fetch preview', detail: 'Fetch reference preview HTML for dynamic primitive discovery' },
-    { title: 'Compose overview', detail: 'Delegate to ds-compose-overview — dynamically extracts primitives from preview, RED/GREEN each, composes Showcase' },
+    { title: 'Fetch preview', detail: 'Fetch reference preview HTML (visual context for skills + compose)' },
+    { title: 'Generate skills', detail: 'Generate skills/build + taste from DESIGN.md + tokens.css + preview' },
+    { title: 'Compose overview', detail: 'ds-compose-overview: analyze preview → discover primitives dynamically → RED/GREEN each → compose Showcase' },
   ],
 }
 
@@ -71,53 +71,10 @@ Return a JSON summary of what was created: { tokens: number, colors: number, fon
 log(`[ds-import] Token count: ${fetchResult?.tokens ?? '?'}`)
 
 // ═══════════════════════════════════════════════════════════════════════
-// Phase 1.5: Generate per-DS skills (build skill + taste profile)
-// ═══════════════════════════════════════════════════════════════════════
-phase('Generate skills')
-log('[ds-import] Generating skills/build/SKILL.md and skills/taste/SKILL.md')
-
-await agent(
-  `Generate the design-language build skill and taste profile for DS "${dsId}" at ${dsDir}.
-
-Inputs (read these first):
-- cat "${dsDir}/DESIGN.md"
-- cat "${dsDir}/tokens.css"
-
-Write to:
-1. ${dsDir}/skills/build/SKILL.md — the build skill with these 8 sections:
-   # <Name> Build Skill
-   ## Token Roles — table each SEMANTIC_TOKEN_ROLE with Tailwind class + CSS var + usage
-   ## Type Scale — display / h1 / h2 / h3 / body / caption
-   ## Spacing Scale — base unit + each stop
-   ## Radius & Depth — radius stops, shadow rules
-   ## Motion — fast/base/ease tokens
-   ## Component Patterns — 3-5 examples
-   ## Anti-Patterns — explicit DO NOT list
-   ## Reuse vs Author — "if @ds/<Name> exists, import, don't re-author"
-
-2. ${dsDir}/skills/taste/SKILL.md — the taste profile with YAML frontmatter:
-   ---
-   name: ${dsId}-taste
-   dials:
-     DESIGN_VARIANCE: <1-10>
-     MOTION_INTENSITY: <1-10>
-     VISUAL_DENSITY: <1-10>
-   ---
-   # ${dsId} Taste Profile
-   **Brand fingerprint:** <1-2 sentences>
-   **Visual characteristics:** <1-2 sentences>
-   **Anti-patterns:** <1-2 sentences>
-
-Return "done".`,
-  { label: `skills:${dsId}`, phase: 'Generate skills' }
-)
-log(`[ds-import] Skills generated for "${dsId}"`)
-
-// ═══════════════════════════════════════════════════════════════════════
-// Phase 2: Fetch reference preview — needed by compose for dynamic extraction
+// Phase 2: Fetch reference preview — needed by skills AND compose
 // ═══════════════════════════════════════════════════════════════════════
 phase('Fetch preview')
-log('[ds-import] Fetching reference preview HTML for dynamic primitive discovery')
+log('[ds-import] Fetching reference preview HTML for dynamic extraction')
 
 const previewUrl = `https://getdesign.md/design-md/${brand}/preview.html`
 const previewPath = `${dsDir}/reference-example.html`
@@ -139,10 +96,62 @@ const previewBytes = previewFetch?.bytes ?? 0
 log(`[ds-import] Preview HTML: ${previewBytes} bytes at ${previewPath}`)
 
 // ═══════════════════════════════════════════════════════════════════════
-// Phase 3: Delegate overview to ds-compose-overview (Red-Green)
+// Phase 3: Generate per-DS skills (build skill + taste profile)
+// Uses DESIGN.md + tokens.css + preview HTML for richer context
+// ═══════════════════════════════════════════════════════════════════════
+phase('Generate skills')
+log('[ds-import] Generating skills/build/SKILL.md and skills/taste/SKILL.md')
+
+await agent(
+  `Generate the design-language build skill and taste profile for DS "${dsId}" at ${dsDir}.
+
+Inputs — read ALL three for maximum context:
+- cat "${dsDir}/DESIGN.md"        (text contract: principles, colors, typography, spacing)
+- cat "${dsDir}/tokens.css"       (token values: exact hex variables)
+- cat "${dsDir}/reference-example.html"  (RENDERED preview: actual visual layout, component examples, color usage in context)
+
+The preview HTML is especially important — it shows how the design actually looks on screen,
+giving you concrete visual examples of spacing, color pairing, typography hierarchy,
+component composition, and layout patterns. Use it to make the build skill's
+Component Patterns section reflect REAL usage, not generic examples.
+
+Write to:
+1. ${dsDir}/skills/build/SKILL.md — the build skill with these 8 sections:
+   # <Name> Build Skill
+   ## Token Roles — table each SEMANTIC_TOKEN_ROLE with Tailwind class + CSS var + usage
+   ## Type Scale — display / h1 / h2 / h3 / body / caption
+   ## Spacing Scale — base unit + each stop
+   ## Radius & Depth — radius stops, shadow rules
+   ## Motion — fast/base/ease tokens
+   ## Component Patterns — 3-5 examples based on REAL usage from the preview HTML
+   ## Anti-Patterns — explicit DO NOT list
+   ## Reuse vs Author — "if @ds/<Name> exists, import, don't re-author"
+
+2. ${dsDir}/skills/taste/SKILL.md — the taste profile with YAML frontmatter:
+   ---
+   name: ${dsId}-taste
+   dials:
+     DESIGN_VARIANCE: <1-10>    // derived from actual visual boldness in preview
+     MOTION_INTENSITY: <1-10>   // derived from animation patterns
+     VISUAL_DENSITY: <1-10>     // derived from spacing/info density
+   ---
+   # ${dsId} Taste Profile
+   **Brand fingerprint:** <1-2 sentences describing the design language>
+   **Visual characteristics:** <1-2 sentences from preview observation>
+   **Anti-patterns:** <1-2 sentences of what to avoid>
+
+Return "done".`,
+  { label: `skills:${dsId}`, phase: 'Generate skills' }
+)
+log(`[ds-import] Skills generated for "${dsId}"`)
+
+// ═══════════════════════════════════════════════════════════════════════
+// Phase 4: Delegate overview to ds-compose-overview (Red-Green)
+// Uses the preview HTML already fetched in Phase 2
+// ═══════════════════════════════════════════════════════════════════════
 // ═══════════════════════════════════════════════════════════════════════
 phase('Compose overview')
-log('[ds-import] Delegating overview to ds-compose-overview (Red-Green)')
+log('[ds-import] Delegating overview to ds-compose-overview — analyzes preview, RED/GREEN primitives, composes Showcase')
 
 const overviewResult = await workflow({scriptPath: 'apps/workspace/templates/claude/workflows/ds-compose-overview.js'}, {
   dsId,
