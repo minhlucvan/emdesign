@@ -15,7 +15,8 @@ export const meta = {
     { title: 'Fetch preview', detail: 'Fetch reference preview HTML (visual reality)' },
     { title: 'Analyze preview', detail: 'Extract branding, design language, sections, primitives → manifest' },
     { title: 'Generate skills', detail: 'Build + taste skills from DESIGN.md + tokens + preview + manifest' },
-    { title: 'Validate', detail: 'Validate contract + RED/GREEN missing primitives + barrel export' },
+    { title: 'Validate & primitives', detail: 'Validate contract + RED/GREEN missing primitives + barrel export' },
+    { title: 'Compose overview', detail: 'Build React overview page matching preview via ds-compose-overview' },
   ],
 }
 
@@ -302,17 +303,28 @@ Return "done".`,
   log(`[ds-import] Barrel export: ${components.length} components in index.ts`)
 }
 
+// ═══════════════════════════════════════════════════════════════════════
+// Phase 6: Compose overview — build React page matching preview HTML
+// ═══════════════════════════════════════════════════════════════════════
+phase('Compose overview')
+log('[ds-import] Building React overview page matching preview — ds-compose-overview')
+
+const overviewResult = await workflow({
+  scriptPath: 'apps/workspace/templates/claude/workflows/ds-compose-overview.js'
+}, {
+  dsId,
+  dsPath: dsDir,
+  maxAttempts: 3,
+})
+
+log(`[ds-import] Overview: ${overviewResult?.overviewFile ?? 'N/A'}`)
+log(`[ds-import]   Tests: ${overviewResult?.testFile ?? 'N/A'} (${overviewResult?.testsPassed ? 'pass' : 'fail'})`)
+
 // Summary
 log(`[ds-import]   Tokens: ${dsDir}/tokens.css (${fetchResult?.tokens ?? '?'} tokens)`)
 log(`[ds-import]   Primitives: ${components.length} in ${codeDir}/`)
 log(`[ds-import]   Preview manifest: ${dsDir}/preview-manifest.json`)
 log(`[ds-import]   Skills: ${dsDir}/skills/build/SKILL.md, skills/taste/SKILL.md`)
-
-log(`[ds-import]   Next: build overview page matching preview — run ds-compose-overview workflow:
-  Workflow({ scriptPath: 'apps/workspace/templates/claude/workflows/ds-compose-overview.js',
-    args: { dsId: "${dsId}", dsPath: "${dsDir}" } })
-`)
-log(`[ds-import]   This will: read preview HTML + manifest → build React section stories → compose Showcase → verify visual match`)
 
 return {
   id: dsId,
@@ -321,5 +333,7 @@ return {
   tokens: fetchResult?.tokens ?? 0,
   primitives: components.length,
   manifestPath: `${dsDir}/preview-manifest.json`,
-  skillsGenerated: true,
+  overviewFile: overviewResult?.overviewFile,
+  testFile: overviewResult?.testFile,
+  testsPassed: overviewResult?.testsPassed,
 }
