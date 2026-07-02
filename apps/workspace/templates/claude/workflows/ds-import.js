@@ -13,8 +13,8 @@ export const meta = {
   phases: [
     { title: 'Fetch & tokens', detail: 'Fetch DESIGN.md, extract tokens.css, write manifest' },
     { title: 'Generate skills', detail: 'Generate skills/build/SKILL.md + skills/taste/SKILL.md' },
-    { title: 'Craft primitives', detail: 'Generate code/ React components from DESIGN.md' },
-    { title: 'Compose overview', detail: 'Delegate to ds-compose-overview (Red-Green workflow)' },
+    { title: 'Fetch preview', detail: 'Fetch reference preview HTML for dynamic primitive discovery' },
+    { title: 'Compose overview', detail: 'Delegate to ds-compose-overview — dynamically extracts primitives from preview, RED/GREEN each, composes Showcase' },
   ],
 }
 
@@ -114,99 +114,29 @@ Return "done".`,
 log(`[ds-import] Skills generated for "${dsId}"`)
 
 // ═══════════════════════════════════════════════════════════════════════
-// Phase 2: Craft React primitives — RED/GREEN per primitive
+// Phase 2: Fetch reference preview — needed by compose for dynamic extraction
 // ═══════════════════════════════════════════════════════════════════════
-phase('Craft primitives')
-log('[ds-import] RED/GREEN: React primitive components')
+phase('Fetch preview')
+log('[ds-import] Fetching reference preview HTML for dynamic primitive discovery')
 
-const PRIMITIVES = [
-  { name: 'Button', desc: 'variants: primary/secondary/ghost. Sizes: sm/md/lg. Disabled state.' },
-  { name: 'Card', desc: 'container with border, padding, rounded corners. Variants: default, elevated.' },
-  { name: 'Input', desc: 'text input with label, placeholder, focus/error states.' },
-  { name: 'Badge', desc: 'small label with color variants (accent, success, warn, danger).' },
-  { name: 'Heading', desc: 'h1-h6 using --font-display with proper sizes from the type scale.' },
-  { name: 'Text', desc: 'body text using --font-sans. Variants: body, body-sm, caption, code.' },
-  { name: 'Link', desc: 'anchor styled with --color-link, hover state.' },
-  { name: 'Stack', desc: 'flex layout wrapper. Variants: row, col with gap prop.' },
-  { name: 'Swatch', desc: 'color swatch showing a token value with label and hex.' },
-]
+const previewUrl = `https://getdesign.md/design-md/${brand}/preview.html`
+const previewPath = `${dsDir}/reference-example.html`
 
-let createdCount = 0
+const previewFetch = await agent(
+  `Fetch the reference preview HTML for the "${dsName}" design system.
 
-for (const p of PRIMITIVES) {
-  const filePath = `${codeDir}/${p.name}.tsx`
-  // Check if already exists
-  const exists = String(await $`test -f "${filePath}" && echo "yes" || echo "no"`).trim()
-  if (exists === 'yes') {
-    log(`[ds-import]  ${p.name}.tsx already exists — skipping`)
-    continue
-  }
+Steps:
+1. Run: curl -sL "${previewUrl}" -o "${previewPath}"
+2. Verify: wc -c < "${previewPath}"
+3. Confirm the file is at least 1000 bytes (valid preview)
 
-  // RED: write a failing test
-  log(`[ds-import]  🔴 RED: ${p.name}`)
-  await agent(
-    `Write a VITEST test file for a React component "${p.name}" that does NOT exist yet.
-
-The component will live at "${filePath}".
-The test file goes at "${dsDir}/__tests__/${p.name}.test.ts".
-
-The test should import the component (which doesn't exist yet — the import will fail = RED confirmed).
-Write a test that checks:
-- It renders without crashing (render from @testing-library/react)
-- It accepts basic props
-- It uses CSS variables (check the source for var(--token-*) patterns)
-
-The component description: ${p.desc}
-Design system: "${dsName}" at ${dsDir}
-
-Read the DESIGN.md at ${dsDir}/DESIGN.md and tokens.css at ${dsDir}/tokens.css first.
-Write the test to "${dsDir}/__tests__/${p.name}.test.ts".
-
-Then run: npx vitest run "${dsDir}/__tests__/${p.name}.test.ts" 2>&1
-Confirm the test FAILS (RED confirmed). Return "RED confirmed: test failed".`,
-    { label: `red:${dsId}/${p.name}`, phase: 'Craft primitives' }
-  )
-
-  // GREEN: implement the component
-  log(`[ds-import]  🟩 GREEN: ${p.name}`)
-  await agent(
-    `Implement the React component "${p.name}" for design system "${dsName}" at ${dsDir}.
-
-Read these first:
-- cat "${dsDir}/DESIGN.md"
-- cat "${dsDir}/tokens.css"
-- cat "${dsDir}/skills/build/SKILL.md"
-
-The component "${p.name}" description: ${p.desc}
-
-Write to: ${filePath}
-
-Requirements:
-- Use CSS variables (var(--token-*)) for ALL colors, spacing, typography
-- Never hardcode hex values or pixel values
-- Use React.forwardRef for form elements
-- Add proper TypeScript prop interfaces with JSDoc
-- Add displayName
-- Include hover/focus/active interactive states where applicable
-- Default type="button" for Button
-
-Then run: npx vitest run "${dsDir}/__tests__/${p.name}.test.ts" 2>&1
-If tests fail, fix the component and re-run until GREEN.
-
-Return JSON: { file: "${p.name}.tsx", green: true }`,
-    { label: `green:${dsId}/${p.name}`, phase: 'Craft primitives', schema: {
-      type: 'object', properties: { file: { type: 'string' }, green: { type: 'boolean' } }, required: ['file'],
-    }}
-  )
-  createdCount++
-}
-
-// Write barrel export
-const indexContent = PRIMITIVES.map(p =>
-  `export { ${p.name} } from './${p.name}';\nexport type { ${p.name}Props } from './${p.name}';`
-).join('\n')
-await $`mkdir -p "${codeDir}" && echo '${indexContent}' > "${codeDir}/index.ts"`
-log(`[ds-import] Created ${createdCount} primitive(s) via RED/GREEN, index.ts re-exports all`)
+Return the file size in bytes.`,
+  { label: `preview:${dsId}`, phase: 'Fetch preview', schema: {
+    type: 'object', properties: { bytes: { type: 'number' } }, required: ['bytes'],
+  }}
+)
+const previewBytes = previewFetch?.bytes ?? 0
+log(`[ds-import] Preview HTML: ${previewBytes} bytes at ${previewPath}`)
 
 // ═══════════════════════════════════════════════════════════════════════
 // Phase 3: Delegate overview to ds-compose-overview (Red-Green)
@@ -227,17 +157,33 @@ log(`[ds-import]   Tests: ${overviewResult?.testFile ?? 'N/A'} (${overviewResult
 // Summary
 // ═══════════════════════════════════════════════════════════════════════
 log(`[ds-import] ✅ Complete: "${dsName}" (${dsId})`)
+// Generate barrel export from all non-story .tsx files in code/
+const tsxFiles = String(await $`ls "${codeDir}"/*.tsx 2>/dev/null || true`).trim().split('\n').filter(Boolean)
+const components = tsxFiles
+  .filter(f => !f.endsWith('.stories.tsx'))
+  .map(f => f.replace(/.*\/(\w+)\.tsx$/, '$1'))
+  .filter(Boolean)
+
+if (components.length > 0) {
+  const indexLines = components.flatMap(c => [
+    `export { ${c} } from './${c}';`,
+    `export type { ${c}Props } from './${c}';`,
+  ])
+  await $`mkdir -p "${codeDir}" && echo '${indexLines.join('\n')}' > "${codeDir}/index.ts"`
+  log(`[ds-import] Barrel export: ${components.length} components in index.ts`)
+}
+
 log(`[ds-import]   Tokens: ${dsDir}/tokens.css (${fetchResult?.tokens ?? '?'} tokens)`)
-log(`[ds-import]   Primitives: ${componentCount} components in ${codeDir}/`)
+log(`[ds-import]   Primitives: ${components.length} in ${codeDir}/`)
 log(`[ds-import]   Overview: ${overviewResult?.overviewFile ?? 'N/A'}`)
-log(`[ds-import]   Tests: ${overviewResult?.testFile ?? 'none'}`)
+log(`[ds-import]   Tests: ${overviewResult?.testFile ?? 'none'} (${overviewResult?.testsPassed ? 'pass' : 'fail'})`)
 
 return {
   id: dsId,
   name: dsName,
   path: dsDir,
   tokens: fetchResult?.tokens ?? 0,
-  primitives: componentCount,
+  primitives: components.length,
   overviewFile: overviewResult?.overviewFile,
   testFile: overviewResult?.testFile,
   testsPassed: overviewResult?.testsPassed,
