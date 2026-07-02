@@ -17,7 +17,7 @@ log(`[story-fix] Checking stories for ${name}`)
 
 // Check current story state
 try {
-  const result = await $`emdesign doctor charters ${name} --json`
+  const result = await $`emdesign test charter ${name} --json`
   const parsed = JSON.parse(result)
   if (parsed.ok) {
     const charterScore = parsed.data?.scores?.charters ?? 0
@@ -47,7 +47,7 @@ let chartersPassed = false
 let visualPassed = false
 
 try {
-  const result = await $`emdesign doctor charters ${name} --json`
+  const result = await $`emdesign test charter ${name} --json`
   const parsed = JSON.parse(result)
   chartersPassed = parsed.ok && (parsed.data?.scores?.charters ?? 0) >= 0.5
   log(`[story-fix] Charters: ${chartersPassed ? '✅' : '❌'}`)
@@ -60,7 +60,7 @@ try {
   const health = await $`emdesign storybook health --json 2>/dev/null`
   const h = JSON.parse(health)
   if (h.data?.status !== 'down') {
-    const result = await $`emdesign doctor visual ${name} --json`
+    const result = await $`emdesign test render ${name} --json`
     const parsed = JSON.parse(result)
     visualPassed = parsed.ok
     log(`[story-fix] Visual: ${visualPassed ? '✅' : '❌'}`)

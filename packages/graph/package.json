@@ -1,8 +1,8 @@
 {
   "name": "@emdesign/graph",
-  "version": "0.0.0",
+  "version": "0.1.0-alpha.0",
   "type": "module",
-  "description": "Labeled property graph that encodes any information of a design system \u2014 files, stories, components, tokens, colors, fonts, specs, rules, themes, artifacts \u2014 for craft, fix, impact analysis, and consistency.",
+  "description": "Labeled property graph that encodes any information of a design system — files, stories, components, tokens, colors, fonts, specs, rules, themes, artifacts — for craft, fix, impact analysis, and consistency.",
   "main": "dist/index.js",
   "exports": {
     ".": "./dist/index.js"
@@ -18,5 +18,8 @@
     "@types/node": "^20.14.0",
     "typescript": "^5.5.0",
     "vitest": "^2.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

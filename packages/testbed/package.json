@@ -1,0 +1,42 @@
+{
+  "name": "@emdesign/testbed",
+  "version": "0.1.0-alpha.0",
+  "type": "module",
+  "description": "Programmatic assertion primitives for emdesign design system operations — lint, validate, audit, grade, visual diff, snapshot, and React rendering. Designed for direct import (no subprocess) and AI red-green loop orchestration.",
+  "exports": {
+    ".": "./dist/index.js",
+    "./agent": "./dist/agent/index.js"
+  },
+  "typesVersions": {
+    "*": {
+      "agent": [
+        "./dist/agent/index.d.ts"
+      ]
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@emdesign/backend": "^0.1.0-alpha.0",
+    "@emdesign/dsr": "^0.1.0-alpha.0",
+    "@emdesign/visual-diff": "^0.1.0-alpha.0",
+    "@emdesign/graph": "^0.1.0-alpha.0"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0",
+    "vitest": "^2.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "typescript": "^5.5.0",
+    "vitest": "^2.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

@@ -54,9 +54,9 @@ EOF
 emdesign story auto StatsCard
 
 # Step 4: Verify
-emdesign doctor lint StatsCard
-emdesign doctor visual StatsCard     # needs Storybook
-emdesign doctor all StatsCard --gate # composite ship decision
+emdesign test lint StatsCard --json
+emdesign test render StatsCard --json     # needs Storybook
+emdesign test doctor StatsCard --json --gate # composite ship decision
 
 # Step 5: Iterate via loop
 emdesign loop StatsCard --max-iterations 3

@@ -1,6 +1,6 @@
 {
   "name": "@emdesign/workspace",
-  "version": "0.0.0",
+  "version": "0.1.0-alpha.0",
   "type": "module",
   "description": "emdesign workspace core — the abstract, framework-agnostic installer (init/attach), canonical .claude template, config schema, and the framework registry. Concrete stacks build on it (e.g. @emdesign/workspace-react).",
   "exports": {
@@ -8,6 +8,7 @@
     "./install": "./dist/install.js",
     "./registry": "./dist/registry.js"
   },
+  "files": ["dist", "src/templates"],
   "scripts": {
     "build": "tsc -p tsconfig.json"
   },

@@ -69,7 +69,7 @@ log(`[component] Progressive cascade gate for ${name}`)
 // Stage 1: Lint (fastest)
 let lintPassed = false
 try {
-  const result = await $`emdesign doctor lint ${name} --gate --json`
+  const result = await $`emdesign test lint --source src/generated/${name}.tsx --json --gate`
   const parsed = JSON.parse(result)
   lintPassed = parsed.ok && parsed.data?.decision === 'ship'
   log(`[component] Lint: ${lintPassed ? '✅' : '❌'} (composite: ${parsed.data?.composite ?? 0})`)
@@ -77,7 +77,7 @@ try {
     // Try element-level fix for lint issues
     const elementResult = await workflow('element-workflow', { name, type: 'lint' })
     if (elementResult.fixed) {
-      const retry = await $`emdesign doctor lint ${name} --gate --json`
+      const retry = await $`emdesign test lint --source src/generated/${name}.tsx --json --gate`
       lintPassed = JSON.parse(retry).ok
     }
   }
@@ -91,7 +91,7 @@ try {
   const health = await $`emdesign storybook health --json`
   const healthParsed = JSON.parse(health)
   if (healthParsed.data?.status === 'healthy' || healthParsed.data?.status === 'degraded') {
-    const result = await $`emdesign doctor visual ${name} --json`
+    const result = await $`emdesign test render ${name} --json`
     const parsed = JSON.parse(result)
     visualPassed = parsed.ok && parsed.data?.scores?.visual >= 0.85
     log(`[component] Visual: ${visualPassed ? '✅' : '❌'} (score: ${parsed.data?.scores?.visual ?? 0})`)
@@ -105,7 +105,7 @@ try {
 // Stage 3: Spatial
 let spatialPassed = false
 try {
-  const result = await $`emdesign doctor spatial ${name} --json`
+  const result = await $`emdesign test spatial ${name} --json`
   const parsed = JSON.parse(result)
   spatialPassed = parsed.ok && parsed.data?.scores?.spatial >= 0.8
   log(`[component] Spatial: ${spatialPassed ? '✅' : '❌'} (score: ${parsed.data?.scores?.spatial ?? 0})`)
@@ -120,7 +120,7 @@ let mustFix = 0
 let findings = []
 
 try {
-  const result = await $`emdesign doctor all ${name} --gate --json`
+  const result = await $`emdesign test doctor ${name} --json --gate`
   const parsed = JSON.parse(result)
   if (parsed.ok) {
     decision = parsed.data?.decision ?? 'revise'

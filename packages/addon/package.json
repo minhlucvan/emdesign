@@ -1,6 +1,6 @@
 {
   "name": "@emdesign/addon",
-  "version": "0.0.0",
+  "version": "0.1.0-alpha.0",
   "type": "module",
   "description": "emdesign Storybook addon — the live design ↔ change-request loop panel (chat · capture · visual-diff).",
   "exports": {
@@ -27,8 +27,11 @@
   },
   "dependencies": {
     "@emdesign/chat-ui": "^0.0.0",
-    "@emdesign/dsr": "*",
+    "@emdesign/dsr": "^0.1.0-alpha.0",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

@@ -25,7 +25,7 @@ which classifies it as `story` and delegates to the **story-fix** workflow.
 
 ```bash
 emdesign story auto <name>
-emdesign doctor charters <name> --gate
+emdesign test charter <name> --json --gate
 ```
 
 ## Common Intents Routed Here

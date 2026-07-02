@@ -84,7 +84,7 @@ Each import produces a complete design system from the source material. For `awe
 ### 4. Validate
 
 ```bash
-emdesign ds validate <id> --strict
+emdesign test validate <id> --json
 ```
 
 After import, always validate. For awesome-design-md imports, some tokens may be missing if the frontmatter was sparse — fill them in manually.

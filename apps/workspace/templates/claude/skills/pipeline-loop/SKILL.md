@@ -81,7 +81,7 @@ Iterates over all generated components, captures each one (promotes from `src/ge
 ### 4. Final Validation
 
 ```bash
-emdesign ds validate --strict
+emdesign test validate --json
 ```
 
 After capture, validate the design system contract remains intact.
@@ -89,7 +89,7 @@ After capture, validate the design system contract remains intact.
 ### 5. Full Gate
 
 ```bash
-emdesign doctor all <component> --gate
+emdesign test doctor <component> --json --gate
 ```
 
 Runs all verification kinds and exits with code 0 (ship) or 1 (revise).

@@ -1,8 +1,8 @@
 {
   "name": "@emdesign/plugin-api",
-  "version": "0.0.0",
+  "version": "0.1.0-alpha.0",
   "type": "module",
-  "description": "emdesign plugin contract \u2014 the capability-typed MedesignPlugin interface + hook types that framework/styling/library plugins implement. A leaf consumed by backend and every @emdesign/plugin-*.",
+  "description": "emdesign plugin contract — the capability-typed MedesignPlugin interface + hook types that framework/styling/library plugins implement. A leaf consumed by backend and every @emdesign/plugin-*.",
   "exports": {
     ".": "./dist/index.js"
   },
@@ -10,11 +10,14 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@emdesign/dsr": "*",
-    "@emdesign/graph": "*"
+    "@emdesign/dsr": "^0.1.0-alpha.0",
+    "@emdesign/graph": "^0.1.0-alpha.0"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",
     "typescript": "^5.5.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

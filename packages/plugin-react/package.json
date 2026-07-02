@@ -1,8 +1,8 @@
 {
   "name": "@emdesign/plugin-react",
-  "version": "0.0.0",
+  "version": "0.1.0-alpha.0",
   "type": "module",
-  "description": "emdesign React renderer plugin (framework) \u2014 generates on-system .tsx components + CSF stories for Storybook, provides React consistency lint rules, and code-parses TSX into the knowledge graph.",
+  "description": "emdesign React renderer plugin (framework) — generates on-system .tsx components + CSF stories for Storybook, provides React consistency lint rules, and code-parses TSX into the knowledge graph.",
   "exports": {
     ".": "./dist/index.js"
   },
@@ -10,10 +10,13 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@emdesign/plugin-api": "*"
+    "@emdesign/plugin-api": "^0.1.0-alpha.0"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",
     "typescript": "^5.5.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

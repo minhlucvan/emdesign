@@ -17,7 +17,7 @@ log(`[app] Setting up application: ${name}`)
 
 // Validate the workspace DS (set at init time, not per-invocation)
 try {
-  await $`emdesign ds validate --strict 2>/dev/null`
+  await $`emdesign test validate --json 2>/dev/null`
 } catch { /* optional */ }
 
 phase('Decompose')
@@ -69,7 +69,7 @@ if (reused.length > 0) {
 // Validate DS after all screens
 let dsValid = false
 try {
-  const result = await $`emdesign ds validate --strict --json 2>/dev/null`
+  const result = await $`emdesign test validate --json 2>/dev/null`
   const parsed = JSON.parse(result)
   dsValid = parsed.ok && parsed.data?.ok
   log(`[app] DS validate: ${dsValid ? '✅' : '❌'}`)

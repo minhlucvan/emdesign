@@ -47,7 +47,7 @@ log(`[auto-fix] Establishing baseline for ${name} (mode: ${mode}, vision: ${visi
 
 let baseline = null
 try {
-  const result = await $`emdesign doctor all ${name} --json`
+  const result = await $`emdesign test doctor ${name} --json`
   const parsed = JSON.parse(result)
   if (parsed.ok) {
     baseline = {
@@ -87,7 +87,7 @@ const probes = await parallel([
   async () => {
     if (!storybookHealthy) return { source: 'visual', ok: false, error: 'Storybook not healthy' }
     try {
-      const result = await $`emdesign doctor visual ${name} --json 2>/dev/null || echo '{"ok":false}'`
+      const result = await $`emdesign test render ${name} --json 2>/dev/null || echo '{"ok":false}'`
       return { source: 'visual', ...JSON.parse(result) }
     } catch (e) {
       return { source: 'visual', ok: false, error: e.message }
@@ -97,7 +97,7 @@ const probes = await parallel([
   // 2. Consistency lint (token binding, anti-patterns)
   async () => {
     try {
-      const result = await $`emdesign doctor lint ${name} --json 2>/dev/null || echo '{"ok":false}'`
+      const result = await $`emdesign test lint --source src/generated/${name}.tsx --json 2>/dev/null || echo '{"ok":false}'`
       return { source: 'lint', ...JSON.parse(result) }
     } catch (e) {
       return { source: 'lint', ok: false, error: e.message }
@@ -495,7 +495,7 @@ let regressed = false
 let rollbackNeeded = false
 
 try {
-  const result = await $`emdesign doctor all ${name} --gate --json`
+  const result = await $`emdesign test doctor ${name} --json --gate`
   const parsed = JSON.parse(result)
   if (parsed.ok) {
     postFix = {

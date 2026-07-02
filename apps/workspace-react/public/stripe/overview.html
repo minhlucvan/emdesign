@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Stripe Overview</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: Inter, system-ui, sans-serif; background: #f7f8fa; color: #1a1f36; padding: 32px; }
+  .header { text-align: center; margin-bottom: 32px; }
+  .header h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+  .header p { color: #6b7c93; font-size: 14px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 1400px; margin: 0 auto; }
+  .panel { background: #fff; border: 1px solid #e4e8ee; border-radius: 8px; overflow: hidden; }
+  .panel h2 { font-size: 14px; font-weight: 600; padding: 12px 16px; background: #f7f8fa; border-bottom: 1px solid #e4e8ee; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7c93; }
+  .panel iframe { width: 100%; height: 600px; border: none; }
+  .panel .content { padding: 16px; }
+  .status-bar { display: flex; gap: 12px; justify-content: center; margin-bottom: 24px; flex-wrap: wrap; }
+  .badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 500; }
+  .badge-green { background: #e3f9e5; color: #137752; }
+  .badge-purple { background: #eee9ff; color: #635bff; }
+  a { color: #635bff; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .section-list { padding: 16px; }
+  .section-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f0f0f0; font-size: 13px; }
+  .section-item:last-child { border-bottom: none; }
+  .check { color: #24b47e; }
+</style>
+</head>
+<body>
+  <div class="header">
+    <h1>Stripe Design System</h1>
+    <p>12 sections · 5 primitives · 18 tests · 25 tokens</p>
+    <div class="status-bar">
+      <span class="badge badge-green">✅ 18/18 tests passing</span>
+      <span class="badge badge-purple">🔷 25 semantic token roles</span>
+      <span class="badge badge-green">📦 5 primitive components</span>
+      <span class="badge badge-purple">🎨 12 overview sections</span>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="panel">
+      <h2>📄 Stripe Preview (reference-example.html)</h2>
+      <iframe src="/stripe/preview.html"></iframe>
+    </div>
+    <div class="panel">
+      <h2>🧩 Generated Overview Components</h2>
+      <div class="section-list">
+        <div class="section-item"><span><span class="check">✅</span> OverviewHero.tsx</span><span>header + CTA</span></div>
+        <div class="section-item"><span><span class="check">✅</span> Overviewpalette.tsx</span><span>color palette</span></div>
+        <div class="section-item"><span><span class="check">✅</span> Overviewtypography.tsx</span><span>type scale</span></div>
+        <div class="section-item"><span><span class="check">✅</span> Overviewbuttons.tsx</span><span>button variants</span></div>
+        <div class="section-item"><span><span class="check">✅</span> Overviewcards.tsx</span><span>card grid</span></div>
+        <div class="section-item"><span><span class="check">✅</span> Overviewforms.tsx</span><span>form elements</span></div>
+        <div class="section-item"><span><span class="check">✅</span> Overviewspacing.tsx</span><span>spacing scale</span></div>
+        <div class="section-item"><span><span class="check">✅</span> Overviewradius.tsx</span><span>border radius</span></div>
+        <div class="section-item"><span><span class="check">✅</span> Overviewelevation.tsx</span><span>shadows</span></div>
+        <div class="section-item"><span><span class="check">✅</span> Overviewresponsive.tsx</span><span>responsive</span></div>
+        <div class="section-item"><span><span class="check">✅</span> OverviewFooter.tsx</span><span>footer</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="header" style="margin-top: 32px;">
+    <p>View source: <a href="http://localhost:6006/stripe/preview.html">Raw preview HTML</a> · <a href="/stripe/tokens.css">tokens.css</a> · Tests: <code>examples/stripe/src/__tests__/</code></p>
+  </div>
+</body>
+</html>

@@ -133,7 +133,7 @@ let verified = false
 switch (layer) {
   case 'token':
   case 'lint-rule': {
-    const result = await $`emdesign ds validate --strict --json`
+    const result = await $`emdesign test validate --json`
     const parsed = JSON.parse(result)
     verified = parsed.ok && parsed.data?.ok
     log(`[ds-layer] Validate: ${verified ? '✅' : '❌'} (${parsed.data?.declared ?? 0} tokens)`)
@@ -141,7 +141,7 @@ switch (layer) {
   }
   case 'primitive': {
     for (const block of changed) {
-      const result = await $`emdesign doctor lint ${block} --json 2>/dev/null`
+      const result = await $`emdesign test lint --source src/generated/${block}.tsx --json 2>/dev/null`
       log(`[ds-layer] Primitive ${block}: checked`)
     }
     verified = true
@@ -171,7 +171,7 @@ if (layer === 'token' || layer === 'lint-rule') {
       log(`[ds-layer] ${affectedCount} potentially affected artifact(s)`)
       // Run doctor on affected components
       for (const dep of parsed.data.slice(0, 5)) {
-        const depResult = await $`emdesign doctor lint ${dep.id} --gate --json 2>/dev/null`
+        const depResult = await $`emdesign test lint --source src/generated/${dep.id}.tsx --json --gate 2>/dev/null`
         const depParsed = JSON.parse(depResult)
         if (!depParsed.ok || depParsed.data?.decision !== 'ship') {
           regressions++

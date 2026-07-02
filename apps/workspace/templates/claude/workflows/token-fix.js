@@ -35,7 +35,7 @@ log(`[token-fix] Applying fix`)
 
 phase('Verify')
 try {
-  const result = await $`emdesign doctor lint ${name} --gate --json`
+  const result = await $`emdesign test lint --source src/generated/${name}.tsx --json --gate`
   const parsed = JSON.parse(result)
   const passed = parsed.ok && parsed.data?.decision === 'ship'
   log(`[token-fix] ${passed ? '✅ Fixed' : '❌ Still failing'}`)

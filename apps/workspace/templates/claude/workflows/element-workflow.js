@@ -33,7 +33,7 @@ if ((type === 'token' || type === 'lint') && finding) {
 // Get current lint scores if available
 let currentScores = null
 try {
-  const result = await $`emdesign doctor lint ${name} --json`
+  const result = await $`emdesign test lint --source src/generated/${name}.tsx --json`
   const parsed = JSON.parse(result)
   if (parsed.ok) currentScores = parsed.data
 } catch { /* component may not exist yet */ }
@@ -69,7 +69,7 @@ phase('Verify')
 log(`[element] Running gate: doctor lint --gate`)
 
 try {
-  const result = await $`emdesign doctor lint ${name} --gate --json`
+  const result = await $`emdesign test lint --source src/generated/${name}.tsx --json --gate`
   const parsed = JSON.parse(result)
   const passed = parsed.ok && parsed.data?.decision === 'ship'
 

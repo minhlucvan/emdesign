@@ -18,7 +18,7 @@ log(`[component-edit] Establishing baseline for ${name}`)
 // Get current scores
 let baseline = null
 try {
-  const result = await $`emdesign doctor all ${name} --json`
+  const result = await $`emdesign test doctor ${name} --json`
   const parsed = JSON.parse(result)
   if (parsed.ok) {
     baseline = {
@@ -56,7 +56,7 @@ let mustFix = 0
 let regressed = false
 
 try {
-  const result = await $`emdesign doctor all ${name} --gate --json`
+  const result = await $`emdesign test doctor ${name} --json --gate`
   const parsed = JSON.parse(result)
   if (parsed.ok) {
     decision = parsed.data?.decision ?? 'revise'

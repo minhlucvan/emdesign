@@ -4,10 +4,11 @@ import { fileURLToPath } from 'node:url';
 import { FRAMEWORKS, detectFramework, listFrameworks } from './registry.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const CLAUDE_TEMPLATE = path.resolve(HERE, '../templates/claude');
-const CLAUDE_MD_TEMPLATE = path.resolve(HERE, '../templates/CLAUDE.md');
-const CONFIG_TEMPLATE = path.resolve(HERE, '../templates/emdesign.config.template.json');
-const STARTER_DS = path.resolve(HERE, '../../../design-systems/atelier');
+// Package root: two levels up from src/ (dev) or dist/ (published)
+const PKG_ROOT = path.resolve(HERE, '..');
+const CLAUDE_TEMPLATE = path.join(PKG_ROOT, 'src/templates/claude');
+const CLAUDE_MD_TEMPLATE = path.join(PKG_ROOT, 'src/templates/CLAUDE.md');
+const CONFIG_TEMPLATE = path.join(PKG_ROOT, 'src/templates/emdesign.config.template.json');
 
 export interface InstallResult {
   framework: string;
@@ -114,7 +115,9 @@ export function init(framework: string, targetDir: string): InstallResult {
   const notes: string[] = [];
   fs.mkdirSync(targetDir, { recursive: true });
 
-  const sbTemplates = path.resolve(HERE, entry.providerTemplatesPath);
+  // Try bundled provider templates first, then fall back to monorepo-relative path
+  const bundledTemplates = path.join(PKG_ROOT, 'src/templates/provider', entry.id);
+  const sbTemplates = fs.existsSync(bundledTemplates) ? bundledTemplates : path.resolve(HERE, entry.providerTemplatesPath);
   if (fs.existsSync(sbTemplates)) copyDir(sbTemplates, targetDir, false, wrote);
   else notes.push(`Provider templates not found for ${framework} (${entry.providerPackage}); .storybook not scaffolded.`);
 

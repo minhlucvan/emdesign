@@ -15,7 +15,7 @@ The shippable checkpoint. The agent never ships on its own — this requires a p
 
 1. **Gate check.** Run the full composite gate:
    ```bash
-   emdesign doctor all <name> --gate --json
+   emdesign test doctor <name> --json --gate
    ```
    This checks: token lint, visual diff, spatial geometry, charters — all must pass with `mustFix === 0`
    and `composite >= 0.8`.

@@ -19,7 +19,7 @@ Select a design system as the active one and rewire the workspace. This is a dir
    - Updates the `@ds` alias in the Vite/TS config
    - Rebuilds the knowledge graph
    - Confirms with token validation
-3. **Verify.** `emdesign ds validate <id> --strict`
+3. **Verify.** `emdesign test validate <id> --json`
 4. **Restart Storybook** if it was running, so it picks up the new tokens.
 
 ## Common Intents Routed Here

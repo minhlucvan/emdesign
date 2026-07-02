@@ -57,7 +57,7 @@ let composite = 0
 let mustFix = 0
 
 try {
-  const result = await $`emdesign doctor all ${name} --gate --json`
+  const result = await $`emdesign test doctor ${name} --json --gate`
   const parsed = JSON.parse(result)
   if (parsed.ok) {
     decision = parsed.data?.decision ?? 'revise'

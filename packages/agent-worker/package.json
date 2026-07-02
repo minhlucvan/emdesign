@@ -1,6 +1,6 @@
 {
   "name": "@emdesign/agent-worker",
-  "version": "0.0.0",
+  "version": "0.1.0-alpha.0",
   "private": true,
   "type": "module",
   "main": "dist/index.js",
@@ -9,6 +9,6 @@
     ".": "./dist/index.js"
   },
   "dependencies": {
-    "@emdesign/backend": "*"
+    "@emdesign/backend": "^0.1.0-alpha.0"
   }
 }

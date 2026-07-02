@@ -122,7 +122,7 @@ try {
 // Screen-level gate
 let decision = 'revise'
 try {
-  const result = await $`emdesign doctor all ${name} --json 2>/dev/null`
+  const result = await $`emdesign test doctor ${name} --json 2>/dev/null`
   const parsed = JSON.parse(result)
   if (parsed.ok) {
     decision = parsed.data?.decision ?? 'revise'

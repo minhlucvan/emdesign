@@ -247,7 +247,7 @@ log(`[ds-scaffold] Building knowledge graph`)
 
 // Build the knowledge graph
 try {
-  const graphResult = await $`emdesign graph build 2>/dev/null || echo "graph_unavailable"`
+  const graphResult = await $`emdesign test graph 2>/dev/null --json || echo "graph_unavailable"`
   if (graphResult.trim() !== 'graph_unavailable') {
     log(`[ds-scaffold] ✅ Knowledge graph built`)
   } else {
@@ -264,7 +264,7 @@ log(`[ds-scaffold] Validating design system`)
 let validationPassed = false
 let validationErrors = 0
 try {
-  const validationResult = await $`emdesign ds validate ${id} --strict --json 2>/dev/null`
+  const validationResult = await $`emdesign test validate ${id} --json 2>/dev/null`
   const parsed = JSON.parse(validationResult)
   if (parsed.ok) {
     validationPassed = true

@@ -86,7 +86,12 @@ export class AgentWorker {
     const brand = brandMatch?.[1] || '';
 
     const prompt = item.type === 'create-design-system'
-      ? `workflow('ds-import', { source: "awesome/${brand}", name: "${brand}" })`
+      ? `Run the Workflow tool to execute "ds-import" with these arguments:\n` +
+        `- source: "awesome/${brand}"\n` +
+        `- name: "${brand}"\n\n` +
+        `The workflow fetches the DESIGN.md from awesome-design-md, extracts tokens, ` +
+        `scaffolds React primitive components in code/, and composes a Showcase.stories.tsx ` +
+        `overview that matches the reference-example.html preview.`
       : item.instruction;
 
     this.opts.registerSession(sessionId, item);
@@ -96,10 +101,12 @@ export class AgentWorker {
     if (!binPath) throw new Error('claude binary not found');
 
     const child = spawn(binPath, [
-      '-p', '--input-format', 'stream-json',
+      '--print',
+      '--input-format', 'stream-json',
       '--output-format', 'stream-json',
       '--session-id', sessionId,
       '--permission-mode', 'bypassPermissions',
+      '--verbose',
     ], {
       cwd: this.opts.cwd,
       stdio: ['pipe', 'pipe', 'pipe'],

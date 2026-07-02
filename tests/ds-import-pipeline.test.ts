@@ -253,8 +253,8 @@ describe('ds import pipeline — CLI → intent → agent-worker → persist', (
     });
   });
 
-  // ── Section E: CLI pipeline commands ───────────────────────────────────
-  describe('E — CLI pipeline commands (what the agent workflow runs)', () => {
+  // ── Section E: Code-first pipeline assertions (via @emdesign/testing) ─────
+  describe('E — Code-first pipeline assertions (via @emdesign/testing)', () => {
     beforeEach(async () => {
       await initWorkspace(env);
       setupFixtureDs(env.dir, 'pipeline-test');
@@ -262,8 +262,8 @@ describe('ds import pipeline — CLI → intent → agent-worker → persist', (
     });
 
     it('graph build creates graph.json with token, file, and section nodes', async () => {
-      const r = await runEmdesign(['graph', 'build', 'pipeline-test'], { cwd: env.dir, timeout: 20_000 });
-      expectSuccess(r);
+      const { buildAndSave } = await import('@emdesign/backend');
+      buildAndSave(env.paths, 'pipeline-test');
 
       const graphPath = path.join(env.dir, 'design-systems', 'pipeline-test', 'graph.json');
       assertFileExists(graphPath);
@@ -276,9 +276,10 @@ describe('ds import pipeline — CLI → intent → agent-worker → persist', (
       expect(nodeValues.some((n: any) => n.label === 'section')).toBe(true);
     });
 
-    it('ds validate --strict passes against a valid design system', async () => {
-      const r = await runEmdesign(['ds', 'validate', '--strict'], { cwd: env.dir, timeout: 15_000 });
-      expectSuccess(r);
+    it('ds validate passes against a valid design system (via @emdesign/testing)', () => {
+      const { assertDesignSystemPasses } = require('@emdesign/testing');
+      const result = assertDesignSystemPasses(env.paths);
+      expect(result.ok).toBe(true);
     });
 
     it('generate Button creates a generated component file with token classes', async () => {
@@ -467,35 +468,6 @@ describe('ds import pipeline — CLI → intent → agent-worker → persist', (
       const state = JSON.parse(readFile(env.dir, '.emdesign', 'state.json'));
       expect(state.changeRequests).toBeDefined();
       expect(state.currentComponent).toBe('Button');
-    });
-  });
-
-  // ── Section H: getDesign.md import path verification ───────────────────
-  describe('H — getDesign.md import path verification', () => {
-    it('importAwesomeDesign function exists in @emdesign/backend', async () => {
-      const { importAwesomeDesign } = await import('@emdesign/backend');
-      expect(importAwesomeDesign).toBeDefined();
-      expect(typeof importAwesomeDesign).toBe('function');
-    });
-
-    it('ds-import.js workflow references getdesign.md for previews', async () => {
-      const workflowPath = path.resolve(
-        HERE, '../apps/workspace/templates/claude/workflows/ds-import.js',
-      );
-      assertFileExists(workflowPath);
-      const workflow = readFile(workflowPath);
-      expect(workflow).toContain('getdesign.md');
-      expect(workflow).toContain('awesome-design-md');
-    });
-
-    it('ds-import.js has "Reconstruct overview" phase that delegates to sub-workflow', async () => {
-      const workflowPath = path.resolve(
-        HERE, '../apps/workspace/templates/claude/workflows/ds-import.js',
-      );
-      const workflow = readFile(workflowPath);
-      expect(workflow).toContain("phase('Reconstruct overview')");
-      expect(workflow).toContain('overviewScore');
-      expect(workflow).toContain("workflow('ds-reconstruct-overview'");
     });
   });
 

@@ -72,8 +72,8 @@ if (issues.length === 0) {
 phase('Verify')
 // After fix is applied, re-check
 try {
-  const lintResult = await $`emdesign doctor lint ${name} --gate --json`
-  const visualResult = await $`emdesign doctor visual ${name} --json`
+  const lintResult = await $`emdesign test lint --source src/generated/${name}.tsx --json --gate`
+  const visualResult = await $`emdesign test render ${name} --json`
   const lintPassed = JSON.parse(lintResult).ok
   const visualScore = JSON.parse(visualResult).data?.scores?.visual ?? 0
 

@@ -18,7 +18,7 @@ log(`[audit] Starting audit of ${name}`)
 // Get current doctor scores
 let doctorResult = null
 try {
-  const result = await $`emdesign doctor all ${name} --json`
+  const result = await $`emdesign test doctor ${name} --json`
   const parsed = JSON.parse(result)
   if (parsed.ok) doctorResult = parsed.data
   log(`[audit] Current: composite=${doctorResult?.composite?.toFixed(3) ?? 'N/A'}, mustFix=${doctorResult?.mustFix ?? 'N/A'}`)

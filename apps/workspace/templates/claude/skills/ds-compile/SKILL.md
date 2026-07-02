@@ -27,7 +27,7 @@ Transform a design system's `tokens.css` into **typed, importable, versioned art
 ### 1. Validate — "Is the token contract complete?"
 
 ```bash
-emdesign ds validate <id> --strict
+emdesign test validate <id> --json
 ```
 
 Fails if any required token role is missing. Output shows `declared count / missing roles`.

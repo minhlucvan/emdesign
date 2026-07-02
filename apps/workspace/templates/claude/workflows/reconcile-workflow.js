@@ -44,7 +44,7 @@ for (const [name, info] of affectedList) {
   const compName = name.replace('art/', '').replace('screen:', '')
 
   try {
-    const result = await $`emdesign doctor all ${compName} --gate --json 2>/dev/null`
+    const result = await $`emdesign test doctor ${compName} --json --gate 2>/dev/null`
     const parsed = JSON.parse(result)
     const passed = parsed.ok && parsed.data?.decision === 'ship'
 

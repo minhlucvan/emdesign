@@ -87,7 +87,7 @@ let lintPassed = false
 let visualPassed = false
 
 try {
-  const lintResult = await $`emdesign doctor lint ${name} --gate --json 2>/dev/null || echo '{"ok":false}'`
+  const lintResult = await $`emdesign test lint --source src/generated/${name}.tsx --json --gate 2>/dev/null || echo '{"ok":false}'`
   const parsed = JSON.parse(lintResult)
   lintPassed = parsed.ok && parsed.data?.decision === 'ship'
   log(`[placement] Lint: ${lintPassed ? '✅' : '❌'}`)
@@ -99,7 +99,7 @@ try {
   const health = await $`emdesign storybook health --json 2>/dev/null || echo '{"data":{"status":"unknown"}}'`
   const h = JSON.parse(health)
   if (h.data?.status !== 'down') {
-    const visualResult = await $`emdesign doctor visual ${name} --json 2>/dev/null || echo '{"ok":false}'`
+    const visualResult = await $`emdesign test render ${name} --json 2>/dev/null || echo '{"ok":false}'`
     const parsed = JSON.parse(visualResult)
     visualPassed = parsed.ok && (parsed.data?.scores?.visual ?? 0) >= 0.5
     log(`[placement] Visual: ${visualPassed ? '✅' : '❌'}`)
@@ -110,7 +110,7 @@ try {
 let decision = 'revise'
 let composite = 0
 try {
-  const gateResult = await $`emdesign doctor all ${name} --gate --json 2>/dev/null || echo '{"ok":false}'`
+  const gateResult = await $`emdesign test doctor ${name} --json --gate 2>/dev/null || echo '{"ok":false}'`
   const parsed = JSON.parse(gateResult)
   if (parsed.ok) {
     decision = parsed.data?.decision ?? 'revise'
