@@ -6,7 +6,7 @@
 // Levels: Page (responsive meta) + Visual (viewport-specific diffs)
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
-import { assertHasResponsiveMeta } from '@emdesign/testing';
+import { assertHasResponsiveMeta } from '@emdesign/testbed';
 
 const htmlPath = '<HtmlPath>';         // rendered page HTML
 

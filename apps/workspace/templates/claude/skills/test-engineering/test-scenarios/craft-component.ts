@@ -6,7 +6,7 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import { resolveRepoPaths } from '@emdesign/backend';
-import { checkLint, checkSpatial, checkBehavior, assertRenderProbePasses, runDoctor } from '@emdesign/testing';
+import { checkLint, checkSpatial, checkBehavior, assertRenderProbePasses, runDoctor } from '@emdesign/testbed';
 
 const paths = resolveRepoPaths();
 const name = '<Name>';

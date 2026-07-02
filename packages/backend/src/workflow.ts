@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { resolveRepoPaths, ensureDir, setActiveDesignSystem } from './paths.js';
 import { parseDeclaredTokens } from './designContext.js';
-import { baseTokensCss, scaffoldPrimitives, validateDesignSystem, manifestJson } from './scaffold.js';
+import { baseTokensCss, scaffoldPrimitives, validateDesignSystem, manifestJson, applyDesignSystem } from './scaffold.js';
 import { buildAndSave } from './graph.js';
 import { extractProject, type ExtractionResult } from './project/extract.js';
 import { adoptProject } from './project/adopt.js';
@@ -607,7 +607,7 @@ export class WorkflowOrchestrator {
         if (!v.ok) throw new Error(`Design system validation failed: ${v.note}`);
       });
 
-      // Register after validate passes
+      // Register after validate passes — writes @import to active-design-system.css + updates config
       fs.writeFileSync(
         path.join(dir, 'manifest.json'),
         manifestJson(id, name, {
@@ -616,7 +616,7 @@ export class WorkflowOrchestrator {
           source: { type: 'awesome', upstream: `https://github.com/voltagent/awesome-design-md` },
         }),
       );
-      setActiveDesignSystem(paths.root, id);
+      applyDesignSystem(paths, id);
 
       const session = this.store.get(sessionId);
       if (session) session.status = 'completed';

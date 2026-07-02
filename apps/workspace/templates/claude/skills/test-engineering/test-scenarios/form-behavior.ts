@@ -6,7 +6,7 @@
 // Levels: Behavior (submit, keyboard, ARIA) + Component (states)
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
-import { checkBehavior, assertHasFormSubmit, assertHasKeyboardSupport, assertHasAriaAttributes } from '@emdesign/testing';
+import { checkBehavior, assertHasFormSubmit, assertHasKeyboardSupport, assertHasAriaAttributes } from '@emdesign/testbed';
 
 const name = '<Name>';
 const sourcePath = '<SourcePath>'; // e.g. src/generated/<Name>.tsx

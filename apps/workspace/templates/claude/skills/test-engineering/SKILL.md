@@ -5,7 +5,7 @@ description: Master testing skill for emdesign. Defines the 7-level testing pyra
 
 # Test Engineering
 
-The emdesign testing system is code-first: agents write **Vitest `.test.ts` files** that import `@emdesign/testing` primitives directly, then run `npx vitest run <file>` to get a RED (fail) or GREEN (pass) verdict. No custom CLI commands — just standard Vitest.
+The emdesign testing system is code-first: agents write **Vitest `.test.ts` files** that import `@emdesign/testbed` primitives directly, then run `npx vitest run <file>` to get a RED (fail) or GREEN (pass) verdict. No custom CLI commands — just standard Vitest.
 
 ## The 7-Level Testing Pyramid
 
@@ -52,7 +52,7 @@ Every test scenario follows the same pattern:
 - Standard output format (`vitest --reporter=json` produces structured test results)
 - Full parallel execution, watch mode, UI mode
 - Test files are normal TypeScript — developers can run them too
-- `expect()` + `@emdesign/testing` `assert*()` functions throw on failure = natural RED signal
+- `expect()` + `@emdesign/testbed` `assert*()` functions throw on failure = natural RED signal
 - No custom parsers needed
 
 ## Scenario Templates
@@ -92,11 +92,11 @@ npx vitest run src/__tests__/StatsCard.test.ts --reporter=json
 
 ## Writing Custom Test Files
 
-Import from `@emdesign/testing`:
+Import from `@emdesign/testbed`:
 
 ```typescript
 import { describe, it, expect } from 'vitest';
-import { checkLint, checkSpatial, checkBehavior, runDoctor } from '@emdesign/testing';
+import { checkLint, checkSpatial, checkBehavior, runDoctor } from '@emdesign/testbed';
 
 it('checks lint', () => {
   const result = checkLint(source);

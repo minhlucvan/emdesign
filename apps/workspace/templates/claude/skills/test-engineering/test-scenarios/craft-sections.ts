@@ -5,7 +5,7 @@
 // Levels: Page (structure, sections, navigation)
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
-import { checkPage, assertPageHasSections, assertHasPageStructure } from '@emdesign/testing';
+import { checkPage, assertPageHasSections, assertHasPageStructure } from '@emdesign/testbed';
 
 const name = '<Name>';
 const htmlPath = '<HtmlPath>'; // e.g. rendered page HTML file

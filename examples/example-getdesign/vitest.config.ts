@@ -6,6 +6,6 @@ export default defineConfig({
       'src/**/*.test.{ts,tsx}',
       'design-systems/*/__tests__/**/*.test.{ts,tsx}',
     ],
-    environment: 'node',
+    environment: 'jsdom',
   },
 });
