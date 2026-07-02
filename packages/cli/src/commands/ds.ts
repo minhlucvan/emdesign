@@ -194,9 +194,26 @@ export async function cmdDs(ds: DsArgs, paths: RepoPaths, store: Store): Promise
         });
 
         if (result.completed) {
-          process.stdout.write(`\n  ✅ Import complete: "${displayName}"\n`);
-          process.stdout.write(`     📁 design-systems/${importId}/\n`);
+          process.stdout.write(`\n  ✅ Contract generated: "${displayName}"\n`);
+          process.stdout.write(`     📁 ${path.join(paths.designSystemsDir, importId)}/\n`);
           process.stdout.write(`     skills/build/SKILL.md, skills/taste/SKILL.md\n`);
+
+          // Fetch reference preview HTML for overview compose
+          const previewUrl = `https://getdesign.md/design-md/${importId}/preview.html`;
+          try {
+            const previewResp = await fetch(previewUrl);
+            if (previewResp.ok) {
+              const previewHtml = await previewResp.text();
+              if (previewHtml.length > 1000) {
+                const previewPath = path.join(paths.designSystemsDir, importId, 'reference-example.html');
+                fs.writeFileSync(previewPath, previewHtml);
+                process.stdout.write(`     🔍 reference-example.html (${(previewHtml.length / 1024).toFixed(0)} KB)\n`);
+              }
+            }
+          } catch { /* preview fetch is best-effort */ }
+
+          process.stdout.write(`\n  ▶️  Next: run overview composition to build stories matching the preview.\n`);
+          process.stdout.write(`     From Claude Code: Workflow({ scriptPath: 'apps/workspace/templates/claude/workflows/ds-compose-overview.js', args: { dsId: "${importId}", dsPath: "${path.join(paths.designSystemsDir, importId)}" } })\n`);
           out({ ok: true, name: displayName, id: importId }, ds.json);
         } else {
           formatError(`Import failed at stage "${result.failedStage}": ${result.error}`);
